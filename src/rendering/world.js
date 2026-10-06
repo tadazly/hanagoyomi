@@ -873,8 +873,8 @@ canvas.addEventListener('wheel', (e) => { e.preventDefault(); S.fovY = clamp(S.f
 /* ================================================================== */
 function bindRange(id, key, fmt, onChange){
   const el = $(id), out = document.querySelector(`output[for="${id}"]`);
-  const paint = () => { const v = parseFloat(el.value); out.textContent = fmt(v); el.style.setProperty('--fill', ((v - el.min) / (el.max - el.min) * 100) + '%'); };
-  el.value = S[key]; paint();
+  const paint = (displayValue) => { const v = displayValue ?? parseFloat(el.value); out.textContent = fmt(v); el.style.setProperty('--fill', ((v - el.min) / (el.max - el.min) * 100) + '%'); };
+  el.value = S[key]; paint(S[key]);
   el.addEventListener('input', () => { S[key] = parseFloat(el.value); paint(); onChange && onChange(); });
   return {el, paint};
 }
@@ -1664,7 +1664,7 @@ function frame(now){
       weatherSource: S.wxMode === 'manual' ? '手动天气' : S.wxMode === 'off' ? '天气效果已关闭' : S.wxMode === 'dynamic' ? '动态天气' : WXS.src ? '动态天气 · 暂未连接天气服务' : '正在连接 Open-Meteo…',
       sun: getSunEvents(simMs, LOC), sunAltitude: AST.sunAlt / RAD, phase: phaseName(AST.phase),
     });
-    if (performance.now() - lastTimeInput > 600){ timeCtl.el.value = S.time; timeCtl.paint(); }
+    if (performance.now() - lastTimeInput > 600){ timeCtl.el.value = S.time; timeCtl.paint(S.time); }
     $('blades').textContent = grassOn ? '可见草叶约 ' + (bladeEst / 10000).toFixed(1) + ' 万' : '草叶未绘制（高空）';
     statAcc = 0; statFrames = 0; statT = 0;
   }

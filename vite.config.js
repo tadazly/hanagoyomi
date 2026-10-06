@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite';
 import { readFileSync } from 'node:fs';
+const version = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
 
 export default defineConfig({
   plugins: [{
     name: 'hanagoyomi-release-metadata',
     generateBundle() {
-      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ name: 'hanagoyomi', version: '1.0.0' }, null, 2) });
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ name: 'hanagoyomi', version }, null, 2) });
       for (const file of ['LICENSE', 'THIRD_PARTY_NOTICES.md']) {
         this.emitFile({ type: 'asset', fileName: file, source: readFileSync(file, 'utf8') });
       }
