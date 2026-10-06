@@ -7,3 +7,10 @@ dist/
 .DS_Store
 Thumbs.db
 *.tar.gz
+.local/
+.private/
+*.bundle
+*.private.*
+*.pem
+*.p12
+*.pfx
