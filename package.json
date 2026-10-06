@@ -1,0 +1,16 @@
+{
+  "name": "hanagoyomi",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "花暦：随真实地点、时间与天气流动的 WebGL2 自然世界。",
+  "license": "MIT",
+  "engines": { "node": ">=22.12.0" },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test tests/*.test.js"
+  },
+  "devDependencies": { "vite": "8.3.3" }
+}

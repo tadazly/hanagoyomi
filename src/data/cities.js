@@ -1,0 +1,36 @@
+const CITIES = [
+['东京','Tokyo',35.6762,139.6503,'Asia/Tokyo'],['大阪','Osaka',34.6937,135.5023,'Asia/Tokyo'],['京都','Kyoto',35.0116,135.7681,'Asia/Tokyo'],
+['札幌','Sapporo',43.0618,141.3545,'Asia/Tokyo'],['福冈','Fukuoka',33.5904,130.4017,'Asia/Tokyo'],['那霸','Naha',26.2124,127.6809,'Asia/Tokyo'],
+['首尔','Seoul',37.5665,126.978,'Asia/Seoul'],['釜山','Busan',35.1796,129.0756,'Asia/Seoul'],
+['北京','Beijing',39.9042,116.4074,'Asia/Shanghai'],['上海','Shanghai',31.2304,121.4737,'Asia/Shanghai'],['广州','Guangzhou',23.1291,113.2644,'Asia/Shanghai'],
+['深圳','Shenzhen',22.5431,114.0579,'Asia/Shanghai'],['杭州','Hangzhou',30.2741,120.1551,'Asia/Shanghai'],['南京','Nanjing',32.0603,118.7969,'Asia/Shanghai'],
+['成都','Chengdu',30.5728,104.0668,'Asia/Shanghai'],['重庆','Chongqing',29.563,106.5516,'Asia/Shanghai'],['武汉','Wuhan',30.5928,114.3055,'Asia/Shanghai'],
+['西安',"Xi'an",34.3416,108.9398,'Asia/Shanghai'],['昆明','Kunming',25.0389,102.7183,'Asia/Shanghai'],['拉萨','Lhasa',29.652,91.1721,'Asia/Shanghai'],
+['乌鲁木齐','Urumqi',43.8256,87.6168,'Asia/Shanghai'],['哈尔滨','Harbin',45.8038,126.5349,'Asia/Shanghai'],['三亚','Sanya',18.2528,109.5119,'Asia/Shanghai'],
+['香港','Hong Kong',22.3193,114.1694,'Asia/Hong_Kong'],['澳门','Macau',22.1987,113.5439,'Asia/Macau'],['台北','Taipei',25.033,121.5654,'Asia/Taipei'],
+['乌兰巴托','Ulaanbaatar',47.8864,106.9057,'Asia/Ulaanbaatar'],['新加坡','Singapore',1.3521,103.8198,'Asia/Singapore'],['曼谷','Bangkok',13.7563,100.5018,'Asia/Bangkok'],
+['河内','Hanoi',21.0278,105.8342,'Asia/Ho_Chi_Minh'],['胡志明市','Ho Chi Minh City',10.8231,106.6297,'Asia/Ho_Chi_Minh'],['吉隆坡','Kuala Lumpur',3.139,101.6869,'Asia/Kuala_Lumpur'],
+['雅加达','Jakarta',-6.2088,106.8456,'Asia/Jakarta'],['马尼拉','Manila',14.5995,120.9842,'Asia/Manila'],['新德里','New Delhi',28.6139,77.209,'Asia/Kolkata'],
+['孟买','Mumbai',19.076,72.8777,'Asia/Kolkata'],['加德满都','Kathmandu',27.7172,85.324,'Asia/Kathmandu'],['迪拜','Dubai',25.2048,55.2708,'Asia/Dubai'],
+['德黑兰','Tehran',35.6892,51.389,'Asia/Tehran'],['伊斯坦布尔','Istanbul',41.0082,28.9784,'Europe/Istanbul'],['莫斯科','Moscow',55.7558,37.6173,'Europe/Moscow'],
+['伦敦','London',51.5074,-0.1278,'Europe/London'],['爱丁堡','Edinburgh',55.9533,-3.1883,'Europe/London'],['巴黎','Paris',48.8566,2.3522,'Europe/Paris'],
+['柏林','Berlin',52.52,13.405,'Europe/Berlin'],['罗马','Rome',41.9028,12.4964,'Europe/Rome'],['马德里','Madrid',40.4168,-3.7038,'Europe/Madrid'],
+['巴塞罗那','Barcelona',41.3851,2.1734,'Europe/Madrid'],['里斯本','Lisbon',38.7223,-9.1393,'Europe/Lisbon'],['阿姆斯特丹','Amsterdam',52.3676,4.9041,'Europe/Amsterdam'],
+['维也纳','Vienna',48.2082,16.3738,'Europe/Vienna'],['布拉格','Prague',50.0755,14.4378,'Europe/Prague'],['苏黎世','Zurich',47.3769,8.5417,'Europe/Zurich'],
+['雅典','Athens',37.9838,23.7275,'Europe/Athens'],['斯德哥尔摩','Stockholm',59.3293,18.0686,'Europe/Stockholm'],['奥斯陆','Oslo',59.9139,10.7522,'Europe/Oslo'],
+['赫尔辛基','Helsinki',60.1699,24.9384,'Europe/Helsinki'],['雷克雅未克','Reykjavik',64.1466,-21.9426,'Atlantic/Reykjavik'],['特罗姆瑟','Tromso',69.6492,18.9553,'Europe/Oslo'],
+['朗伊尔城','Longyearbyen',78.2232,15.6267,'Arctic/Longyearbyen'],['开罗','Cairo',30.0444,31.2357,'Africa/Cairo'],['内罗毕','Nairobi',-1.2921,36.8219,'Africa/Nairobi'],
+['开普敦','Cape Town',-33.9249,18.4241,'Africa/Johannesburg'],['拉各斯','Lagos',6.5244,3.3792,'Africa/Lagos'],['马拉喀什','Marrakesh',31.6295,-7.9811,'Africa/Casablanca'],
+['纽约','New York',40.7128,-74.006,'America/New_York'],['波士顿','Boston',42.3601,-71.0589,'America/New_York'],['华盛顿','Washington',38.9072,-77.0369,'America/New_York'],
+['迈阿密','Miami',25.7617,-80.1918,'America/New_York'],['奥兰多','Orlando',28.5383,-81.3792,'America/New_York'],['芝加哥','Chicago',41.8781,-87.6298,'America/Chicago'],
+['丹佛','Denver',39.7392,-104.9903,'America/Denver'],['洛杉矶','Los Angeles',34.0522,-118.2437,'America/Los_Angeles'],['旧金山','San Francisco',37.7749,-122.4194,'America/Los_Angeles'],
+['西雅图','Seattle',47.6062,-122.3321,'America/Los_Angeles'],['温哥华','Vancouver',49.2827,-123.1207,'America/Vancouver'],['多伦多','Toronto',43.6532,-79.3832,'America/Toronto'],
+['安克雷奇','Anchorage',61.2181,-149.9003,'America/Anchorage'],['檀香山','Honolulu',21.3069,-157.8583,'Pacific/Honolulu'],['墨西哥城','Mexico City',19.4326,-99.1332,'America/Mexico_City'],
+['圣保罗','Sao Paulo',-23.5505,-46.6333,'America/Sao_Paulo'],['里约热内卢','Rio de Janeiro',-22.9068,-43.1729,'America/Sao_Paulo'],
+['布宜诺斯艾利斯','Buenos Aires',-34.6037,-58.3816,'America/Argentina/Buenos_Aires'],['利马','Lima',-12.0464,-77.0428,'America/Lima'],
+['圣地亚哥','Santiago',-33.4489,-70.6693,'America/Santiago'],['悉尼','Sydney',-33.8688,151.2093,'Australia/Sydney'],['墨尔本','Melbourne',-37.8136,144.9631,'Australia/Melbourne'],
+['珀斯','Perth',-31.9505,115.8605,'Australia/Perth'],['奥克兰','Auckland',-36.8485,174.7633,'Pacific/Auckland'],['皇后镇','Queenstown',-45.0312,168.6626,'Pacific/Auckland']
+];
+const COMMON_CITIES = ['东京', '上海', '北京', '伦敦', '巴黎', '纽约'];
+
+export { CITIES, COMMON_CITIES };

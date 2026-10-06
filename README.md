@@ -1,41 +1,114 @@
-# 云与草原 · Clouds and Meadow
+<div align="center">
 
-一个单文件的 WebGL2 实时场景：体积云、天空与星空、随风起伏的草原，以及一条引路的花瓣流。灵感来自 thatgamecompany 的《Flower》。
+<img src="public/favicon.svg" width="64" height="64" alt="花暦的五瓣花标志">
 
-打开 `index.html` 即可运行，不依赖任何构建工具或外部脚本（只从 Google Fonts 加载 Barlow 字体）。需要支持 WebGL2 的浏览器，手机和电脑都可以。
+# 花暦 · Hanagoyomi
 
-## 功能
+**把此刻，交给自然。**
 
-- **体积云**：Perlin-Worley 噪声 + 光线步进，Beer 定律、双瓣 Henyey-Greenstein 相函数、多重散射近似、云内环境光遮蔽，半分辨率渲染加时间累积（TAA）。
-- **天空与天文**：物理大气散射查找表；按所选城市和时刻计算的太阳、月亮（含月相）与五大行星位置；约 5000 颗真实恒星和星座连线。
-- **草原**：几何草叶多级 LOD + 中景草层 + 远景地形统一着色；风浪、花朵、漂浮花瓣、萤火虫。
-- **花瓣流**：类似《Flower》的引路花瓣，掠过时花苞绽放、夜间点亮花朵并照亮周围的草，可选“无限距离记忆”。
-- **天气系统**：16 种天气（晴朗到暴雪），支持跟随当地天气、动态切换、手动切换和关闭。包括高度雾、雨丝、积水倒影与涟漪、积雪、闪电、镜头雨滴（粒子模拟：滑落、融合、拖尾）。
-- **画面**：景深、泛光、按时段的调色、夜间按亮度区分的去饱和。
-- **设置持久化**：面板设置保存在浏览器本地，下次打开自动恢复。
+跟随真实地点、当地时间与天气，在云、草原和花瓣之间，走进一个不断变化的自然世界。
 
-## 操作
+[**在线体验 ↗**](https://hanagoyomi.luyilabs.com/) · [技术参考](docs/TECHNICAL.md) · [本地运行](#本地运行) · [参与贡献](CONTRIBUTING.md)
 
-| 平台 | 操作 |
-|---|---|
-| 电脑 | 拖动画面转向，WASD / 方向键移动，Q / E 升降，按住 Shift 加速，滚轮调视野，空格冲刺 |
-| 手机 | 单指滑动像飞行摇杆一样操控花瓣流，单指双击冲刺，两指双击掉头，三指双击停下或继续 |
+[![MIT License](https://img.shields.io/badge/License-MIT-65745b?style=flat-square)](LICENSE)
+[![检查与构建](https://github.com/tadazly/hanagoyomi/actions/workflows/ci.yml/badge.svg)](https://github.com/tadazly/hanagoyomi/actions/workflows/ci.yml)
+![WebGL2](https://img.shields.io/badge/Rendering-WebGL2-667a8a?style=flat-square)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES_Modules-c3a875?style=flat-square)
+[![Open-Meteo](https://img.shields.io/badge/Weather-Open--Meteo-8b9c7c?style=flat-square)](https://open-meteo.com/)
 
-右侧（手机为底部）的“天空与草原”面板可以调地点、时间流速、天气、草原、镜头和画质。
+</div>
 
-## 跟随当地天气
+<a href="https://hanagoyomi.luyilabs.com/"><img src="docs/images/hanagoyomi-desktop.jpg" alt="花暦实际运行截图：暮色下的草原与世界设置面板" width="100%"></a>
 
-“跟随天气”模式通过 [Open-Meteo](https://open-meteo.com/) 获取实时天气。在本地直接打开文件或部署到 GitHub Pages 等普通网页环境时可以正常使用；在禁止访问外部网站的沙箱环境中会自动改为“动态切换”。
+> 上图为浏览器中的实际 WebGL2 渲染。草原与花海由程序生成，天空随所选地点的天文位置和当前天气变化；地形并非该城市的地理复刻。
 
-## 参考
+## 一片会变化的自然
 
-- S. Hillaire, *Physically Based Sky, Atmosphere and Cloud Rendering in Frostbite*, SIGGRAPH 2016 course
-- A. Schneider, *The Real-Time Volumetric Cloudscapes of Horizon: Zero Dawn* (SIGGRAPH 2015) 与 Nubis 系列分享
-- K. Boulanger 等, *Rendering Grass in Real Time with Dynamic Lighting*, 2009
-- Ghost of Tsushima 程序化草地的 GDC 分享
-- N. Tatarchuk, *Artist-Directable Real-Time Rain Rendering in City Environments*, 2006
-- S. Lagarde, *Water drop* 系列（雨天湿润表面与积水）, 2012
-- F. J. Ballesteros, *New insights into black bodies*, 2012（B-V 色指数到温度）
-- E. M. Standish, *Keplerian Elements for Approximate Positions of the Major Planets*（JPL）
+| 世界的一部分 | 它如何变化 |
+| --- | --- |
+| **此时，此地** | 选择城市或使用定位，按地点的 IANA 时区显示当地时间，计算太阳、月亮、日出日落及月相。 |
+| **流动的天空** | 体积云、日光散射、昼夜调色、约 5,000 颗目录恒星、星座连线与五颗行星。 |
+| **天气的形状** | 接入 Open-Meteo 当前天气、云量与风速；也可漫游 16 种天气，从晴朗到雷暴、雨夹雪和暴雪。 |
+| **风经过的地方** | 多级草叶 LOD、草浪、漂浮花瓣、花苞绽放、萤火虫与可选的花瓣路径记忆。 |
+| **安静的界面** | 地点与时钟观测信息、三组世界设置、全屏和沉浸模式，适配桌面与触屏。 |
 
-第三方数据与服务的署名和许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/hanagoyomi-day.jpg" alt="白昼草原实际截图" width="100%"></td>
+    <td width="50%"><img src="docs/images/hanagoyomi-night.jpg" alt="夜间星空实际截图" width="100%"></td>
+  </tr>
+  <tr><td align="center">白昼 · 风与花瓣</td><td align="center">夜晚 · 星光与萤火虫</td></tr>
+</table>
+
+<details>
+<summary>触屏上的花暦</summary>
+<p align="center"><img src="docs/images/hanagoyomi-mobile.jpg" alt="393 像素宽移动视口下的花暦实际界面" width="280"></p>
+移动端默认收起设置，点右上角调节按钮展开底部面板。此图为浏览器移动视口仿真。
+</details>
+
+## 本地运行
+
+需要 **Node.js 22.12+** 和支持 **WebGL2 / 浮点渲染目标**的浏览器。无后端、无需 API Key。
+
+```bash
+git clone https://github.com/tadazly/hanagoyomi.git
+cd hanagoyomi
+npm ci
+npm run dev
+```
+
+打开终端显示的 `http://127.0.0.1:5173/`。模块化版本需要通过 HTTP 运行。
+
+```bash
+npm test          # 时间、天文与天气核心测试
+npm run build     # 输出静态网站到 dist/
+npm run preview   # 预览生产构建，http://127.0.0.1:4173/
+```
+
+## 漫游方式
+
+| 输入 | 操作 |
+| --- | --- |
+| 拖动画面 | 环顾四周 |
+| WASD / 方向键 | 前后左右移动 |
+| Q / E | 下降 / 上升 |
+| Shift / 空格 | 加速 / 冲刺 |
+| 滚轮 | 调整视野 |
+| F / H / Esc | 全屏 / 沉浸 / 返回界面 |
+| 触屏单指滑动 | 像飞行摇杆一样操控花瓣流 |
+| 单指 / 两指 / 三指双击 | 冲刺 / 掉头 / 停下或继续飞行 |
+
+设置保存在当前浏览器。拖动时刻或修改流速后进入模拟时间；点击 **回到此刻** 恢复真实当地时间。天气持续跟随当前观测数据，不会因模拟时钟改变而变成历史天气。
+
+## 从哪里开始读代码
+
+```text
+src/
+├── main.js                  # 应用入口
+├── data/                    # 城市、星表与星座数据
+├── world/                   # 时区时钟、太阳/月亮、天气请求与预设
+├── rendering/               # WebGL2 调度、GLSL 与 CPU/GPU 共用地形
+├── ui/                      # 观测界面、交互、SVG 图标
+└── styles/                  # 设计令牌、布局与控件
+tests/                       # 核心逻辑回归
+docs/                        # 技术与设计参考
+```
+
+- [技术参考与延伸阅读](docs/TECHNICAL.md)：渲染管线、云与光、草原 LOD、天文、天气、性能边界。
+- [设计说明](docs/DESIGN.md)：花暦主题、视觉令牌、响应式与可访问交互。
+- [贡献指南](CONTRIBUTING.md)：开发检查和视觉验收建议。
+- [第三方声明](THIRD_PARTY_NOTICES.md)：星表、天气与算法署名。
+
+## 数据与使用边界
+
+Open-Meteo 的当前天气来自天气模型数据，页面每 15 分钟请求一次；请求失败时明确显示 **动态天气** 并继续运行，可手动重试。云形、降水强度、积水、积雪及夜间光照采用艺术化近似，适合自然观赏，不作为气象或天文测量工具。
+
+定位仅在点击“使用我的位置”且浏览器允许后发生，经纬度会发送给 Open-Meteo 查询天气。项目不运行用户数据库或分析追踪；浏览器设置与花瓣记忆留在本地。
+
+移动截图和桌面运行不能保证所有手机 GPU 的性能。低性能设备可降低画质，系统会在未手动选择画质时自动降级。Safari、Firefox 和实体手机的兼容性仍需要持续验证。
+
+## 致谢与许可
+
+初始自然场景由作者借助 Claude 实现，灵感来自 thatgamecompany 的《Flower》；本项目与该游戏及其团队无关联。算法阅读入口见[技术参考](docs/TECHNICAL.md#延伸阅读)，星表来自 [d3-celestial](https://github.com/ofrohn/d3-celestial)，天气由 [Open-Meteo](https://open-meteo.com/) 提供。
+
+项目代码使用 [MIT License](LICENSE)。第三方数据及服务遵循各自许可；MIT 授权不改变 Open-Meteo 免费接口的非商业使用条件或天气数据的署名要求，详见[第三方声明](THIRD_PARTY_NOTICES.md)。
