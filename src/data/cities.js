@@ -1,3 +1,27 @@
+import { getLanguage, t } from '../i18n/index.js';
+
+const JAPANESE_NAMES = {
+  Tokyo: '東京', Osaka: '大阪', Kyoto: '京都', Sapporo: '札幌', Fukuoka: '福岡', Naha: '那覇',
+  Seoul: 'ソウル', Busan: '釜山', Beijing: '北京', Shanghai: '上海', Guangzhou: '広州', Shenzhen: '深圳',
+  Hangzhou: '杭州', Nanjing: '南京', Chengdu: '成都', Chongqing: '重慶', Wuhan: '武漢', "Xi'an": '西安',
+  Kunming: '昆明', Lhasa: 'ラサ', Urumqi: 'ウルムチ', Harbin: 'ハルビン', Sanya: '三亜',
+  'Hong Kong': '香港', Macau: 'マカオ', Taipei: '台北', Ulaanbaatar: 'ウランバートル', Singapore: 'シンガポール',
+  Bangkok: 'バンコク', Hanoi: 'ハノイ', 'Ho Chi Minh City': 'ホーチミン市', 'Kuala Lumpur': 'クアラルンプール',
+  Jakarta: 'ジャカルタ', Manila: 'マニラ', 'New Delhi': 'ニューデリー', Mumbai: 'ムンバイ', Kathmandu: 'カトマンズ',
+  Dubai: 'ドバイ', Tehran: 'テヘラン', Istanbul: 'イスタンブール', Moscow: 'モスクワ', London: 'ロンドン',
+  Edinburgh: 'エディンバラ', Paris: 'パリ', Berlin: 'ベルリン', Rome: 'ローマ', Madrid: 'マドリード',
+  Barcelona: 'バルセロナ', Lisbon: 'リスボン', Amsterdam: 'アムステルダム', Vienna: 'ウィーン', Prague: 'プラハ',
+  Zurich: 'チューリッヒ', Athens: 'アテネ', Stockholm: 'ストックホルム', Oslo: 'オスロ', Helsinki: 'ヘルシンキ',
+  Reykjavik: 'レイキャビク', Tromso: 'トロムソ', Longyearbyen: 'ロングイェールビーン', Cairo: 'カイロ',
+  Nairobi: 'ナイロビ', 'Cape Town': 'ケープタウン', Lagos: 'ラゴス', Marrakesh: 'マラケシュ',
+  'New York': 'ニューヨーク', Boston: 'ボストン', Washington: 'ワシントン', Miami: 'マイアミ', Orlando: 'オーランド',
+  Chicago: 'シカゴ', Denver: 'デンバー', 'Los Angeles': 'ロサンゼルス', 'San Francisco': 'サンフランシスコ',
+  Seattle: 'シアトル', Vancouver: 'バンクーバー', Toronto: 'トロント', Anchorage: 'アンカレッジ', Honolulu: 'ホノルル',
+  'Mexico City': 'メキシコシティ', 'Sao Paulo': 'サンパウロ', 'Rio de Janeiro': 'リオデジャネイロ',
+  'Buenos Aires': 'ブエノスアイレス', Lima: 'リマ', Santiago: 'サンティアゴ', Sydney: 'シドニー',
+  Melbourne: 'メルボルン', Perth: 'パース', Auckland: 'オークランド', Queenstown: 'クイーンズタウン',
+};
+
 const CITIES = [
 ['东京','Tokyo',35.6762,139.6503,'Asia/Tokyo'],['大阪','Osaka',34.6937,135.5023,'Asia/Tokyo'],['京都','Kyoto',35.0116,135.7681,'Asia/Tokyo'],
 ['札幌','Sapporo',43.0618,141.3545,'Asia/Tokyo'],['福冈','Fukuoka',33.5904,130.4017,'Asia/Tokyo'],['那霸','Naha',26.2124,127.6809,'Asia/Tokyo'],
@@ -30,7 +54,28 @@ const CITIES = [
 ['布宜诺斯艾利斯','Buenos Aires',-34.6037,-58.3816,'America/Argentina/Buenos_Aires'],['利马','Lima',-12.0464,-77.0428,'America/Lima'],
 ['圣地亚哥','Santiago',-33.4489,-70.6693,'America/Santiago'],['悉尼','Sydney',-33.8688,151.2093,'Australia/Sydney'],['墨尔本','Melbourne',-37.8136,144.9631,'Australia/Melbourne'],
 ['珀斯','Perth',-31.9505,115.8605,'Australia/Perth'],['奥克兰','Auckland',-36.8485,174.7633,'Pacific/Auckland'],['皇后镇','Queenstown',-45.0312,168.6626,'Pacific/Auckland']
-];
+].map(city => [...city, JAPANESE_NAMES[city[1]]]);
 const COMMON_CITIES = ['东京', '上海', '北京', '伦敦', '巴黎', '纽约'];
+
+// [0] 是稳定的地点标识；保存的旧地点不随界面语言变化。
+export function cityName(city, language = getLanguage()) {
+  return city[language === 'zh' ? 0 : language === 'ja' ? 5 : 1] || city[1];
+}
+
+export function locationName(loc, language = getLanguage()) {
+  if (loc.name === '我的位置') return t('location.mine', {}, language);
+  const nearby = loc.name.endsWith('附近');
+  const name = nearby ? loc.name.slice(0, -2) : loc.name;
+  const city = CITIES.find(c => c[0] === name);
+  if (!city) return loc.name;
+  const label = cityName(city, language);
+  return nearby ? t('location.near', { city: label }, language) : label;
+}
+
+export function searchCities(query) {
+  const value = query.trim().normalize('NFKC').toLowerCase();
+  if (!value) return [];
+  return CITIES.filter(city => [city[0], city[1], city[5]].some(name => name.normalize('NFKC').toLowerCase().includes(value)));
+}
 
 export { CITIES, COMMON_CITIES };

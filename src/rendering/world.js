@@ -1,23 +1,24 @@
 import { TN, tnData, tnSample, groundH } from './terrain.js';
 import { VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CLOUD_FS, TAA_FS, DISPLAY, SCENE, SCENE_FS, VPRE, TERRAIN_VS, TERRAIN_FS, GRASS_VS, GRASS_FS, FLOWER_VS, PETAL_VS, STREAM_VS, PETAL_FS, SKYPASS_FS, GOD_FS, POSTCOMMON, DOFPREP_FS, DOF_FS, BLOOMPRE_FS, DOWN_FS, UP_FS, FINAL_FS, SHELL_VS, SHELL_FS, STAR_VS, STAR_FS, LINE_VS, LINE_FS, FIREFLY_VS, FIREFLY_FS, FLY_COUNT, GLOW_VS, GLOW_FS, GLOW_N, TOUCH_FS, RESTAMP_VS, RESTAMP_FS, TOUCH_N, PUD_FS, PUD_N, RAIN_VS, RAIN_FS, BOLT_VS, BOLT_FS, RAIN_N, SNOW_VS, SNOW_FS, SNOW_N, DROP_VS, DROP_FS, GLOW_EXT, TOUCH_EXT, PUD_EXT, BOLT_MAX } from './shaders.js';
 import { STAR_DATA, LINE_DATA } from '../data/stars.js';
-import { CITIES, COMMON_CITIES } from '../data/cities.js';
+import { CITIES, COMMON_CITIES, cityName, locationName, searchCities } from '../data/cities.js';
 import { WX_TYPES, WX_KEYS, wxPreset, WX_NEXT } from '../world/weather-presets.js';
 import { fetchWeather } from '../world/weather.js';
 import { zonedHours, zonedDayStart, localTimeToUTC, fmtTime, advanceClock, timezoneOffset } from '../world/clock.js';
-import { getAstronomy, sunEventsText, phaseName, getSunEvents } from '../world/astronomy.js';
+import { getAstronomy, sunEventsText, phaseName, phaseIndex, getSunEvents } from '../world/astronomy.js';
+import { getLocale, onLanguageChange, setMessage, t } from '../i18n/index.js';
 
 export function startWorld(onUpdate = () => {}) {
 
 const canvas = document.getElementById('view');
 const $ = (id) => document.getElementById(id);
-function fail(msg){ $('errorText').textContent = msg; $('error').classList.add('show'); $('loader').classList.add('done'); }
+function fail(key, values){ setMessage($('errorText'), key, values); $('error').classList.add('show'); $('loader').classList.add('done'); }
 
 const gl = canvas.getContext('webgl2', {antialias:false, alpha:false, depth:false, stencil:false,
   powerPreference:'high-performance', preserveDrawingBuffer:false});
-if (!gl){ fail('这个浏览器没有开启 WebGL2。请用最新版的 Chrome、Edge、Safari 或 Firefox 打开。'); return; }
+if (!gl){ fail('error.webgl'); return; }
 if (!(gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float'))){
-  fail('这块显卡不支持浮点渲染目标（EXT_color_buffer_float），体积云无法运行。'); return;
+  fail('error.floatBuffer'); return;
 }
 (() => {
   let name = '';
@@ -31,9 +32,9 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let contextLost = false;
 canvas.addEventListener('webglcontextlost', (event) => {
   event.preventDefault(); contextLost = true;
-  fail('图形设备连接中断。请关闭其他占用显卡的页面后，重新加载花暦。');
+  fail('error.contextLost');
 });
-if (coarse) $('hintText').textContent = '单指滑动操控，双击冲刺，两指双击掉头，三指双击停下或继续';
+if (coarse) setMessage($('hintText'), 'hint.touch');
 
 /* ================================================================== */
 /*  GL helpers                                                         */
@@ -135,7 +136,7 @@ try {
     sky: makeProgram(VS_SKY, SKYPASS_FS, 'sky'),
     god: makeProgram(VS_FULL, GOD_FS, 'god'),
   };
-} catch (e){ fail('着色器编译失败：' + e.message.slice(0, 400)); return; }
+} catch (e){ fail('error.shader', { message: e.message.slice(0, 400) }); return; }
 const emptyVAO = gl.createVertexArray();
 const draw = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -173,7 +174,7 @@ function genStep(budgetMs){
   }
   const p = 1 - genJobs.length / genTotal;
   $('loadBar').style.setProperty('--p', (p * 100).toFixed(1) + '%');
-  $('loadText').textContent = '正在生成云噪声 ' + Math.round(p * 100) + '%';
+  setMessage($('loadText'), 'loader.clouds', { percent: Math.round(p * 100) });
   if (!genJobs.length){
     gl.bindTexture(gl.TEXTURE_3D, shapeTex); gl.generateMipmap(gl.TEXTURE_3D);
     gl.bindTexture(gl.TEXTURE_3D, detailTex); gl.generateMipmap(gl.TEXTURE_3D);
@@ -557,7 +558,7 @@ const QUALITY = {
 const TILE = 32, LAYER_WIDTH = [1.0, 2.4, 6.0];
 /* simulated clock: starts at the browser's local time and runs at a chosen multiple of real time */
 const SPEEDS = [0, 1, 10, 60, 300, 1200, 3600, 14400];
-const SPEED_LABEL = ['暂停', '1× 实时', '10×', '60×', '300×', '1200×', '3600×', '14400×'];
+const speedLabel = (index) => index === 0 ? t('time.paused') : index === 1 ? t('time.realtime') : SPEEDS[index] + '×';
 let simMs = Date.now();
 const S = {
   time: 0, speed: 1, wxSync: true, constel: false, flies: true, flowerGlow: false, bloom: true, streamDist: 'near', streamScale: false, infMem: false, bloomR: 4, wxMode: 'follow', wxType: 'cloudy', fogVisS: 1000, rainAmt: 0, snowAmt: 0, boltFreq: 0, puddle: 0, snowMax: 0, lensDrops: true, sunAz: 0, coverage: 0.58, density: 1.0, wind: 40, breeze: 0.65, petals: true,
@@ -796,7 +797,7 @@ function resize(force){
   }
   buildTerrain(q.terr[0], q.terr[1]);
   needReset = true;
-  $('res').textContent = '云层缓冲 ' + CW + '×' + CH + '，画面 ' + W + '×' + H;
+  setMessage($('res'), 'rendering.resolution', { clouds: CW + '×' + CH, view: W + '×' + H });
 }
 
 /* ================================================================== */
@@ -876,6 +877,7 @@ function bindRange(id, key, fmt, onChange){
   const paint = (displayValue) => { const v = displayValue ?? parseFloat(el.value); out.textContent = fmt(v); el.style.setProperty('--fill', ((v - el.min) / (el.max - el.min) * 100) + '%'); };
   el.value = S[key]; paint(S[key]);
   el.addEventListener('input', () => { S[key] = parseFloat(el.value); paint(); onChange && onChange(); });
+  onLanguageChange(() => paint(S[key]));
   return {el, paint};
 }
 let lastTimeInput = 0;
@@ -884,13 +886,13 @@ const timeCtl = bindRange('time', 'time', fmtTime, () => {
   simMs = localTimeToUTC(LOC.tz, simMs, S.time);
   lastTimeInput = performance.now(); expo = NaN;
 });
-const speedCtl = bindRange('speed', 'speed', (v) => SPEED_LABEL[v | 0], () => { followNow = false; });
+const speedCtl = bindRange('speed', 'speed', (v) => speedLabel(v | 0), () => { followNow = false; });
 $('syncNow').addEventListener('click', () => {
   simMs = Date.now(); followNow = true; expo = NaN; S.speed = 1;
   speedCtl.el.value = 1; speedCtl.paint(); lastTimeInput = 0;
 });
 bindRange('sunAz', 'sunAz', (v) => Math.round(v) + '°');
-bindRange('bloomR', 'bloomR', (v) => '半径 ' + Number(v).toFixed(1) + ' m');
+bindRange('bloomR', 'bloomR', (v) => t('landscape.radiusValue', { value: Number(v).toFixed(1) }));
 const wxCtl = {};
 const wxBind = (id, key, fmt) => { wxCtl[key] = bindRange(id, key, fmt, () => { if (S.wxMode === 'manual') wxSetTarget(S.wxType, manualParams(), 2); }); };
 wxBind('coverage', 'coverage', (v) => Math.round(v * 100) + '%');
@@ -900,14 +902,14 @@ wxBind('breeze', 'breeze', (v) => Math.round(v * 100) + '%');
 wxBind('fogVis', 'fogVisS', (v) => fmtVis(visFromSlider(v)));
 wxBind('rainAmt', 'rainAmt', (v) => Math.round(v * 100) + '%');
 wxBind('snowAmt', 'snowAmt', (v) => Math.round(v * 100) + '%');
-wxBind('boltFreq', 'boltFreq', (v) => v < 0.05 ? '无' : '每 10 秒约 ' + v.toFixed(1) + ' 次');
+wxBind('boltFreq', 'boltFreq', (v) => v < 0.05 ? t('common.none') : t('weather.boltValue', { value: v.toFixed(1) }));
 wxBind('puddle', 'puddle', (v) => Math.round(v * 100) + '%');
 wxBind('snowMax', 'snowMax', (v) => Math.round(v * 100) + '%');
 function refreshWx(){ for (const k in wxCtl){ wxCtl[k].el.value = S[k]; wxCtl[k].paint(); } }
 function markWxChips(){ document.querySelectorAll('#wxTypes .chip').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.wx === S.wxType))); }
-for (const [k, t] of Object.entries(WX_TYPES)){
+for (const k of Object.keys(WX_TYPES)){
   const b = document.createElement('button');
-  b.type = 'button'; b.className = 'chip'; b.textContent = t.n; b.dataset.wx = k;
+  b.type = 'button'; b.className = 'chip'; setMessage(b, `weather.${k}`); b.dataset.wx = k;
   b.addEventListener('click', () => {
     const pp = wxPreset(k);
     S.wxType = k; S.coverage = pp.cov; S.density = pp.dens; S.wind = pp.wind; S.breeze = pp.breeze; S.fogVisS = sliderFromVis(pp.vis);
@@ -927,18 +929,21 @@ function setWxMode(mode){
 }
 document.querySelectorAll('input[name="wxMode"]').forEach(r => r.addEventListener('change', () => { if (r.checked) setWxMode(r.value); }));
 function wxStatus(){
-  const pr = WXS.prog, t = WX_TYPES[WXS.type];
-  $('wxNow').textContent = (pr < 1 ? '正在转为' : '') + (t ? t.n : '');
-  const parts = ['云量 ' + Math.round(WP.cov * 100) + '%', '能见度 ' + fmtVis(WP.vis)];
-  if (WP.rain > 0.02) parts.push('降雨 ' + Math.round(WP.rain * 100) + '%');
-  if (WP.snow > 0.02) parts.push('降雪 ' + Math.round(WP.snow * 100) + '%');
-  if (WXS.wet > 0.02) parts.push('地面湿度 ' + Math.round(WXS.wet * 100) + '%');
-  if (WXS.snowCov > 0.02) parts.push('积雪 ' + Math.round(WXS.snowCov * 100) + '%');
-  const src = S.wxMode === 'dynamic' ? '动态切换，约 ' + Math.max(1, Math.round((WXS.until - wxClock) / 60000)) + ' 分钟后可能变天。'
-    : S.wxMode === 'off' ? '天气效果已关闭，永远晴朗。' : S.wxMode === 'manual' ? '手动切换。' : (WXS.src || '正在获取当地天气…');
-  $('wxInfo').textContent = parts.join('，') + '。' + src;
+  const weather = t(`weather.${WXS.type}`);
+  $('wxNow').textContent = WXS.prog < 1 ? t('weather.transition', { weather }) : weather;
+  const parts = [t('weather.cloudValue', { value: Math.round(WP.cov * 100) }), t('weather.visibilityValue', { value: fmtVis(WP.vis) })];
+  if (WP.rain > 0.02) parts.push(t('weather.rainValue', { value: Math.round(WP.rain * 100) }));
+  if (WP.snow > 0.02) parts.push(t('weather.snowValue', { value: Math.round(WP.snow * 100) }));
+  if (WXS.wet > 0.02) parts.push(t('weather.wetValue', { value: Math.round(WXS.wet * 100) }));
+  if (WXS.snowCov > 0.02) parts.push(t('weather.snowCoverValue', { value: Math.round(WXS.snowCov * 100) }));
+  const live = WXS.followOK && WXS.live;
+  const src = S.wxMode === 'dynamic' ? t('weather.dynamicDescription', { minutes: Math.max(1, Math.round((WXS.until - wxClock) / 60000)) })
+    : S.wxMode === 'off' ? t('weather.offDescription') : S.wxMode === 'manual' ? t('weather.manualDescription')
+    : live ? t('weather.liveDescription', { city: locationName(LOC), weather: t(`weather.${live.type}`), clouds: Math.round(live.cloud_cover), wind: Number(live.wind_speed_10m).toFixed(1) })
+    : t(WXS.src ? 'weather.unavailable' : 'weather.fetching');
+  $('wxInfo').textContent = parts.join(' · ') + ' · ' + src;
 }
-bindRange('dof', 'dof', (v) => v < 0.01 ? '关' : Math.round(v * 100) + '%');
+bindRange('dof', 'dof', (v) => v < 0.01 ? t('common.off') : Math.round(v * 100) + '%');
 const fmtAgl = (a) => a < 10 ? a.toFixed(1) + ' m' : Math.round(a) + ' m';
 const heightCtl = bindRange('height', 'heightSlider', (v) => fmtAgl(aglFromSlider(v)), () => {
   const na = aglFromSlider(S.heightSlider);
@@ -970,10 +975,13 @@ if (S.qualityUser && QUALITY[S.qualityUser]){ userPickedQuality = true; if (S.qu
 /* ================================================================== */
 const cityLoc = (c) => ({name: c[0], lat: c[2], lon: c[3], tz: c[4]});
 function renderLoc(){
-  $('locName').textContent = LOC.name;
+  $('locName').textContent = locationName(LOC);
   $('locCoords').textContent = Math.abs(LOC.lat).toFixed(2) + '° ' + (LOC.lat >= 0 ? 'N' : 'S') + ' · ' + Math.abs(LOC.lon).toFixed(2) + '° ' + (LOC.lon >= 0 ? 'E' : 'W');
   $('locSun').textContent = riseSetText(simMs);
-  document.querySelectorAll('.chip[data-name]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.name === LOC.name)));
+  document.querySelectorAll('.chip[data-name]').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.name === LOC.name));
+    b.textContent = cityName(CITIES.find(c => c[0] === b.dataset.name));
+  });
 }
 function setLocation(loc){
   LOC = loc; lightKey = ''; expo = NaN; WXS.followOK = false; WXS.live = null; WXS.src = '';
@@ -982,26 +990,30 @@ function setLocation(loc){
 }
 function cityChip(c){
   const b = document.createElement('button');
-  b.type = 'button'; b.className = 'chip'; b.textContent = c[0]; b.dataset.name = c[0]; b.title = c[1];
+  b.type = 'button'; b.className = 'chip'; b.textContent = cityName(c); b.dataset.name = c[0]; b.title = c[1];
   b.addEventListener('click', () => setLocation(cityLoc(c)));
   return b;
 }
 COMMON_CITIES.forEach(n => { const c = CITIES.find(x => x[0] === n); if (c) $('cityCommon').appendChild(cityChip(c)); });
 const searchEl = $('citySearch');
-searchEl.addEventListener('input', () => {
-  const qv = searchEl.value.trim().toLowerCase(), box = $('cityResults');
+function renderSearch() {
+  const qv = searchEl.value.trim(), box = $('cityResults');
   box.textContent = '';
   if (!qv) return;
-  const hits = CITIES.filter(c => c[0].includes(qv) || c[1].toLowerCase().includes(qv)).slice(0, 8);
+  const hits = searchCities(qv).slice(0, 8);
   hits.forEach(c => box.appendChild(cityChip(c)));
-  if (!hits.length){ const sp = document.createElement('span'); sp.className = 'loc-sub'; sp.textContent = '列表里没有这个城市，可以用“使用我的位置”'; box.appendChild(sp); }
+  if (!hits.length){ const sp = document.createElement('span'); sp.className = 'loc-sub'; setMessage(sp, 'location.noResults'); box.appendChild(sp); }
   renderLoc();
-});
+}
+searchEl.addEventListener('input', renderSearch);
 searchEl.addEventListener('keydown', (e) => { if (e.key === 'Enter'){ const f = $('cityResults').querySelector('.chip'); if (f) f.click(); } });
 $('geoBtn').addEventListener('click', () => {
-  const msg = (t) => { $('geoMsg').textContent = t; };
-  if (!navigator.geolocation){ msg('这个浏览器不支持定位，请搜索城市'); return; }
-  msg('正在定位…');
+  const msg = (key) => {
+    if (key) setMessage($('geoMsg'), key);
+    else { $('geoMsg').textContent = ''; delete $('geoMsg').dataset.i18n; }
+  };
+  if (!navigator.geolocation){ msg('geo.unsupported'); return; }
+  msg('geo.loading');
   navigator.geolocation.getCurrentPosition((pos) => {
     const lat = pos.coords.latitude, lon = pos.coords.longitude;
     let tz = 'UTC'; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) {}
@@ -1015,7 +1027,7 @@ $('geoBtn').addEventListener('click', () => {
     if (best < 60) tz = near[4];
     setLocation({name: best < 60 ? near[0] + '附近' : '我的位置', lat, lon, tz});
     msg('');
-  }, (err) => msg(err.code === 1 ? '定位被拒绝了（浏览器或页面不允许），请搜索城市' : '暂时拿不到位置，请搜索城市'), {timeout: 9000, maximumAge: 600000});
+  }, (err) => msg(err.code === 1 ? 'geo.denied' : 'geo.unavailable'), {timeout: 9000, maximumAge: 600000});
 });
 
 /* 当地天气请求失败时继续动态天气；始终在观测信息中说明数据来源。 */
@@ -1032,11 +1044,11 @@ async function syncWeather(){
     pp.wind = clamp(c.wind_speed_10m * 3, 0, 200); pp.breeze = clamp(0.12 + c.wind_speed_10m / 12, 0, 1);
     WIND_ANGLE = Math.PI / 2 - ((c.wind_direction_10m + 180) * RAD + S.sunAz * RAD);
     WXS.followOK = true; WXS.live = c; wxSetTarget(type, pp, 30);
-    WXS.src = loc.name + '当前天气：' + WX_TYPES[type].n + '，云量 ' + Math.round(c.cloud_cover) + '%，风速 ' + Number(c.wind_speed_10m).toFixed(1) + ' m/s。数据来自 Open-Meteo。';
+    WXS.src = 'live';
   } catch (e) {
     if (request === weatherRequest && loc === LOC && S.wxMode === 'follow') {
       WXS.followOK = false; WXS.live = null;
-      WXS.src = '暂时无法连接天气服务，已使用动态天气。可稍后重试。';
+      WXS.src = 'unavailable';
       wxStartDynamic(true);
     }
   } finally {
@@ -1051,6 +1063,8 @@ document.addEventListener('visibilitychange', () => {
 renderLoc();
 setWxMode(S.wxMode);
 refreshWx();
+const renderClock = () => setMessage($('clock'), 'rendering.clock', { city: locationName(LOC), time: fmtTime(S.time), phase: phaseName(AST.phase) });
+onLanguageChange(() => { renderLoc(); renderSearch(); wxStatus(); renderClock(); });
 
 /* ================================================================== */
 /*  Camera rig, petal stream, culling                                  */
@@ -1652,20 +1666,20 @@ function frame(now){
   statAcc += dt; statFrames++; statT += dt;
   if (statT > 0.5){
     const fps = statFrames / statAcc;
-    $('fps').textContent = fps.toFixed(1); $('ms').textContent = '帧时间 ' + (1000 / fps).toFixed(1) + ' ms';
+    $('fps').textContent = fps.toFixed(1); setMessage($('ms'), 'rendering.frameTime', { value: (1000 / fps).toFixed(1) });
     wxStatus();
-    $('clock').textContent = LOC.name + ' ' + fmtTime(S.time) + '，' + phaseName(AST.phase);
+    renderClock();
     $('locSun').textContent = riseSetText(simMs);
     const live = S.wxMode === 'follow' && WXS.followOK ? WXS.live : null;
     onUpdate({
       loc: LOC, ms: simMs, live, followNow, speed: SPEEDS[S.speed | 0],
-      weather: live ? WX_TYPES[live.type].n : (WX_TYPES[WXS.type]?.n || '晴朗'),
+      weather: live ? live.type : WXS.type,
       coverage: WP.cov, wind: WP.wind,
-      weatherSource: S.wxMode === 'manual' ? '手动天气' : S.wxMode === 'off' ? '天气效果已关闭' : S.wxMode === 'dynamic' ? '动态天气' : WXS.src ? '动态天气 · 暂未连接天气服务' : '正在连接 Open-Meteo…',
-      sun: getSunEvents(simMs, LOC), sunAltitude: AST.sunAlt / RAD, phase: phaseName(AST.phase),
+      weatherSource: S.wxMode === 'manual' ? 'weather.source.manual' : S.wxMode === 'off' ? 'weather.source.off' : S.wxMode === 'dynamic' ? 'weather.source.dynamic' : WXS.src ? 'weather.source.fallback' : 'weather.source.connecting',
+      sun: getSunEvents(simMs, LOC), sunAltitude: AST.sunAlt / RAD, phase: phaseIndex(AST.phase),
     });
     if (performance.now() - lastTimeInput > 600){ timeCtl.el.value = S.time; timeCtl.paint(S.time); }
-    $('blades').textContent = grassOn ? '可见草叶约 ' + (bladeEst / 10000).toFixed(1) + ' 万' : '草叶未绘制（高空）';
+    setMessage($('blades'), grassOn ? 'rendering.blades' : 'rendering.noGrass', { count: Math.round(bladeEst).toLocaleString(getLocale()) });
     statAcc = 0; statFrames = 0; statT = 0;
   }
   if (!userPickedQuality && downgrades < 2 && frameNo > 30){
@@ -1683,7 +1697,7 @@ function tick(now) {
   try { frame(now); }
   catch (error) {
     console.error('Hanagoyomi 渲染中断', error);
-    fail('图形渲染遇到问题，请重新加载页面。若仍无法运行，请确认浏览器已启用硬件加速。');
+    fail('error.rendering');
   }
 }
 resize(true);

@@ -26,6 +26,11 @@ input[type='search']::placeholder { color: #7a7d72; }
 .btn.outline { border-color: rgba(90,105,77,.6); background: rgba(101,116,91,.04); }
 .btn.outline:hover { background: rgba(101,116,91,.1); }
 .ctl-label { margin: 16px 0 0; font-size: 13px; }
+.language-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 28px 4px; font-size: 13px; }
+.language-field select { max-width: 65%; padding: 6px 10px; border: 1px solid rgba(70,76,64,.2); border-radius: 7px; color: var(--ink); background: rgba(255,255,255,.35); }
+.language-field option { color: #262a23; background: #f5f2ed; }
+.city-common .chip { padding-inline: 6px; overflow-wrap: anywhere; }
+.seg span { overflow-wrap: anywhere; }
 .seg { display: grid; grid-template-columns: repeat(4,1fr); gap: 3px; margin: 9px 0 14px; padding: 3px; border-radius: 7px; background: var(--track); }
 .seg.seg3 { grid-template-columns: repeat(3,1fr); }
 .seg.seg5 { grid-template-columns: repeat(5,1fr); }

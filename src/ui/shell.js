@@ -1,24 +1,76 @@
 import { populateIcons } from './icons.js';
 import { fmtTime, zonedHours } from '../world/clock.js';
-import { CITIES } from '../data/cities.js';
+import { CITIES, locationName } from '../data/cities.js';
+import { weatherPageUrl } from '../world/weather.js';
+import { getLanguage, getLocale, onLanguageChange, setLanguage, setMessage, t } from '../i18n/index.js';
 const $ = (id) => document.getElementById(id);
-let toastTimer, lastDateKey = '', lastSourceKey = '', dateFormatter;
+let toastTimer, lastDateKey = '', lastSourceKey = '', dateFormatter, lastObservation;
+let revealWeatherSource = () => {};
 
-export function showToast(message) {
+function initWeatherSource() {
+  const group = $('observerWeatherGroup'), weather = $('observerWeather'), source = $('weatherSource');
+  let hideTimer, hovered = false;
+  const held = () => hovered || Boolean(group.querySelector(':focus-visible'));
+  const setVisible = (visible) => {
+    source.dataset.visible = String(visible);
+    source.setAttribute('aria-hidden', String(!visible));
+    weather.setAttribute('aria-expanded', String(visible));
+  };
+  const scheduleHide = () => {
+    clearTimeout(hideTimer);
+    if (!held()) hideTimer = setTimeout(() => { if (!held()) setVisible(false); }, 4000);
+  };
+  const reveal = () => {
+    setVisible(true);
+    scheduleHide();
+  };
+  // 来源行属于同一悬停区域，鼠标移到链接上时仍可阅读、点击。
+  group.addEventListener('pointerenter', event => {
+    if (event.pointerType === 'touch') return;
+    hovered = true;
+    reveal();
+  });
+  group.addEventListener('pointerleave', event => {
+    if (event.pointerType === 'touch') return;
+    hovered = false;
+    scheduleHide();
+  });
+  group.addEventListener('focusin', reveal);
+  group.addEventListener('focusout', event => {
+    if (!group.contains(event.relatedTarget)) queueMicrotask(scheduleHide);
+  });
+  weather.addEventListener('click', reveal);
+  return reveal;
+}
+
+export function showToast(key) {
   clearTimeout(toastTimer);
-  $('toast').textContent = message;
+  setMessage($('toast'), key);
   $('toast').hidden = false;
   toastTimer = setTimeout(() => { $('toast').hidden = true; }, 3500);
 }
 
 export function initShell() {
   populateIcons();
+  revealWeatherSource = initWeatherSource();
+  $('languageSelect').addEventListener('change', event => setLanguage(event.target.value));
+  const refreshLabels = () => {
+    $('panelToggle').setAttribute('aria-label', t($('panel').hidden ? 'panel.open' : 'panel.close'));
+    $('fullscreenBtn').setAttribute('aria-label', t(document.fullscreenElement ? 'fullscreen.exit' : 'fullscreen.enter'));
+  };
+  // 这些标签依赖运行状态，语言变化时不能仅恢复 HTML 中的初始文案。
+  $('panelToggle').removeAttribute('data-i18n-aria-label');
+  $('fullscreenBtn').removeAttribute('data-i18n-aria-label');
+  onLanguageChange(() => {
+    refreshLabels();
+    if (lastObservation) updateObservation(lastObservation);
+  });
   const setPanel = (open, restoreFocus = false) => {
     document.body.dataset.panelOpen = String(open);
     $('panel').hidden = !open;
     $('panel').dataset.open = String(open);
     $('panelToggle').setAttribute('aria-expanded', String(open));
-    $('panelToggle').setAttribute('aria-label', open ? '关闭世界设置' : '打开世界设置');
+    refreshLabels();
     if (restoreFocus) $('panelToggle').focus();
   };
   const selectTab = (name, focus = false) => {
@@ -62,11 +114,11 @@ export function initShell() {
     try {
       if (document.fullscreenElement) await document.exitFullscreen();
       else if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
-      else showToast('当前浏览器不支持网页全屏，可使用沉浸模式。');
-    } catch { showToast('全屏暂不可用，可使用沉浸模式。'); }
+      else showToast('fullscreen.unsupported');
+    } catch { showToast('fullscreen.unavailable'); }
   };
   $('fullscreenBtn').addEventListener('click', fullscreen);
-  document.addEventListener('fullscreenchange', () => $('fullscreenBtn').setAttribute('aria-label', document.fullscreenElement ? '退出全屏' : '进入全屏'));
+  document.addEventListener('fullscreenchange', refreshLabels);
   $('helpBtn').addEventListener('click', () => $('helpDialog').showModal());
   $('helpClose').addEventListener('click', () => $('helpDialog').close());
   $('helpDialog').addEventListener('click', e => { if (e.target === $('helpDialog')) $('helpDialog').close(); });
@@ -83,31 +135,46 @@ export function initShell() {
 }
 
 export function updateObservation(state) {
+  lastObservation = state;
   const { loc, ms, live, weather, coverage, wind, followNow, speed, sun, phase } = state;
-  $('observerCity').textContent = loc.name;
+  $('observerCity').textContent = locationName(loc);
   $('observerEnglish').textContent = (CITIES.find(c => c[0] === loc.name)?.[1] || '').toUpperCase();
+  $('observerEnglish').hidden = getLanguage() === 'en' || !$('observerEnglish').textContent;
   $('observerTime').textContent = fmtTime(zonedHours(loc.tz, ms));
   $('observerTime').dateTime = new Date(ms).toISOString();
-  const dateKey = loc.tz;
+  const dateKey = `${getLocale()}|${loc.tz}`;
   if (dateKey !== lastDateKey) {
-    dateFormatter = new Intl.DateTimeFormat('zh-CN', { timeZone: loc.tz, month: 'long', day: 'numeric', weekday: 'long' });
+    dateFormatter = new Intl.DateTimeFormat(getLocale(), { timeZone: loc.tz, month: 'long', day: 'numeric', weekday: 'long' });
     lastDateKey = dateKey;
   }
-  $('observerDate').textContent = dateFormatter.format(ms).replace('日', '日，');
-  $('observerWeather').textContent = `${weather} · 云量 ${Math.round(live?.cloud_cover ?? coverage * 100)}% · ${live ? '风速' : '云速'} ${Number(live?.wind_speed_10m ?? wind).toFixed(1)} m/s`;
+  $('observerDate').textContent = dateFormatter.format(ms);
+  const weatherInfo = $('observerWeather');
+  delete weatherInfo.dataset.i18n;
+  weatherInfo.textContent = [t(`weather.${weather}`), t('weather.cloudValue', { value: Math.round(live?.cloud_cover ?? coverage * 100) }), t(live ? 'weather.windValue' : 'weather.cloudSpeedValue', { value: Number(live?.wind_speed_10m ?? wind).toFixed(1) })].join(' · ');
   const source = $('weatherSource');
-  const sourceKey = live ? `live:${live.fetchedAt}` : state.weatherSource;
+  const sourceKey = `${getLocale()}|${loc.lat},${loc.lon}|${loc.tz}|${live ? `live:${live.fetchedAt}` : state.weatherSource}`;
+  // 每半秒的观测刷新不重置隐藏计时，也不重建正在聚焦的来源链接。
   if (sourceKey !== lastSourceKey) {
     lastSourceKey = sourceKey;
     if (live) {
-      source.replaceChildren(document.createTextNode('天气数据 '));
-      const link = document.createElement('a'); link.href = 'https://open-meteo.com/'; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Open-Meteo'; source.appendChild(link);
-      source.title = `最近获取 ${new Date(live.fetchedAt).toLocaleTimeString('zh-CN')}`;
-    } else { source.textContent = state.weatherSource; source.title = ''; }
+      let link = source.querySelector('a');
+      if (!link) {
+        link = document.createElement('a');
+        link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Open-Meteo';
+        source.replaceChildren(document.createTextNode(''), link);
+      }
+      source.firstChild.textContent = t('weather.data') + ' ';
+      link.href = weatherPageUrl(loc);
+      source.title = t('weather.fetched', { time: new Date(live.fetchedAt).toLocaleTimeString(getLocale(), { timeZone: loc.tz }) });
+    } else {
+      source.textContent = t(state.weatherSource);
+      source.title = '';
+    }
+    revealWeatherSource();
   }
-  $('liveLabel').textContent = followNow && speed === 1 ? '跟随此刻' : speed === 0 ? '时间静止' : '漫游时间';
+  setMessage($('liveLabel'), followNow && speed === 1 ? 'time.live' : speed === 0 ? 'time.still' : 'time.roaming');
   $('liveStatus').dataset.live = String(followNow && speed === 1);
-  $('sunriseText').textContent = sun.polar ? (sun.polar === 'day' ? '极昼' : '极夜') : `日出 ${sun.rise === null ? '--' : fmtTime(zonedHours(loc.tz, sun.rise))}`;
-  $('sunsetText').textContent = sun.polar ? phase : `日落 ${sun.set === null ? '--' : fmtTime(zonedHours(loc.tz, sun.set))}`;
+  $('sunriseText').textContent = sun.polar ? t(sun.polar === 'day' ? 'sun.polarDay' : 'sun.polarNight') : t('sun.rise', { time: sun.rise === null ? '--' : fmtTime(zonedHours(loc.tz, sun.rise)) });
+  $('sunsetText').textContent = sun.polar ? t(`phase.${phase}`) : t('sun.set', { time: sun.set === null ? '--' : fmtTime(zonedHours(loc.tz, sun.set)) });
   document.body.dataset.daylight = String(state.sunAltitude > 8);
 }

@@ -1,143 +1,145 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en-US">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#65745b">
-  <meta name="description" content="花暦 Hanagoyomi：跟随真实地点、当地时间与天气，在云、草原和花瓣之间，走进一个不断变化的自然世界。">
-  <meta property="og:title" content="花暦 · Hanagoyomi">
-  <meta property="og:description" content="把此刻，交给自然。一个随真实时间与天气流动的自然世界。">
+  <meta name="description" content="A changing natural world of clouds, meadows and petals, following real places, local time and weather." data-i18n-content="app.description">
+  <meta property="og:title" content="花暦 · Hanagoyomi" data-i18n-content="app.title">
+  <meta property="og:description" content="Give this moment to nature. A natural world flowing with real time and weather." data-i18n-content="app.socialDescription">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://hanagoyomi.luyilabs.com/">
   <meta property="og:image" content="https://hanagoyomi.luyilabs.com/social-preview.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://hanagoyomi.luyilabs.com/">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <title>花暦 · Hanagoyomi</title>
+  <title data-i18n="app.title">花暦 · Hanagoyomi</title>
 </head>
 <body>
-  <canvas id="view" tabindex="-1" aria-label="实时渲染的草原、花和体积云；拖动环顾，WASD 移动"></canvas>
+  <canvas id="view" tabindex="-1" aria-label="Live meadow, flowers and volumetric clouds; drag to look around, WASD to move" data-i18n-aria-label="app.canvas"></canvas>
   <header class="masthead chrome">
-    <div class="brand"><span data-icon="flower" class="brand-mark" aria-hidden="true"></span><div><h1>花暦</h1><span class="wordmark">HANAGOYOMI</span></div></div>
-    <p class="brand-note">把此刻，交给自然。</p>
+    <div class="brand"><span data-icon="flower" class="brand-mark" aria-hidden="true"></span><div><h1 translate="no">花暦</h1><span class="wordmark">HANAGOYOMI</span></div></div>
   </header>
-  <nav class="toolbar chrome" aria-label="世界工具">
-    <span class="live-status" id="liveStatus"><i></i><span id="liveLabel">跟随此刻</span></span>
-    <a class="icon-button github-button" href="https://github.com/tadazly/hanagoyomi" target="_blank" rel="noopener noreferrer" aria-label="在 GitHub 查看花暦源码" title="GitHub 源码"><span data-icon="github"></span></a>
-    <button class="icon-button" id="fullscreenBtn" aria-label="进入全屏" title="全屏 · F"><span data-icon="fullscreen"></span></button>
-    <button class="icon-button" id="immersiveBtn" aria-label="进入沉浸模式" title="沉浸 · H"><span data-icon="eye-off"></span></button>
-    <button class="icon-button" id="panelToggle" aria-label="打开世界设置" aria-expanded="true" aria-controls="panel" title="世界设置"><span data-icon="sliders"></span></button>
+  <nav class="toolbar chrome" aria-label="World tools" data-i18n-aria-label="toolbar.label">
+    <span class="live-status" id="liveStatus"><i></i><span id="liveLabel" data-i18n="time.live">Following now</span></span>
+    <a class="icon-button github-button" href="https://github.com/tadazly/hanagoyomi" target="_blank" rel="noopener noreferrer" aria-label="View Hanagoyomi source on GitHub" data-i18n-aria-label="github.source" title="GitHub source" data-i18n-title="github.title"><span data-icon="github"></span></a>
+    <button class="icon-button" id="fullscreenBtn" aria-label="Enter fullscreen" data-i18n-aria-label="fullscreen.enter" title="Fullscreen · F" data-i18n-title="fullscreen.title"><span data-icon="fullscreen"></span></button>
+    <button class="icon-button" id="immersiveBtn" aria-label="Enter immersive mode" data-i18n-aria-label="immersive.enter" title="Immersive mode · H" data-i18n-title="immersive.title"><span data-icon="eye-off"></span></button>
+    <button class="icon-button" id="panelToggle" aria-label="Open world settings" data-i18n-aria-label="panel.open" aria-expanded="true" aria-controls="panel" title="World settings" data-i18n-title="panel.title"><span data-icon="sliders"></span></button>
   </nav>
-  <aside class="panel glass chrome" id="panel" aria-label="世界设置" data-open="true">
-    <div class="panel-heading"><h2>世界设置</h2><button class="plain-icon" id="panelClose" aria-label="关闭世界设置"><span data-icon="close"></span></button></div>
-    <div class="tabs" role="tablist" aria-label="设置分类">
-      <button role="tab" id="tab-now" aria-controls="pane-now" aria-selected="true" data-tab="now">此刻</button>
-      <button role="tab" id="tab-weather" aria-controls="pane-weather" aria-selected="false" tabindex="-1" data-tab="weather">天气</button>
-      <button role="tab" id="tab-landscape" aria-controls="pane-landscape" aria-selected="false" tabindex="-1" data-tab="landscape">风景</button>
+  <aside class="panel glass chrome" id="panel" aria-label="World settings" data-i18n-aria-label="panel.title" data-open="true">
+    <div class="panel-heading"><h2 data-i18n="panel.title">World settings</h2><button class="plain-icon" id="panelClose" aria-label="Close world settings" data-i18n-aria-label="panel.close"><span data-icon="close"></span></button></div>
+    <label class="language-field"><span data-i18n="language.label">Language</span><select id="languageSelect" aria-label="Language" data-i18n-aria-label="language.label"><option value="auto" data-i18n="language.auto">Automatic</option><option value="en" lang="en">English</option><option value="zh" lang="zh-CN">简体中文</option><option value="ja" lang="ja">日本語</option></select></label>
+    <div class="tabs" role="tablist" aria-label="Settings categories" data-i18n-aria-label="panel.tabs">
+      <button role="tab" id="tab-now" aria-controls="pane-now" aria-selected="true" data-tab="now" data-i18n="tab.now">Now</button>
+      <button role="tab" id="tab-weather" aria-controls="pane-weather" aria-selected="false" tabindex="-1" data-tab="weather" data-i18n="tab.weather">Weather</button>
+      <button role="tab" id="tab-landscape" aria-controls="pane-landscape" aria-selected="false" tabindex="-1" data-tab="landscape" data-i18n="tab.landscape">Landscape</button>
     </div>
     <div class="panel-body" id="panelBody">
       <section id="pane-now" role="tabpanel" aria-labelledby="tab-now">
-        <h2>观测地点</h2>
-        <p class="loc-now" id="locName">东京</p>
+        <h2 data-i18n="location.title">Observation location</h2>
+        <p class="loc-now" id="locName">Tokyo</p>
         <p class="loc-sub" id="locCoords">35.68° N · 139.65° E</p>
-        <div class="search-field"><span data-icon="search" aria-hidden="true"></span><input type="search" id="citySearch" placeholder="寻找一座城市" autocomplete="off" aria-label="搜索城市"></div>
+        <div class="search-field"><span data-icon="search" aria-hidden="true"></span><input type="search" id="citySearch" placeholder="Find a city" data-i18n-placeholder="location.searchPlaceholder" autocomplete="off" aria-label="Search cities" data-i18n-aria-label="location.searchLabel"></div>
         <div class="chips search-results" id="cityResults" aria-live="polite"></div>
         <div class="chips city-common" id="cityCommon"></div>
-        <button class="btn outline" id="geoBtn" type="button"><span data-icon="location"></span>使用我的位置</button>
+        <button class="btn outline" id="geoBtn" type="button"><span data-icon="location"></span><span data-i18n="location.useMine">Use my location</span></button>
         <p class="loc-sub feedback" id="geoMsg" role="status"></p>
         <div class="divider"></div>
-        <h2>时间</h2>
-        <label class="ctl"><span>当地时刻</span><output for="time"></output><input aria-label="当地时刻" type="range" id="time" min="0" max="23.99" step="0.01"></label>
-        <label class="ctl"><span>时间流速</span><output for="speed"></output><input aria-label="时间流速" type="range" id="speed" min="0" max="7" step="1"></label>
-        <button class="btn primary" id="syncNow" type="button"><span data-icon="history"></span>回到此刻</button>
-        <div class="solar-row"><span><span data-icon="sunrise"></span><span id="sunriseText">日出 --</span></span><span><span data-icon="sunset"></span><span id="sunsetText">日落 --</span></span></div>
+        <h2 data-i18n="time.title">Time</h2>
+        <label class="ctl"><span data-i18n="time.local">Local time</span><output for="time"></output><input aria-label="Local time" data-i18n-aria-label="time.local" type="range" id="time" min="0" max="23.99" step="0.01"></label>
+        <label class="ctl"><span data-i18n="time.speed">Time speed</span><output for="speed"></output><input aria-label="Time speed" data-i18n-aria-label="time.speed" type="range" id="speed" min="0" max="7" step="1"></label>
+        <button class="btn primary" id="syncNow" type="button"><span data-icon="history"></span><span data-i18n="time.sync">Back to now</span></button>
+        <div class="solar-row"><span><span data-icon="sunrise"></span><span id="sunriseText">Sunrise --</span></span><span><span data-icon="sunset"></span><span id="sunsetText">Sunset --</span></span></div>
         <p id="locSun" class="sr-only"></p>
-        <details class="advanced"><summary>更多天文设置<span data-icon="chevron"></span></summary>      <label class="switch"><span>星座连线</span><input type="checkbox" id="constel"><i></i></label>
-      <label class="ctl"><span>朝向</span><output for="sunAz"></output><input type="range" id="sunAz" min="0" max="360" step="1"></label>
+        <details class="advanced"><summary><span data-i18n="astronomy.more">More astronomy settings</span><span data-icon="chevron"></span></summary>      <label class="switch"><span data-i18n="astronomy.constellations">Constellation lines</span><input type="checkbox" id="constel"><i></i></label>
+      <label class="ctl"><span data-i18n="astronomy.orientation">Orientation</span><output for="sunAz"></output><input type="range" id="sunAz" min="0" max="360" step="1"></label>
 </details>
       </section>
-      <section id="pane-weather" role="tabpanel" aria-labelledby="tab-weather" hidden><h2>天气模式</h2>
-      <div class="seg seg-sm" role="radiogroup" aria-label="天气模式">
-        <label><input type="radio" name="wxMode" value="follow"><span>跟随天气</span></label>
-        <label><input type="radio" name="wxMode" value="dynamic"><span>动态切换</span></label>
-        <label><input type="radio" name="wxMode" value="manual"><span>手动切换</span></label>
-        <label><input type="radio" name="wxMode" value="off"><span>关闭</span></label>
+      <section id="pane-weather" role="tabpanel" aria-labelledby="tab-weather" hidden><h2 data-i18n="weather.mode">Weather mode</h2>
+      <div class="seg seg-sm" role="radiogroup" aria-label="Weather mode" data-i18n-aria-label="weather.mode">
+        <label><input type="radio" name="wxMode" value="follow"><span data-i18n="weather.follow">Local</span></label>
+        <label><input type="radio" name="wxMode" value="dynamic"><span data-i18n="weather.dynamic">Dynamic</span></label>
+        <label><input type="radio" name="wxMode" value="manual"><span data-i18n="weather.manual">Manual</span></label>
+        <label><input type="radio" name="wxMode" value="off"><span data-i18n="common.off">Off</span></label>
       </div>
-      <p class="loc-now" id="wxNow">多云</p>
+      <p class="loc-now" id="wxNow">Partly cloudy</p>
       <p class="loc-sub" id="wxInfo"></p>
       <div id="wxManual" hidden>
         <div class="chips" id="wxTypes"></div>
-        <label class="ctl"><span>云量</span><output for="coverage"></output><input type="range" id="coverage" min="0.12" max="0.97" step="0.01"></label>
-        <label class="ctl"><span>云的密度</span><output for="density"></output><input type="range" id="density" min="0.3" max="2.5" step="0.01"></label>
-        <label class="ctl"><span>云速</span><output for="wind"></output><input type="range" id="wind" min="0" max="200" step="1"></label>
-        <label class="ctl"><span>地面风力</span><output for="breeze"></output><input type="range" id="breeze" min="0" max="1" step="0.01"></label>
-        <label class="ctl"><span>能见度</span><output for="fogVis"></output><input type="range" id="fogVis" min="0" max="1000" step="1"></label>
-        <label class="ctl"><span>降雨强度</span><output for="rainAmt"></output><input type="range" id="rainAmt" min="0" max="1" step="0.01"></label>
-        <label class="ctl"><span>降雪强度</span><output for="snowAmt"></output><input type="range" id="snowAmt" min="0" max="1" step="0.01"></label>
-        <label class="ctl"><span>闪电频率</span><output for="boltFreq"></output><input type="range" id="boltFreq" min="0" max="4" step="0.1"></label>
-        <label class="ctl"><span>积水上限</span><output for="puddle"></output><input type="range" id="puddle" min="0" max="1" step="0.01"></label>
-        <label class="ctl"><span>积雪上限</span><output for="snowMax"></output><input type="range" id="snowMax" min="0" max="1" step="0.01"></label>
+        <label class="ctl"><span data-i18n="weather.coverage">Cloud cover</span><output for="coverage"></output><input type="range" id="coverage" min="0.12" max="0.97" step="0.01"></label>
+        <label class="ctl"><span data-i18n="weather.density">Cloud density</span><output for="density"></output><input type="range" id="density" min="0.3" max="2.5" step="0.01"></label>
+        <label class="ctl"><span data-i18n="weather.wind">Cloud speed</span><output for="wind"></output><input type="range" id="wind" min="0" max="200" step="1"></label>
+        <label class="ctl"><span data-i18n="weather.breeze">Ground wind</span><output for="breeze"></output><input type="range" id="breeze" min="0" max="1" step="0.01"></label>
+        <label class="ctl"><span data-i18n="weather.visibility">Visibility</span><output for="fogVis"></output><input type="range" id="fogVis" min="0" max="1000" step="1"></label>
+        <label class="ctl"><span data-i18n="weather.rainAmount">Rain intensity</span><output for="rainAmt"></output><input type="range" id="rainAmt" min="0" max="1" step="0.01"></label>
+        <label class="ctl"><span data-i18n="weather.snowAmount">Snow intensity</span><output for="snowAmt"></output><input type="range" id="snowAmt" min="0" max="1" step="0.01"></label>
+        <label class="ctl"><span data-i18n="weather.lightning">Lightning frequency</span><output for="boltFreq"></output><input type="range" id="boltFreq" min="0" max="4" step="0.1"></label>
+        <label class="ctl"><span data-i18n="weather.puddles">Puddle limit</span><output for="puddle"></output><input type="range" id="puddle" min="0" max="1" step="0.01"></label>
+        <label class="ctl"><span data-i18n="weather.snowLimit">Snow cover limit</span><output for="snowMax"></output><input type="range" id="snowMax" min="0" max="1" step="0.01"></label>
       </div>
-      <label class="switch"><span>镜头水滴</span><input type="checkbox" id="lensDrops"><i></i></label>
+      <label class="switch"><span data-i18n="weather.lensDrops">Lens raindrops</span><input type="checkbox" id="lensDrops"><i></i></label>
 
-        <button class="btn outline" id="retryWeather"><span data-icon="refresh"></span>刷新当地天气</button>
-        <p class="service-note">天气数据 <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></p>
+        <button class="btn outline" id="retryWeather"><span data-icon="refresh"></span><span data-i18n="weather.refresh">Refresh local weather</span></button>
+        <p class="service-note"><span data-i18n="weather.data">Weather data</span> <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></p>
       </section>
-      <section id="pane-landscape" role="tabpanel" aria-labelledby="tab-landscape" hidden>      <h2>草原与花</h2>
-      <label class="switch"><span>花瓣流</span><input type="checkbox" id="petals"><i></i></label>
-      <label class="switch"><span>萤火虫（夜间）</span><input type="checkbox" id="flies"><i></i></label>
-      <label class="switch"><span>花苞绽放动画</span><input type="checkbox" id="bloom"><i></i></label>
-      <label class="ctl"><span>开花范围</span><output for="bloomR"></output><input type="range" id="bloomR" min="1.5" max="10" step="0.5"></label>
-      <label class="switch"><span>花朵常亮（夜间）</span><input type="checkbox" id="flowerGlow"><i></i></label>
-      <label class="switch"><span>开花无限距离记忆</span><input type="checkbox" id="infMem"><i></i></label>
-      <button class="btn" id="clearMem" type="button">清除开花记录</button>
-      <h2>镜头</h2>
-      <label class="ctl"><span>离地高度</span><output for="height"></output><input type="range" id="height" min="0" max="1000" step="1"></label>
-      <p class="ctl-label" id="sdistLabel">与花瓣流的距离</p>
+      <section id="pane-landscape" role="tabpanel" aria-labelledby="tab-landscape" hidden>      <h2 data-i18n="landscape.title">Meadow and flowers</h2>
+      <label class="switch"><span data-i18n="landscape.petals">Petal stream</span><input type="checkbox" id="petals"><i></i></label>
+      <label class="switch"><span data-i18n="landscape.fireflies">Fireflies at night</span><input type="checkbox" id="flies"><i></i></label>
+      <label class="switch"><span data-i18n="landscape.bloom">Flower opening animation</span><input type="checkbox" id="bloom"><i></i></label>
+      <label class="ctl"><span data-i18n="landscape.bloomRadius">Bloom range</span><output for="bloomR"></output><input type="range" id="bloomR" min="1.5" max="10" step="0.5"></label>
+      <label class="switch"><span data-i18n="landscape.flowerGlow">Flower glow at night</span><input type="checkbox" id="flowerGlow"><i></i></label>
+      <label class="switch"><span data-i18n="landscape.memory">Remember blooms at any distance</span><input type="checkbox" id="infMem"><i></i></label>
+      <button class="btn" id="clearMem" type="button" data-i18n="landscape.clearMemory">Clear bloom history</button>
+      <h2 data-i18n="camera.title">Camera</h2>
+      <label class="ctl"><span data-i18n="camera.height">Height above ground</span><output for="height"></output><input type="range" id="height" min="0" max="1000" step="1"></label>
+      <p class="ctl-label" id="sdistLabel" data-i18n="camera.distance">Distance to petal stream</p>
       <div class="seg seg3" role="radiogroup" aria-labelledby="sdistLabel">
-        <label><input type="radio" name="sdist" value="near"><span>近</span></label>
-        <label><input type="radio" name="sdist" value="mid"><span>中</span></label>
-        <label><input type="radio" name="sdist" value="far"><span>远</span></label>
+        <label><input type="radio" name="sdist" value="near"><span data-i18n="camera.near">Near</span></label>
+        <label><input type="radio" name="sdist" value="mid"><span data-i18n="camera.mid">Medium</span></label>
+        <label><input type="radio" name="sdist" value="far"><span data-i18n="camera.far">Far</span></label>
       </div>
-      <label class="switch"><span>花瓣随距离放大</span><input type="checkbox" id="streamScale"><i></i></label>
-      <label class="ctl"><span>景深</span><output for="dof"></output><input type="range" id="dof" min="0" max="1" step="0.01"></label>
-      <label class="switch"><span>自动飞行</span><input type="checkbox" id="auto"><i></i></label>
-      <label class="switch"><span>镜头运动</span><input type="checkbox" id="sway"><i></i></label>
-      <h2>画质</h2>
-      <div class="seg" role="radiogroup" aria-label="画质">
-        <label><input type="radio" name="q" value="low"><span>低</span></label>
-        <label><input type="radio" name="q" value="med"><span>中</span></label>
-        <label><input type="radio" name="q" value="high"><span>高</span></label>
-        <label><input type="radio" name="q" value="ultra"><span>极高</span></label>
+      <label class="switch"><span data-i18n="camera.scale">Scale petals with distance</span><input type="checkbox" id="streamScale"><i></i></label>
+      <label class="ctl"><span data-i18n="camera.dof">Depth of field</span><output for="dof"></output><input type="range" id="dof" min="0" max="1" step="0.01"></label>
+      <label class="switch"><span data-i18n="camera.auto">Auto flight</span><input type="checkbox" id="auto"><i></i></label>
+      <label class="switch"><span data-i18n="camera.sway">Camera motion</span><input type="checkbox" id="sway"><i></i></label>
+      <h2 data-i18n="quality.title">Quality</h2>
+      <div class="seg" role="radiogroup" aria-label="Quality" data-i18n-aria-label="quality.title">
+        <label><input type="radio" name="q" value="low"><span data-i18n="quality.low">Low</span></label>
+        <label><input type="radio" name="q" value="med"><span data-i18n="quality.medium">Medium</span></label>
+        <label><input type="radio" name="q" value="high"><span data-i18n="quality.high">High</span></label>
+        <label><input type="radio" name="q" value="ultra"><span data-i18n="quality.ultra">Ultra</span></label>
       </div>
-      <label class="switch"><span>体积光</span><input type="checkbox" id="god"><i></i></label>
-        <details class="advanced"><summary>渲染信息<span data-icon="chevron"></span></summary>
-          <div class="stats"><p><span id="fps">--</span> FPS</p><p id="ms">帧时间 -- ms</p><p id="res">云层缓冲 --</p><p id="clock">当地时间 --</p><p id="blades">草叶 --</p><p id="gpu"></p></div>
+      <label class="switch"><span data-i18n="quality.godRays">Volumetric light</span><input type="checkbox" id="god"><i></i></label>
+        <details class="advanced"><summary><span data-i18n="rendering.title">Rendering info</span><span data-icon="chevron"></span></summary>
+          <div class="stats"><p><span id="fps">--</span> FPS</p><p id="ms">Frame time -- ms</p><p id="res">Cloud buffer --</p><p id="clock">Local time --</p><p id="blades">Grass blades --</p><p id="gpu"></p></div>
         </details>
       </section>
     </div>
   </aside>
-  <section class="observation chrome" aria-label="此刻的自然">
-    <button class="observer-place" id="placeBtn" aria-label="切换观测地点"><span data-icon="location"></span><span id="observerCity">东京</span><span id="observerEnglish">TOKYO</span></button>
+  <section class="observation chrome" aria-label="Nature right now" data-i18n-aria-label="observation.label">
+    <button class="observer-place" id="placeBtn" aria-label="Change observation location" data-i18n-aria-label="location.change"><span data-icon="location"></span><span id="observerCity">Tokyo</span><span id="observerEnglish">TOKYO</span></button>
     <time id="observerTime" class="observer-time">--:--</time>
     <p id="observerDate" class="observer-date"></p>
-    <p id="observerWeather" class="observer-weather">正在连接当地天气…</p>
-    <p class="observer-source" id="weatherSource">天气数据 <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a></p>
+    <div id="observerWeatherGroup">
+      <button id="observerWeather" class="observer-weather" type="button" aria-controls="weatherSource" aria-expanded="false" data-i18n="weather.connecting">Connecting to local weather…</button>
+      <p class="observer-source" id="weatherSource" data-visible="false" aria-hidden="true"></p>
+    </div>
   </section>
-  <footer class="hint chrome"><button id="helpBtn" aria-label="查看操作说明"><span data-icon="mouse"></span><span id="hintText">拖动环顾<span class="hint-dot">·</span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动<span class="hint-dot">·</span><kbd>空格</kbd> 冲刺</span></button></footer>
-  <button class="restore-button glass" id="restoreBtn" hidden><span data-icon="eye"></span>返回界面</button>
-  <div class="loader" id="loader" role="status"><div><span data-icon="flower" class="loader-flower"></span><span id="loadText">正在唤醒这片草原</span><b id="loadBar"></b></div></div>
-  <div class="error" id="error" role="alert"><div class="glass"><h2>草原暂时无法展开</h2><p id="errorText"></p><button class="btn primary" id="reloadBtn">重新加载</button></div></div>
+  <footer class="hint chrome"><button id="helpBtn" aria-label="Show controls" data-i18n-aria-label="help.open"><span data-icon="mouse"></span><span id="hintText"><span data-i18n="hint.drag">Drag to look around</span><span class="hint-dot">·</span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> <span data-i18n="hint.move">Move</span><span class="hint-dot">·</span><kbd data-i18n="hint.space">Space</kbd> <span data-i18n="hint.dash">Dash</span></span></button></footer>
+  <button class="restore-button glass" id="restoreBtn" hidden><span data-icon="eye"></span><span data-i18n="immersive.restore">Show interface</span></button>
+  <div class="loader" id="loader" role="status"><div><span data-icon="flower" class="loader-flower"></span><span id="loadText" data-i18n="loader.meadow">Waking the meadow</span><b id="loadBar"></b></div></div>
+  <div class="error" id="error" role="alert"><div class="glass"><h2 data-i18n="error.title">The meadow cannot open yet</h2><p id="errorText"></p><button class="btn primary" id="reloadBtn" data-i18n="error.reload">Reload</button></div></div>
   <div class="toast glass" id="toast" role="status" hidden></div>
   <dialog id="helpDialog" class="help-dialog glass" aria-labelledby="helpTitle">
-    <div class="panel-heading"><h2 id="helpTitle">漫游花暦</h2><button class="plain-icon" id="helpClose" aria-label="关闭操作说明"><span data-icon="close"></span></button></div>
-    <p>天空跟随观测地点的真实时间，天气每 15 分钟更新。草原是一片程序生成的想象之地。</p>
-    <dl class="help-controls"><dt>拖动画面</dt><dd>环顾四周</dd><dt>W A S D / 方向键</dt><dd>前后左右移动</dd><dt>Q / E</dt><dd>下降 / 上升</dd><dt>Shift / 空格</dt><dd>加速 / 冲刺</dd><dt>滚轮</dt><dd>调整视野</dd><dt>F / H / Esc</dt><dd>全屏 / 沉浸 / 返回</dd></dl>
-    <p class="touch-help">触屏：单指滑动操控花瓣流；单指双击冲刺，两指双击掉头，三指双击暂停或继续飞行。</p>
-    <p class="service-note">地点与设置仅保存在当前浏览器。使用定位时，经纬度会用于请求 Open-Meteo 天气。</p>
-    <a class="project-link" href="https://github.com/tadazly/hanagoyomi" target="_blank" rel="noopener noreferrer">在 GitHub 探索花暦 <span data-icon="arrow-up-right"></span></a>
+    <div class="panel-heading"><h2 id="helpTitle" data-i18n="help.title">Roam Hanagoyomi</h2><button class="plain-icon" id="helpClose" aria-label="Close controls" data-i18n-aria-label="help.close"><span data-icon="close"></span></button></div>
+    <p data-i18n="help.about">The sky follows the observation location’s real time. Weather updates every 15 minutes. The meadow is a procedurally generated imaginary landscape.</p>
+    <dl class="help-controls"><dt data-i18n="help.drag">Drag the view</dt><dd data-i18n="help.look">Look around</dd><dt data-i18n="help.moveKeys">W A S D / Arrow keys</dt><dd data-i18n="help.move">Move in any direction</dd><dt>Q / E</dt><dd data-i18n="help.vertical">Descend / Ascend</dd><dt data-i18n="help.boostKeys">Shift / Space</dt><dd data-i18n="help.boost">Accelerate / Dash</dd><dt data-i18n="help.scroll">Scroll wheel</dt><dd data-i18n="help.fov">Adjust field of view</dd><dt>F / H / Esc</dt><dd data-i18n="help.modes">Fullscreen / Immersive / Return</dd></dl>
+    <p class="touch-help" data-i18n="help.touch">Touch: swipe with one finger to steer the petals. Double-tap with one finger to dash, two to turn around, or three to pause or resume flight.</p>
+    <p class="service-note" data-i18n="help.privacy">Location and settings stay in this browser. When you use geolocation, coordinates are sent to Open-Meteo to request weather.</p>
+    <a class="project-link" href="https://github.com/tadazly/hanagoyomi" target="_blank" rel="noopener noreferrer"><span data-i18n="github.explore">Explore Hanagoyomi on GitHub</span><span data-icon="arrow-up-right"></span></a>
   </dialog>
-  <noscript><p class="noscript">花暦需要 JavaScript 才能展开实时自然场景，请在浏览器中启用 JavaScript。</p></noscript>
+  <noscript><p class="noscript" data-i18n="error.javascript">Hanagoyomi needs JavaScript to render its live natural scene. Enable JavaScript in your browser.</p></noscript>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

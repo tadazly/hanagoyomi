@@ -1,4 +1,5 @@
 import { zonedDayStart, zonedHours, fmtTime } from './clock.js';
+import { t } from '../i18n/index.js';
 
 const RAD = Math.PI / 180, E_OBL = 23.4397 * RAD;
 const toDays = (ms) => ms / 86400000 - 10957.5;
@@ -36,8 +37,8 @@ export function getAstronomy(ms, loc, rotation = 0) {
     moonAz: hm.az, phase, moonBright: ((1 + Math.cos(alpha)) / 2) ** 3, lst: st,
   };
 }
-const PHASE_NAMES = ['新月', '娥眉月', '上弦月', '盈凸月', '满月', '亏凸月', '下弦月', '残月'];
-export const phaseName = (phase) => PHASE_NAMES[Math.floor(((phase + 1 / 16) % 1) * 8)];
+export const phaseIndex = (phase) => Math.floor(((phase + 1 / 16) % 1) * 8);
+export const phaseName = (phase) => t(`phase.${phaseIndex(phase)}`);
 
 const eventCache = new Map();
 export function getSunEvents(ms, loc) {
@@ -69,7 +70,7 @@ export function getSunEvents(ms, loc) {
 }
 export function sunEventsText(ms, loc) {
   const { rise, set, polar } = getSunEvents(ms, loc);
-  if (polar) return polar === 'day' ? '今天是极昼，太阳整天不落' : '今天是极夜，太阳整天不升';
+  if (polar) return t(polar === 'day' ? 'sun.polarDayDescription' : 'sun.polarNightDescription');
   const format = (t) => t === null ? '--' : fmtTime(zonedHours(loc.tz, t));
-  return `日出 ${format(rise)}，日落 ${format(set)}`;
+  return t('sun.events', { rise: format(rise), set: format(set) });
 }

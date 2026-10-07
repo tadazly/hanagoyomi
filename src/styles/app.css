@@ -16,10 +16,12 @@
   background: #52645a;
   -webkit-font-smoothing: antialiased;
 }
+:root:lang(ja) { --serif: 'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', serif; --ui: var(--serif); }
+:root:lang(en) { --serif: Georgia, 'Times New Roman', 'Yu Mincho', serif; --ui: Georgia, 'Times New Roman', serif; }
 *, *::before, *::after { box-sizing: border-box; }
 html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-button, input { font: inherit; }
-button, a, input, summary { -webkit-tap-highlight-color: transparent; }
+button, input, select { font: inherit; }
+button, a, input, select, summary { -webkit-tap-highlight-color: transparent; }
 button { color: inherit; cursor: pointer; }
 a { color: inherit; }
 [hidden] { display: none !important; }
@@ -36,7 +38,6 @@ body[data-immersive='true'] .chrome { opacity: 0; visibility: hidden; pointer-ev
 .brand-mark svg { width: 40px; height: 40px; stroke-width: .8; }
 .brand h1 { font-family: var(--serif); font-weight: 400; font-size: 30px; letter-spacing: .22em; line-height: 1.1; margin: 0 0 4px; }
 .wordmark { font-family: Georgia, serif; font-size: 10px; letter-spacing: .35em; }
-.brand-note { font-size: 16px; letter-spacing: .09em; margin: 22px 0 0; }
 .toolbar { position: fixed; top: calc(24px + env(safe-area-inset-top, 0px)); right: calc(32px + env(safe-area-inset-right, 0px)); display: flex; align-items: center; gap: 12px; }
 .live-status { display: flex; align-items: center; gap: 10px; margin-right: 12px; font-size: 14px; white-space: nowrap; }
 .live-status i { width: 8px; height: 8px; background: #b1d790; border-radius: 50%; box-shadow: 0 0 14px rgba(177, 215, 144, .2); }
@@ -86,10 +87,11 @@ body[data-immersive='true'] .chrome { opacity: 0; visibility: hidden; pointer-ev
 #observerEnglish { font-family: Georgia, serif; font-size: 11px; letter-spacing: .24em; margin-left: 2px; }
 .observer-time { display: block; font-family: Georgia, 'Times New Roman', serif; font-size: 96px; line-height: 1.07; font-weight: 400; font-variant-numeric: lining-nums tabular-nums; letter-spacing: -.055em; margin: 8px 0 3px; }
 .observer-date { margin: 0 0 12px; font-size: 16px; letter-spacing: .025em; }
-.observer-weather { margin: 0; font-size: 14px; line-height: 1.5; letter-spacing: .025em; }
-.observer-source { margin: 12px 0 0; font-size: 11px; letter-spacing: .015em; opacity: .8; }
+.observer-weather { display: block; margin: 0; padding: 0; border: 0; background: none; color: inherit; text-align: left; text-shadow: inherit; font-size: 14px; line-height: 1.5; letter-spacing: .025em; }
+.observer-source { margin: 12px 0 0; min-height: 1.5em; font-size: 11px; line-height: 1.5; letter-spacing: .015em; visibility: hidden; opacity: 0; pointer-events: none; transition: opacity .18s ease, visibility .18s ease; }
+.observer-source[data-visible='true'] { visibility: visible; opacity: .8; pointer-events: auto; }
 .observer-source a { text-decoration: none; }
-.observer-source a:hover { text-decoration: underline; }
+.observer-source a:hover, .observer-source a:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
 .hint { position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); }
 .hint button { color: inherit; display: flex; align-items: center; gap: 10px; white-space: nowrap; border: 0; padding: 4px 0; background: none; font-size: 11px; text-shadow: inherit; }
 .hint svg { width: 16px; height: 20px; }
@@ -131,7 +133,6 @@ kbd { display: inline-block; min-width: 16px; font: 10px system-ui, sans-serif; 
   .brand-mark svg { width: 30px; height: 30px; }
   .brand h1 { font-size: 24px; letter-spacing: .18em; }
   .wordmark { font-size: 8px; letter-spacing: .25em; }
-  .brand-note { margin-top: 18px; font-size: 12px; }
   .toolbar { top: calc(20px + env(safe-area-inset-top, 0px)); right: 16px; gap: 7px; }
   .live-status { display: none; }
   .icon-button { width: 33px; height: 33px; border-radius: 10px; padding: 7px; }
@@ -152,7 +153,6 @@ kbd { display: inline-block; min-width: 16px; font: 10px system-ui, sans-serif; 
 }
 @media (max-height: 700px) and (min-width: 701px) {
   .masthead { top: 20px; }
-  .brand-note { margin-top: 14px; }
   .panel { top: 76px; max-height: calc(100dvh - 94px); }
   .observer-time { font-size: 66px; }
   .observation { bottom: 50px; }

@@ -68,6 +68,6 @@ test('天气请求使用 m/s、返回值验证且保留实际云量', async () =
 });
 test('天气服务 HTTP 错误、数据不完整与异常值不被当成真实天气', async () => {
   await assert.rejects(fetchWeather(tokyo, { fetcher: async () => ({ ok: false, status: 503 }) }), /HTTP 503/);
-  await assert.rejects(fetchWeather(tokyo, { fetcher: async () => ({ ok: true, json: async () => ({ current: {} }) }) }), /不完整/);
-  await assert.rejects(fetchWeather(tokyo, { fetcher: async () => ({ ok: true, json: async () => ({ current: { cloud_cover: 500, wind_speed_10m: 1, wind_direction_10m: 180, weather_code: 0 } }) }) }), /有效范围/);
+  await assert.rejects(fetchWeather(tokyo, { fetcher: async () => ({ ok: true, json: async () => ({ current: {} }) }) }), /incomplete/);
+  await assert.rejects(fetchWeather(tokyo, { fetcher: async () => ({ ok: true, json: async () => ({ current: { cloud_cover: 500, wind_speed_10m: 1, wind_direction_10m: 180, weather_code: 0 } }) }) }), /valid range/);
 });
