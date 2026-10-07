@@ -40,8 +40,8 @@ input[type='search']::placeholder { color: #7a7d72; }
 .seg.seg-sm span { font-size: 11px; }
 .seg input:checked + span { background: rgba(255,255,255,.7); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.07); }
 .seg input:focus-visible + span { outline: 2px solid var(--sun); outline-offset: 1px; }
-.switch { display: flex; justify-content: space-between; align-items: center; margin: 14px 0; font-size: 13px; cursor: pointer; gap: 10px; }
-.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch { position: relative; display: flex; justify-content: space-between; align-items: center; margin: 14px 0; font-size: 13px; cursor: pointer; gap: 10px; }
+.switch input { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin: 0; opacity: 0; width: 1px; height: 1px; }
 .switch i { flex-shrink: 0; width: 32px; height: 19px; border-radius: 10px; background: var(--track); position: relative; transition: background .15s; }
 .switch i::after { content: ''; position: absolute; top: 3px; left: 3px; width: 13px; height: 13px; border-radius: 50%; background: var(--thumb); box-shadow: 0 1px 3px rgba(0,0,0,.15); transition: transform .15s; }
 .switch input:checked + i { background: var(--sun); }

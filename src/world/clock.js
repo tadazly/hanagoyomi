@@ -1,4 +1,5 @@
 const DAY = 86400000;
+export const TIME_SPEEDS = Object.freeze([0, 1, 10, 60, 300, 1200, 3600, 14400]);
 const formatters = new Map();
 
 // 每分钟缓存时区偏移，仍按观测地点的 IANA 时区处理夏令时。

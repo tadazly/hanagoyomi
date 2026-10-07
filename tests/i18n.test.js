@@ -77,7 +77,7 @@ test('手动选择保存，自动模式清除选择，存储不可用时仍能�
   }
 });
 
-test('三语词典和 HTML 引用完整，插值参数一致', () => {
+test('三语词典和界面模板引用完整，插值参数一致', () => {
   for (const language of ['zh', 'ja']) {
     assert.deepEqual(Object.keys(MESSAGES[language]), Object.keys(MESSAGES.en));
     for (const [key, message] of Object.entries(MESSAGES.en)) {
@@ -85,9 +85,11 @@ test('三语词典和 HTML 引用完整，插值参数一致', () => {
       assert.deepEqual(MESSAGES[language][key].match(/\{\w+\}/g)?.sort(), message.match(/\{\w+\}/g)?.sort(), key);
     }
   }
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  for (const match of html.matchAll(/data-i18n(?:-(?:aria-label|title|placeholder|content))?="([^"]+)"/g)) {
-    assert.ok(Object.hasOwn(MESSAGES.en, match[1]), match[1]);
+  for (const path of ['../index.html', '../src/ui/time-controls.js']) {
+    const template = readFileSync(new URL(path, import.meta.url), 'utf8');
+    for (const match of template.matchAll(/data-i18n(?:-(?:aria-label|title|placeholder|content))?="([^"]+)"/g)) {
+      assert.ok(Object.hasOwn(MESSAGES.en, match[1]), match[1]);
+    }
   }
   for (const key of Object.keys(WX_TYPES)) assert.ok(MESSAGES.en[`weather.${key}`]);
   assert.equal(t('location.near', { city: 'Tokyo' }, 'en'), 'Near Tokyo');

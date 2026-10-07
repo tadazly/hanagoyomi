@@ -46,7 +46,7 @@ Step into a changing natural world of clouds, meadows and petals, following real
 <details>
 <summary>Hanagoyomi on a touch screen</summary>
 <p align="center"><img src="docs/images/hanagoyomi-mobile.jpg" alt="Hanagoyomi in a simulated 393-pixel mobile viewport" width="280"></p>
-Settings are collapsed by default on mobile. Tap the settings button in the top right to open the bottom panel. This screenshot uses a simulated mobile browser viewport.
+On the first visit, mobile settings are collapsed. Tap the settings button in the top right to open the bottom panel. This screenshot uses a simulated mobile browser viewport.
 </details>
 
 ## Run locally
@@ -82,6 +82,12 @@ npm run preview   # Preview the production build at http://127.0.0.1:4173/
 | Double-tap with one / two / three fingers | Dash / Turn around / Pause or resume flight |
 
 Settings stay in the current browser. Moving the time slider or changing its speed enters simulated time; **Back to now** restores real local time. Weather continues to follow current observations, so changing the simulated clock does not retrieve historical weather.
+
+On desktop, click the toolbar's time status to open a compact time panel. It shares its controls with World settings. Constellation lines and orientation are under **Landscape → Astronomy**.
+
+After choosing an observation location, **Open world settings on startup** appears below the location controls. It is off by default, so future visits start with settings collapsed. Turn it on to open settings automatically on desktop or mobile.
+
+In immersive mode, **Show interface** hides after four seconds. Move the pointer to the bottom-right corner or tap that corner to reveal it. It stays visible while the pointer is nearby and hides four seconds after leaving. **Tab** can also reveal the button; **Esc** returns to the interface.
 
 ## Interface language
 

@@ -1,8 +1,10 @@
 import { populateIcons } from './icons.js';
+import { initTimeControls } from './time-controls.js';
 import { fmtTime, zonedHours } from '../world/clock.js';
 import { CITIES, locationName } from '../data/cities.js';
 import { weatherPageUrl } from '../world/weather.js';
-import { getLanguage, getLocale, onLanguageChange, setLanguage, setMessage, t } from '../i18n/index.js';
+import { getSavedLocation, onLocationChange } from '../world/location.js';
+import { getLanguage, getLocale, onLanguageChange, setLanguage, setMessage, t, translateDocument } from '../i18n/index.js';
 const $ = (id) => document.getElementById(id);
 let toastTimer, lastDateKey = '', lastSourceKey = '', dateFormatter, lastObservation;
 let revealWeatherSource = () => {};
@@ -43,6 +45,61 @@ function initWeatherSource() {
   return reveal;
 }
 
+function initRestoreButton() {
+  const zone = $('restoreZone'), button = $('restoreBtn');
+  let hideTimer, hovered = false;
+  const held = () => hovered || button.matches(':focus-visible');
+  const setVisible = visible => {
+    button.dataset.visible = String(visible);
+    button.setAttribute('aria-hidden', String(!visible));
+    if (!visible && document.activeElement === button) $('view').focus({ preventScroll: true });
+    button.inert = !visible;
+  };
+  const scheduleHide = () => {
+    clearTimeout(hideTimer);
+    if (!zone.hidden && button.dataset.visible === 'true' && !held()) {
+      hideTimer = setTimeout(() => { if (!held()) setVisible(false); }, 4000);
+    }
+  };
+  const reveal = () => {
+    if (zone.hidden) return;
+    setVisible(true);
+    scheduleHide();
+  };
+  zone.addEventListener('pointerenter', event => {
+    if (event.pointerType === 'touch') return;
+    hovered = true;
+    reveal();
+  });
+  zone.addEventListener('pointerleave', event => {
+    if (event.pointerType === 'touch') return;
+    hovered = false;
+    scheduleHide();
+  });
+  zone.addEventListener('pointerdown', event => {
+    if (event.pointerType !== 'touch') return;
+    // 隐藏时的第一次触摸只唤出按钮，第二次点击按钮才返回界面。
+    if (event.target === zone) event.preventDefault();
+    reveal();
+  });
+  button.addEventListener('focusin', reveal);
+  button.addEventListener('focusout', scheduleHide);
+  window.addEventListener('keydown', event => {
+    if (event.key === 'Tab' && !event.ctrlKey && !event.metaKey && !event.altKey && !zone.hidden && button.dataset.visible !== 'true') {
+      event.preventDefault();
+      reveal();
+      button.focus();
+    }
+  });
+  return active => {
+    clearTimeout(hideTimer);
+    hovered = false;
+    zone.hidden = !active;
+    setVisible(active);
+    if (active) scheduleHide();
+  };
+}
+
 export function showToast(key) {
   clearTimeout(toastTimer);
   setMessage($('toast'), key);
@@ -51,8 +108,43 @@ export function showToast(key) {
 }
 
 export function initShell() {
+  initTimeControls();
   populateIcons();
+  translateDocument();
   revealWeatherSource = initWeatherSource();
+  const setRestoreButton = initRestoreButton();
+  const timePopover = $('timePopover'), timeTrigger = $('liveStatus');
+  const positionTimePopover = () => {
+    if (timePopover.hidden) return;
+    if (!timeTrigger.getClientRects().length) {
+      timePopover.hidden = true;
+      timeTrigger.setAttribute('aria-expanded', 'false');
+      return;
+    }
+    const anchor = timeTrigger.getBoundingClientRect();
+    const left = Math.max(12, Math.min(anchor.right - timePopover.offsetWidth, window.innerWidth - timePopover.offsetWidth - 12));
+    const top = anchor.bottom + 12;
+    timePopover.style.left = `${left}px`;
+    timePopover.style.top = `${top}px`;
+    timePopover.style.maxHeight = `${Math.max(0, window.innerHeight - top - 12)}px`;
+  };
+  const setTimePopover = (open, restoreFocus = false) => {
+    timePopover.hidden = !open;
+    timeTrigger.setAttribute('aria-expanded', String(open));
+    if (open) {
+      positionTimePopover();
+      $('quick-time').focus({ preventScroll: true });
+    } else if (restoreFocus) timeTrigger.focus({ preventScroll: true });
+  };
+  timeTrigger.addEventListener('click', () => setTimePopover(timePopover.hidden));
+  $('timePopoverClose').addEventListener('click', () => setTimePopover(false, true));
+  const dismissTimePopover = event => {
+    if (!timePopover.hidden && !timePopover.contains(event.target) && !timeTrigger.contains(event.target)) setTimePopover(false);
+  };
+  document.addEventListener('pointerdown', dismissTimePopover);
+  document.addEventListener('focusin', dismissTimePopover);
+  window.addEventListener('resize', positionTimePopover);
+  document.addEventListener('fullscreenchange', positionTimePopover);
   $('languageSelect').addEventListener('change', event => setLanguage(event.target.value));
   const refreshLabels = () => {
     $('panelToggle').setAttribute('aria-label', t($('panel').hidden ? 'panel.open' : 'panel.close'));
@@ -64,6 +156,7 @@ export function initShell() {
   onLanguageChange(() => {
     refreshLabels();
     if (lastObservation) updateObservation(lastObservation);
+    positionTimePopover();
   });
   const setPanel = (open, restoreFocus = false) => {
     document.body.dataset.panelOpen = String(open);
@@ -97,16 +190,28 @@ export function initShell() {
     });
   });
   const narrow = matchMedia('(max-width: 700px)');
-  setPanel(!narrow.matches);
+  const savedLocation = getSavedLocation(), startupOption = $('startupPanelOption'), startupToggle = $('openPanelOnStartup');
+  let openOnStartup = false;
+  try { openOnStartup = localStorage.getItem('hanagoyomi.panelOnStartup.v1') === 'true'; } catch {}
+  startupToggle.checked = openOnStartup;
+  startupOption.hidden = !savedLocation;
+  onLocationChange(() => { startupOption.hidden = false; });
+  startupToggle.addEventListener('change', () => {
+    try { localStorage.setItem('hanagoyomi.panelOnStartup.v1', String(startupToggle.checked)); } catch {}
+  });
+  // 初次访问沿用原来的布局；设置过地点后才按用户保存的启动选项展开。
+  setPanel(savedLocation ? openOnStartup : !narrow.matches);
   $('panelToggle').addEventListener('click', () => setPanel($('panel').hidden));
   $('panelClose').addEventListener('click', () => setPanel(false, true));
   $('placeBtn').addEventListener('click', () => { setPanel(true); selectTab('now'); $('citySearch').focus(); });
   const setImmersive = (active) => {
+    if (active) setTimePopover(false);
     document.body.dataset.immersive = String(active);
     document.querySelectorAll('.chrome').forEach(el => { el.inert = active; });
-    $('restoreBtn').hidden = !active;
-    if (active) $('restoreBtn').focus();
-    else $('immersiveBtn').focus();
+    // 初始焦点放到风景，避免按钮被程序聚焦后一直无法自动隐藏。
+    if (active) $('view').focus({ preventScroll: true });
+    setRestoreButton(active);
+    if (!active) $('immersiveBtn').focus();
   };
   $('immersiveBtn').addEventListener('click', () => setImmersive(true));
   $('restoreBtn').addEventListener('click', () => setImmersive(false));
@@ -119,11 +224,17 @@ export function initShell() {
   };
   $('fullscreenBtn').addEventListener('click', fullscreen);
   document.addEventListener('fullscreenchange', refreshLabels);
-  $('helpBtn').addEventListener('click', () => $('helpDialog').showModal());
+  $('helpBtn').addEventListener('click', () => { setTimePopover(false); $('helpDialog').showModal(); });
   $('helpClose').addEventListener('click', () => $('helpDialog').close());
   $('helpDialog').addEventListener('click', e => { if (e.target === $('helpDialog')) $('helpDialog').close(); });
   $('reloadBtn').addEventListener('click', () => location.reload());
   window.addEventListener('keydown', e => {
+    // 快捷面板里的滑块聚焦时，Esc 也只关闭快捷面板。
+    if (e.key === 'Escape' && !timePopover.hidden) {
+      e.preventDefault();
+      setTimePopover(false, true);
+      return;
+    }
     if (e.target.closest('input, textarea, select') || e.ctrlKey || e.metaKey || e.altKey || $('helpDialog').open) return;
     if (e.key === 'Escape') {
       if (document.body.dataset.immersive === 'true') setImmersive(false);
@@ -136,7 +247,7 @@ export function initShell() {
 
 export function updateObservation(state) {
   lastObservation = state;
-  const { loc, ms, live, weather, coverage, wind, followNow, speed, sun, phase } = state;
+  const { loc, ms, live, weather, coverage, wind, followNow, speed } = state;
   $('observerCity').textContent = locationName(loc);
   $('observerEnglish').textContent = (CITIES.find(c => c[0] === loc.name)?.[1] || '').toUpperCase();
   $('observerEnglish').hidden = getLanguage() === 'en' || !$('observerEnglish').textContent;
@@ -172,9 +283,9 @@ export function updateObservation(state) {
     }
     revealWeatherSource();
   }
-  setMessage($('liveLabel'), followNow && speed === 1 ? 'time.live' : speed === 0 ? 'time.still' : 'time.roaming');
+  const timeState = followNow && speed === 1 ? 'time.live' : speed === 0 ? 'time.still' : 'time.roaming';
+  setMessage($('liveLabel'), timeState);
+  $('liveStatus').setAttribute('aria-label', `${t(timeState)} · ${t('time.settings')}`);
   $('liveStatus').dataset.live = String(followNow && speed === 1);
-  $('sunriseText').textContent = sun.polar ? t(sun.polar === 'day' ? 'sun.polarDay' : 'sun.polarNight') : t('sun.rise', { time: sun.rise === null ? '--' : fmtTime(zonedHours(loc.tz, sun.rise)) });
-  $('sunsetText').textContent = sun.polar ? t(`phase.${phase}`) : t('sun.set', { time: sun.set === null ? '--' : fmtTime(zonedHours(loc.tz, sun.set)) });
   document.body.dataset.daylight = String(state.sunAltitude > 8);
 }

@@ -4,9 +4,11 @@ import { STAR_DATA, LINE_DATA } from '../data/stars.js';
 import { CITIES, COMMON_CITIES, cityName, locationName, searchCities } from '../data/cities.js';
 import { WX_TYPES, WX_KEYS, wxPreset, WX_NEXT } from '../world/weather-presets.js';
 import { fetchWeather } from '../world/weather.js';
-import { zonedHours, zonedDayStart, localTimeToUTC, fmtTime, advanceClock, timezoneOffset } from '../world/clock.js';
+import { getSavedLocation, saveLocation } from '../world/location.js';
+import { zonedHours, zonedDayStart, localTimeToUTC, fmtTime, advanceClock, timezoneOffset, TIME_SPEEDS as SPEEDS } from '../world/clock.js';
 import { getAstronomy, sunEventsText, phaseName, phaseIndex, getSunEvents } from '../world/astronomy.js';
 import { getLocale, onLanguageChange, setMessage, t } from '../i18n/index.js';
+import { bindTimeActions, updateTimeControls } from '../ui/time-controls.js';
 
 export function startWorld(onUpdate = () => {}) {
 
@@ -557,8 +559,6 @@ const QUALITY = {
 };
 const TILE = 32, LAYER_WIDTH = [1.0, 2.4, 6.0];
 /* simulated clock: starts at the browser's local time and runs at a chosen multiple of real time */
-const SPEEDS = [0, 1, 10, 60, 300, 1200, 3600, 14400];
-const speedLabel = (index) => index === 0 ? t('time.paused') : index === 1 ? t('time.realtime') : SPEEDS[index] + '×';
 let simMs = Date.now();
 const S = {
   time: 0, speed: 1, wxSync: true, constel: false, flies: true, flowerGlow: false, bloom: true, streamDist: 'near', streamScale: false, infMem: false, bloomR: 4, wxMode: 'follow', wxType: 'cloudy', fogVisS: 1000, rainAmt: 0, snowAmt: 0, boltFreq: 0, puddle: 0, snowMax: 0, lensDrops: true, sunAz: 0, coverage: 0.58, density: 1.0, wind: 40, breeze: 0.65, petals: true,
@@ -624,14 +624,7 @@ cam.y = groundH(S.x, S.z) + S.agl;
 
 /* ---------- location and the city's own clock ---------- */
 const RAD = Math.PI / 180;
-let LOC = {name: '东京', lat: 35.6762, lon: 139.6503, tz: 'Asia/Tokyo'};
-try {
-  const sv = JSON.parse(localStorage.getItem('meadow.loc') || 'null');
-  if (sv && Number.isFinite(sv.lat) && Math.abs(sv.lat) <= 90 && Number.isFinite(sv.lon) && Math.abs(sv.lon) <= 180 && typeof sv.name === 'string' && typeof sv.tz === 'string') {
-    new Intl.DateTimeFormat('en-US', { timeZone: sv.tz });
-    LOC = { name: sv.name.slice(0, 80), lat: sv.lat, lon: sv.lon, tz: sv.tz };
-  }
-} catch (e) {}
+let LOC = getSavedLocation() || {name: '东京', lat: 35.6762, lon: 139.6503, tz: 'Asia/Tokyo'};
 const cityOffset = (ms) => timezoneOffset(LOC.tz, ms);
 const cityHours = (ms) => zonedHours(LOC.tz, ms);
 const cityDayStart = (ms) => zonedDayStart(LOC.tz, ms);
@@ -880,17 +873,26 @@ function bindRange(id, key, fmt, onChange){
   onLanguageChange(() => paint(S[key]));
   return {el, paint};
 }
-let lastTimeInput = 0;
-const timeCtl = bindRange('time', 'time', fmtTime, () => {
-  followNow = false;
-  simMs = localTimeToUTC(LOC.tz, simMs, S.time);
-  lastTimeInput = performance.now(); expo = NaN;
+const publishTimeControls = () => updateTimeControls({
+  hours: S.time, speedIndex: S.speed, loc: LOC, sun: getSunEvents(simMs, LOC), phase: phaseIndex(astro(simMs).phase),
 });
-const speedCtl = bindRange('speed', 'speed', (v) => speedLabel(v | 0), () => { followNow = false; });
-$('syncNow').addEventListener('click', () => {
-  simMs = Date.now(); followNow = true; expo = NaN; S.speed = 1;
-  speedCtl.el.value = 1; speedCtl.paint(); lastTimeInput = 0;
+bindTimeActions({
+  time(value) {
+    S.time = value; followNow = false;
+    simMs = localTimeToUTC(LOC.tz, simMs, S.time); expo = NaN;
+    publishTimeControls();
+  },
+  speed(value) {
+    S.speed = value; followNow = false;
+    publishTimeControls();
+  },
+  sync() {
+    simMs = Date.now(); S.time = cityHours(simMs);
+    followNow = true; expo = NaN; S.speed = 1;
+    publishTimeControls();
+  },
 });
+publishTimeControls();
 bindRange('sunAz', 'sunAz', (v) => Math.round(v) + '°');
 bindRange('bloomR', 'bloomR', (v) => t('landscape.radiusValue', { value: Number(v).toFixed(1) }));
 const wxCtl = {};
@@ -985,7 +987,7 @@ function renderLoc(){
 }
 function setLocation(loc){
   LOC = loc; lightKey = ''; expo = NaN; WXS.followOK = false; WXS.live = null; WXS.src = '';
-  try { localStorage.setItem('meadow.loc', JSON.stringify(LOC)); } catch (e) {}
+  saveLocation(LOC);
   renderLoc(); syncWeather();
 }
 function cityChip(c){
@@ -1671,14 +1673,15 @@ function frame(now){
     renderClock();
     $('locSun').textContent = riseSetText(simMs);
     const live = S.wxMode === 'follow' && WXS.followOK ? WXS.live : null;
+    const timeState = { hours: S.time, speedIndex: S.speed, loc: LOC, sun: getSunEvents(simMs, LOC), phase: phaseIndex(AST.phase) };
+    updateTimeControls(timeState);
     onUpdate({
       loc: LOC, ms: simMs, live, followNow, speed: SPEEDS[S.speed | 0],
       weather: live ? live.type : WXS.type,
       coverage: WP.cov, wind: WP.wind,
       weatherSource: S.wxMode === 'manual' ? 'weather.source.manual' : S.wxMode === 'off' ? 'weather.source.off' : S.wxMode === 'dynamic' ? 'weather.source.dynamic' : WXS.src ? 'weather.source.fallback' : 'weather.source.connecting',
-      sun: getSunEvents(simMs, LOC), sunAltitude: AST.sunAlt / RAD, phase: phaseIndex(AST.phase),
+      sun: timeState.sun, sunAltitude: AST.sunAlt / RAD, phase: timeState.phase,
     });
-    if (performance.now() - lastTimeInput > 600){ timeCtl.el.value = S.time; timeCtl.paint(S.time); }
     setMessage($('blades'), grassOn ? 'rendering.blades' : 'rendering.noGrass', { count: Math.round(bladeEst).toLocaleString(getLocale()) });
     statAcc = 0; statFrames = 0; statT = 0;
   }
