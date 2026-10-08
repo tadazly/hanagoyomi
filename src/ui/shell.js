@@ -240,6 +240,7 @@ export function initShell() {
       return;
     }
     if (e.target.closest('input, textarea, select') || e.ctrlKey || e.metaKey || e.altKey || $('helpDialog').open) return;
+    if (document.body.dataset.sceneInteractive === 'false' && e.key !== 'Escape') return;
     if (e.key === 'Escape') {
       if (document.body.dataset.immersive === 'true') setImmersive(false);
       else setPanel(false);
@@ -271,8 +272,8 @@ export function updateObservation(state) {
   $('observerClouds').textContent = Math.round(live?.cloud_cover ?? coverage * 100) + '%';
   $('observerWind').textContent = Number(live?.wind_speed_10m ?? wind).toFixed(1) + ' m/s';
   $('observerWind').parentElement.title = t(live ? 'weather.windValue' : 'weather.cloudSpeedValue', { value: Number(live?.wind_speed_10m ?? wind).toFixed(1) });
+  updateWeatherDetails(group, { live, airQuality: state.airQuality, temperatureUnit: state.temperatureUnit, simulated: state.simulatedWeather, compact: true, hideUnavailable: state.hideUnavailableWeather, display });
   $('observerWeatherMetrics').hidden = ![...$('observerWeatherMetrics').children].some(field => !field.hidden);
-  updateWeatherDetails(group, { live, airQuality: state.airQuality, temperatureUnit: state.temperatureUnit, simulated: state.simulatedWeather, compact: true });
   const source = $('weatherSource');
   const sourceKey = `${getLocale()}|${loc.lat},${loc.lon}|${loc.tz}|${state.temperatureUnit}|${state.airQuality?.fetchedAt}|${live ? `live:${live.fetchedAt}` : state.weatherSource}`;
   // 每半秒的观测刷新不重置隐藏计时，也不重建正在聚焦的来源链接。

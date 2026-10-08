@@ -30,6 +30,8 @@ const entries = {
   'components.logo': ['LOGO', 'LOGO 显示', 'ロゴ表示'],
   'components.observation': ['Time and weather', '时间天气显示', '時刻・天気表示'],
   'components.hint': ['Controls hint', '操作提示显示', '操作ヒント表示'],
+  'components.interaction': ['Scene interaction', '场景交互', 'シーン操作'],
+  'components.interactionDescription': ['Turn off to disable mouse, keyboard, wheel and touch controls and hide the hint. Auto flight remains independent; turn it off to hold the camera still.', '关闭后屏蔽鼠标、键盘、滚轮与触摸操纵，并隐藏操作提示。自动飞行独立运行；同时关闭自动飞行后视角固定。', 'オフにするとマウス・キー・ホイール・タッチ操作とヒント表示を停止します。自動飛行は独立して動作し、自動飛行もオフにすると視点が固定されます。'],
   'components.position': ['Position', '显示位置', '表示位置'],
   'components.observationPosition': ['Time and weather position', '时间天气位置', '時刻・天気の位置'],
   'components.defaultPosition': ['Default position', '默认位置', '既定の位置'],

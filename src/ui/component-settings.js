@@ -61,14 +61,20 @@ export function layoutComponents(items, bounds, toolbar, reserved = []) {
 export function initComponentSettings() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(COMPONENTS_KEY)); } catch {}
+  try {
+    const enabled = JSON.parse(localStorage.getItem('meadow.settings.v1'))?.interactionEnabled;
+    if (typeof enabled === 'boolean') document.body.dataset.sceneInteractive = String(enabled);
+  } catch {}
   let preferences = componentPreferences(saved), queued = false;
   const elements = Object.fromEntries(COMPONENTS.map(name => [name, document.querySelector(`[data-ui-component="${name}"]`)]));
   const boundsElement = document.getElementById('componentBounds');
+  const interactionEnabled = () => document.body.dataset.sceneInteractive !== 'false';
+  const visible = name => preferences[name].visible && (name !== 'hint' || interactionEnabled());
   const layout = () => {
     queued = false;
     const bounds = boundsElement.getBoundingClientRect(), toolbar = document.querySelector('.toolbar').getBoundingClientRect();
     const defaults = { logo: 'top-left', observation: 'bottom-left', hint: innerWidth <= 700 ? 'bottom-right' : innerWidth <= 1100 ? 'bottom-left' : 'bottom-center' };
-    const items = COMPONENTS.filter(name => preferences[name].visible).map(name => {
+    const items = COMPONENTS.filter(visible).map(name => {
       const element = elements[name], rect = element.getBoundingClientRect();
       const position = preferences[name].position;
       return { name, width: rect.width, height: rect.height, position: !position || position === 'default' ? defaults[name] : position };
@@ -92,8 +98,9 @@ export function initComponentSettings() {
   const refresh = () => {
     for (const name of COMPONENTS) {
       const preference = preferences[name], card = document.querySelector(`[data-component-settings="${name}"]`);
-      elements[name].hidden = !preference.visible;
+      elements[name].hidden = !visible(name);
       card.querySelector('[data-component-visible]').checked = preference.visible;
+      card.querySelector('[data-component-visible]').disabled = name === 'hint' && !interactionEnabled();
       card.querySelectorAll('[data-component-position]').forEach(input => { input.checked = input.value === preference.position; });
       const current = card.querySelector('[data-component-current]');
       if (current) setMessage(current, `components.position.${preference.position}`);
@@ -124,6 +131,7 @@ export function initComponentSettings() {
     preferences = componentPreferences(); save(); refresh();
   });
   onLanguageChange(refresh);
+  document.addEventListener('sceneinteractionchange', refresh);
   window.addEventListener('resize', requestLayout);
   document.addEventListener('fullscreenchange', requestLayout);
   const observer = new ResizeObserver(requestLayout);

@@ -1,7 +1,7 @@
 import { airQualityLevel, formatTemperature } from '../world/weather.js';
 import { getLocale, t } from '../i18n/index.js';
 
-export function updateWeatherDetails(element, { live, airQuality, temperatureUnit = 'celsius', simulated = false, compact = false } = {}) {
+export function updateWeatherDetails(element, { live, airQuality, temperatureUnit = 'celsius', simulated = false, compact = false, hideUnavailable = false, display = {} } = {}) {
   const metric = name => element.querySelector(`[data-weather-metric="${name}"]`);
   const unavailable = t(simulated ? 'weather.simulatedData' : 'weather.noData');
   metric('temperature').textContent = formatTemperature(live?.temperature_2m, temperatureUnit, getLocale());
@@ -12,6 +12,11 @@ export function updateWeatherDetails(element, { live, airQuality, temperatureUni
   metric('precipitationNote').textContent = Number.isFinite(precipitation)
     ? (live.interval ? t('weather.precipitationPeriod', { minutes: new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 1 }).format(live.interval / 60) }) : t('weather.periodUnknown')) : unavailable;
   const level = airQualityLevel(airQuality?.us_aqi);
+  const available = { temperature: Number.isFinite(live?.temperature_2m), precipitation: Number.isFinite(precipitation), airQuality: Boolean(level) };
+  for (const [name, present] of Object.entries(available)) {
+    metric(name).closest(compact ? '[data-weather-field]' : 'div').hidden = display[name] === false || (hideUnavailable && !present);
+  }
+  if (!compact) element.hidden = hideUnavailable && !Object.values(available).some(Boolean);
   metric('airQuality').textContent = level ? String(Math.round(airQuality.us_aqi)) : '—';
   metric('airQuality').dataset.level = level || 'unknown';
   const airDescription = level ? `${t('weather.usAqi')} · ${t(`weather.aqi.${level}`)}` : unavailable;

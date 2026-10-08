@@ -21,6 +21,8 @@ body .ui-component[data-ui-column='right'] { text-align: right; }
 .position-grid input:checked + span { color: #fff; background: var(--sun); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
 .position-grid input:focus-visible + span { outline: 2px solid var(--sun); outline-offset: 2px; }
 .component-card .weather-display-options { margin: 18px 0 0; }
+body[data-scene-interactive='false'] #view { cursor: default; }
+.switch:has(input:disabled) { opacity: .5; cursor: default; }
 @media (max-width: 700px) {
   #componentBounds { inset: calc(20px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px)); }
   body .ui-component { max-width: calc(100vw - 40px); }

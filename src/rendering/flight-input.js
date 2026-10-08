@@ -23,7 +23,9 @@ export function bindMouseFlightInput({ canvas, isFlying, isEnabled = () => true,
     turnTimer = null; clicks = null;
   };
   const reset = () => {
+    const id = press?.id;
     press = null; clearClicks(); stick.active = false;
+    if (id !== undefined) { try { canvas.releasePointerCapture(id); } catch {} }
     canvas.classList.remove('dragging');
   };
   // 使用原始事件时间，避免渲染繁忙、事件排队改变点击间隔。
@@ -35,6 +37,7 @@ export function bindMouseFlightInput({ canvas, isFlying, isEnabled = () => true,
     if (![0, 2].includes(e.button)) { clearClicks(); return; }
     if (!isEnabled() || press || e.buttons !== (e.button === 0 ? 1 : 2)) { reset(); return; }
     e.preventDefault();
+    canvas.focus?.({ preventScroll: true });
     if (!compatible(e)) {
       // 双击之后改按其他键或换位置，已完成的掉头仍然有效。
       const pendingTurn = turnTimer !== null;

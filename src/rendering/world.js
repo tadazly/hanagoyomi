@@ -565,14 +565,14 @@ let simMs = Date.now();
 const S = {
   time: 0, speed: 1, wxSync: true, constel: false, flies: true, flowerGlow: false, bloom: true, streamDist: 'near', streamScale: false, infMem: false, bloomR: 4, wxMode: 'follow', wxType: 'cloudy', fogVisS: 1000, rainAmt: 0, snowAmt: 0, boltFreq: 0, puddle: 0, snowMax: 0, lensDrops: true, sunAz: 0, coverage: 0.58, density: 1.0, wind: 40, breeze: 0.65, petals: true,
   heightSlider: 0, dof: 0.6, sway: !reduceMotion, quality: coarse ? 'med' : 'high', god: !coarse, auto: !reduceMotion,
-  fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius',
+  fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: true,
   showWeather: true, showTemperature: true, showPrecipitation: false, showAirQuality: false, showClouds: false, showWind: false,
 };
 /* settings persist in this browser: everything the panel controls except the clock itself */
 const SETTINGS_KEY = 'meadow.settings.v1';
 const PERSIST_KEYS = ['auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof',
   'heightSlider', 'agl', 'speed', 'streamDist', 'wxMode', 'wxType', 'coverage', 'density', 'wind', 'breeze', 'fogVisS', 'rainAmt', 'snowAmt', 'boltFreq',
-  'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind'];
+  'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind', 'interactionEnabled'];
 try {
   const sv = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
   if (sv && typeof sv === 'object'){
@@ -602,6 +602,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 let userPickedQuality = false;
 const cam = {yaw: 0, pitch: 0.04, roll: 0, yawT: 0, pitchT: 0.04, vx: 0, vz: 0, y: 0, focus: 40, fov: 60};
+let lastView = null, frozenView = null;
 
 (() => {
   let best = null;
@@ -807,12 +808,12 @@ function basis(yaw, pitch, roll){
 }
 const keys = new Set();
 window.addEventListener('keydown', (e) => {
-  if (e.target.closest('input, textarea, select, button, summary') || $('helpDialog').open) return;
+  if (!S.interactionEnabled || e.target.closest('input, textarea, select, button, summary') || $('helpDialog').open) return;
   const k = e.key.toLowerCase();
   if (['w','a','s','d','q','e','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){ keys.add(k); if (k !== 'shift') stopAuto(); }
 });
 window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
-window.addEventListener('keydown', (e) => { if (e.key === ' ' && !e.target.closest('input, textarea, select, button, summary') && !$('helpDialog').open){ sprintUntil = performance.now() + 1600; e.preventDefault(); } });
+window.addEventListener('keydown', (e) => { if (S.interactionEnabled && e.key === ' ' && !e.target.closest('input, textarea, select, button, summary') && !$('helpDialog').open){ sprintUntil = performance.now() + 1600; e.preventDefault(); } });
 window.addEventListener('blur', () => { keys.clear(); mouseFlight.reset(); });
 /* touch flies the petal stream like a flight game: one finger is a virtual stick measured from where it landed;
    double taps: one finger = sprint, two fingers = turn around, three fingers = hover / fly on */
@@ -820,7 +821,7 @@ const touches = new Map();
 const stick = {active: false, id: -1, ox: 0, oy: 0, x: 0, y: 0};
 let gesture = null, lastTap = {n: 0, t: 0}, lastSteerAt = -1e9, sprintUntil = 0;
 const mouseFlight = bindMouseFlightInput({
-  canvas, isFlying: () => S.auto, isEnabled: () => !$('helpDialog').open,
+  canvas, isFlying: () => S.auto, isEnabled: () => S.interactionEnabled && !$('helpDialog').open,
   look: (dx, dy) => {
     const k = (S.fovY / 60) * 0.0032;
     cam.yawT += dx * k; cam.pitchT = clamp(cam.pitchT - dy * k, -1.45, 1.45);
@@ -830,7 +831,8 @@ const mouseFlight = bindMouseFlightInput({
 window.addEventListener('resize', () => mouseFlight.reset());
 const capture = (id) => { try { canvas.setPointerCapture(id); } catch (err) {} };
 canvas.addEventListener('pointerdown', (e) => {
-  if (e.pointerType === 'mouse') return;
+  if (!S.interactionEnabled || e.pointerType === 'mouse') return;
+  canvas.focus({ preventScroll: true });
   mouseFlight.reset();
   capture(e.pointerId);
   touches.set(e.pointerId, {x0: e.clientX, y0: e.clientY});
@@ -840,17 +842,20 @@ canvas.addEventListener('pointerdown', (e) => {
   else stick.active = false;
 });
 canvas.addEventListener('pointermove', (e) => {
+  if (!S.interactionEnabled) return;
   const tp = touches.get(e.pointerId);
   if (!tp) return;
   if (gesture && Math.hypot(e.clientX - tp.x0, e.clientY - tp.y0) > 14) gesture.moved = true;
   if (stick.active && e.pointerId === stick.id){ stick.x = e.clientX; stick.y = e.clientY; }
 });
 function onDoubleTap(n){
+  if (!S.interactionEnabled) return;
   if (n === 1) sprintUntil = performance.now() + 1600;
   else if (n === 2){ cam.yawT += Math.PI; lastSteerAt = performance.now(); }
   else setAuto(!S.auto);
 }
 const endPointer = (e) => {
+  if (!S.interactionEnabled) return;
   if (!touches.has(e.pointerId)) return;
   touches.delete(e.pointerId);
   if (stick.id === e.pointerId) stick.active = false;
@@ -864,7 +869,7 @@ const endPointer = (e) => {
   }
 };
 canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
-canvas.addEventListener('wheel', (e) => { e.preventDefault(); S.fovY = clamp(S.fovY * Math.exp(e.deltaY * 0.0012), 28, 95); }, {passive: false});
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (S.interactionEnabled) S.fovY = clamp(S.fovY * Math.exp(e.deltaY * 0.0012), 28, 95); }, {passive: false});
 
 /* ================================================================== */
 /*  UI                                                                 */
@@ -955,7 +960,7 @@ function wxStatus(){
   if (WXS.wet > 0.02) parts.push(t('weather.wetValue', { value: Math.round(WXS.wet * 100) }));
   if (WXS.snowCov > 0.02) parts.push(t('weather.snowCoverValue', { value: Math.round(WXS.snowCov * 100) }));
   const live = S.wxMode === 'follow' && WXS.followOK ? WXS.live : null;
-  updateWeatherDetails($('panelWeatherMetrics'), { live, airQuality: live ? WXS.airQuality : null, temperatureUnit: S.temperatureUnit, simulated: S.wxMode !== 'follow' || Boolean(WXS.src && !live) });
+  updateWeatherDetails($('panelWeatherMetrics'), { live, airQuality: live ? WXS.airQuality : null, temperatureUnit: S.temperatureUnit, simulated: S.wxMode !== 'follow' || Boolean(WXS.src && !live), hideUnavailable: S.wxMode !== 'follow' });
   const src = S.wxMode === 'dynamic' ? t('weather.dynamicDescription', { minutes: Math.max(1, Math.round((WXS.until - wxClock) / 60000)) })
     : S.wxMode === 'off' ? t('weather.offDescription') : S.wxMode === 'manual' ? t('weather.manualDescription')
     : live ? t('weather.liveDescription', { city: locationName(LOC), weather: t(`weather.${live.type}`), clouds: Math.round(live.cloud_cover), wind: Number(live.wind_speed_10m).toFixed(1) })
@@ -974,6 +979,21 @@ const heightCtl = bindRange('height', 'heightSlider', (v) => fmtAgl(aglFromSlide
 function syncHeightSlider(){ S.heightSlider = sliderFromAgl(S.agl); heightCtl.el.value = S.heightSlider; heightCtl.paint(); }
 const toggles = {auto: 'auto', god: 'god', petals: 'petals', sway: 'sway', constel: 'constel', flies: 'flies', flowerGlow: 'flowerGlow', bloom: 'bloom', streamScale: 'streamScale', infMem: 'infMem', lensDrops: 'lensDrops'};
 for (const [id, key] of Object.entries(toggles)){ const el = $(id); el.checked = S[key]; el.addEventListener('change', () => { if (key === 'auto') setAuto(el.checked); else S[key] = el.checked; }); }
+function setInteractionEnabled(enabled){
+  S.interactionEnabled = enabled;
+  $('interactionEnabled').checked = enabled;
+  keys.clear(); mouseFlight.reset();
+  for (const id of touches.keys()) { try { canvas.releasePointerCapture(id); } catch {} }
+  touches.clear(); stick.active = false; gesture = null; lastTap = {n: 0, t: 0}; sprintUntil = 0;
+  if (!enabled) { lastSteerAt = -1e9; cam.yawT = cam.yaw; cam.pitchT = cam.pitch; }
+  if (!enabled && !S.auto) cam.vx = cam.vz = 0;
+  frozenView = !enabled && !S.auto ? lastView : null;
+  document.body.dataset.sceneInteractive = String(enabled);
+  document.dispatchEvent(new Event('sceneinteractionchange'));
+  saveSettings();
+}
+$('interactionEnabled').addEventListener('change', e => setInteractionEnabled(e.target.checked));
+setInteractionEnabled(S.interactionEnabled);
 $('clearMem').addEventListener('click', () => {
   memPts = []; memGrid = new Map(); memLastX = NaN; memDirty = false;
   try { localStorage.removeItem(MEM_KEY); } catch (e) {}
@@ -983,6 +1003,10 @@ window.addEventListener('pagehide', () => { if (S.infMem){ memDirty = true; memS
 function setAuto(value){
   S.auto = value; $('auto').checked = value; mouseFlight.reset();
   if (!value) sprintUntil = 0;
+  if (!S.interactionEnabled){
+    frozenView = value ? null : lastView;
+    if (!value) { cam.vx = cam.vz = 0; cam.yawT = cam.yaw; cam.pitchT = cam.pitch; }
+  }
   saveSettings();
 }
 function stopAuto(){ if (S.auto) setAuto(false); }
@@ -1112,6 +1136,7 @@ onLanguageChange(() => { renderLoc(); renderSearch(); wxStatus(); renderClock();
 /* ================================================================== */
 let autoT = 0;
 function updateCamera(dt){
+  if (!S.interactionEnabled && !S.auto) return groundH(S.x, S.z);
   autoT += dt;
   let mf = 0, mr = 0, mu = 0;
   if (keys.has('w') || keys.has('arrowup')) mf += 1;
@@ -1122,7 +1147,7 @@ function updateCamera(dt){
   if (keys.has('q')) mu -= 1;
   const fast = keys.has('shift') ? 5 : 1;
   const flightStick = stick.active ? stick : mouseFlight.stick;
-  const stickActive = flightStick.active && (flightStick === stick || S.auto) && !$('helpDialog').open && !document.hidden;
+  const stickActive = S.interactionEnabled && flightStick.active && (flightStick === stick || S.auto) && !$('helpDialog').open && !document.hidden;
   const { x: stX, y: stY } = flightStickAxes({ ...flightStick, active: stickActive }, cssW, cssH);
   if (stX || stY) lastSteerAt = performance.now();
   const steering = performance.now() - lastSteerAt < 3000;
@@ -1258,10 +1283,15 @@ function frame(now){
   simTime += dt;
 
   const groundNow = updateCamera(dt);
-  const sw = S.sway ? 1 : 0;
-  const yaw = cam.yaw + sw * (0.004 * Math.sin(simTime * 0.53) + 0.003 * Math.sin(simTime * 1.31));
-  const pitch = cam.pitch + sw * 0.003 * Math.sin(simTime * 0.71 + 1);
-  const camM = [S.x, cam.y + sw * 0.06 * Math.sin(simTime * 0.9), S.z], camK = camM.map(v => v / 1000);
+  const cameraActive = S.interactionEnabled || S.auto;
+  const sw = S.sway && cameraActive ? 1 : 0;
+  const view = cameraActive ? {
+    yaw: cam.yaw + sw * (0.004 * Math.sin(simTime * 0.53) + 0.003 * Math.sin(simTime * 1.31)),
+    pitch: cam.pitch + sw * 0.003 * Math.sin(simTime * 0.71 + 1),
+    position: [S.x, cam.y + sw * 0.06 * Math.sin(simTime * 0.9), S.z], fov: cam.fov,
+  } : (frozenView ||= {yaw: cam.yaw, pitch: cam.pitch, position: [S.x, cam.y, S.z], fov: cam.fov});
+  lastView = view;
+  const {yaw, pitch} = view, camM = view.position, camK = camM.map(v => v / 1000);
   const aglReal = camM[1] - groundNow;
 
   const wv = WP.wind / 1000;
@@ -1287,7 +1317,7 @@ function frame(now){
   const fogCol = fogColR.map(v => fogLum + (v - fogLum) * 0.4);
   const fogW = [fogDens, WXS.fogH, Math.max(aglReal, 0.5), 0];
   const flashTop = [bolt.x - camM[0], LAYER[0] * 1000 + 300 - camM[1], bolt.z - camM[2]], ftl = Math.hypot(...flashTop) || 1;
-  const tanY = Math.tan(cam.fov * Math.PI / 360), tanX = tanY * aspect;
+  const tanY = Math.tan(view.fov * Math.PI / 360), tanX = tanY * aspect;
   /* focus pulls to the petal stream: it is what the shot is about */
   const grassOn = aglReal < 450;
   const streamOn = updateTrail(dt, simTime, camM, S.petals, Math.hypot(cam.vx, cam.vz));
@@ -1298,7 +1328,7 @@ function frame(now){
     const dz = (sx * B.f[0] + sy2 * B.f[1] + sz * B.f[2]) / 14;
     if (dz > 0.8) fd = dz;
   }
-  cam.focus += (clamp(fd, 1.5, 600) - cam.focus) * (1 - Math.exp(-dt * 3));
+  if (cameraActive) cam.focus += (clamp(fd, 1.5, 600) - cam.focus) * (1 - Math.exp(-dt * 3));
 
   gl.bindVertexArray(emptyVAO);
   gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.depthMask(true);
@@ -1715,6 +1745,7 @@ function frame(now){
       airQuality: live ? WXS.airQuality : null, temperatureUnit: S.temperatureUnit,
       weatherDisplay: { show: S.showWeather, temperature: S.showTemperature, precipitation: S.showPrecipitation, airQuality: S.showAirQuality, clouds: S.showClouds, wind: S.showWind },
       simulatedWeather: S.wxMode !== 'follow' || Boolean(WXS.src && !live),
+      hideUnavailableWeather: S.wxMode !== 'follow',
       weather: live ? live.type : WXS.type,
       coverage: WP.cov, wind: WP.wind,
       weatherSource: S.wxMode === 'manual' ? 'weather.source.manual' : S.wxMode === 'off' ? 'weather.source.off' : S.wxMode === 'dynamic' ? 'weather.source.dynamic' : WXS.src ? 'weather.source.fallback' : 'weather.source.connecting',

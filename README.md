@@ -93,6 +93,8 @@ In **World settings → Components**, show or hide the LOGO, time and weather, a
 
 Weather display options and **Open world settings on startup** are also under **Components**. The startup option becomes available after choosing an observation location and is off by default. Controls help remains accessible here when the hint is hidden.
 
+Turn off **Components → Scene interaction** to disable mouse, keyboard, wheel, and touch controls and hide the hint. **Landscape → Camera → Auto flight** remains independent: it continues flying when enabled, and turning it off as well locks the camera position, orientation, and field of view. Settings remain usable; enabling interaction restores the saved hint preference. This switch stays saved in the current browser.
+
 In immersive mode, **Show interface** hides after four seconds. Move the pointer to the bottom-right corner or tap that corner to reveal it. It stays visible while the pointer is nearby and hides four seconds after leaving. **Tab** can also reveal the button; **Esc** returns to the interface.
 
 ## Interface language

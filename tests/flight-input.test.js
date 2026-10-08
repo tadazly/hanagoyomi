@@ -112,6 +112,7 @@ test('离开画布、失焦清理、帮助弹窗和触屏事件不会留下鼠�
   assert.equal(f.input.stick.active, false);
   f.click(2); f.click(2); f.input.reset(); f.advance(600); assert.deepEqual(f.actions, []);
   f.setEnabled(false); f.click(); f.click(); f.emit('pointermove', { clientX: 650 });
+  f.click(2); f.click(2); f.click(2); f.advance(600);
   assert.deepEqual(f.actions, []); assert.equal(f.input.stick.active, false);
   f.setEnabled(true); f.emit('pointermove', { pointerType: 'touch', clientX: 650 });
   assert.equal(f.input.stick.active, false);

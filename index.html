@@ -64,7 +64,7 @@
         <label><input type="radio" name="wxMode" value="off"><span data-i18n="common.off">Off</span></label>
       </div>
       <p class="loc-now" id="wxNow">Partly cloudy</p>
-      <dl class="weather-metrics" id="panelWeatherMetrics">
+      <dl class="weather-metrics" id="panelWeatherMetrics" hidden>
         <div><dt data-i18n="weather.temperature">Temperature</dt><dd><span data-weather-metric="temperature">—</span><small data-weather-metric="temperatureNote"></small></dd></div>
         <div><dt data-i18n="weather.precipitation">Precipitation</dt><dd><span data-weather-metric="precipitation">—</span><small data-weather-metric="precipitationNote"></small></dd></div>
         <div><dt data-i18n="weather.airQuality">Air quality</dt><dd><span class="air-quality-value" data-weather-metric="airQuality">—</span><small data-weather-metric="airQualityNote"></small></dd></div>
@@ -132,6 +132,10 @@
       <section id="pane-components" role="tabpanel" aria-labelledby="tab-components" hidden>
         <h2 data-i18n="components.title">Interface components</h2>
         <p class="component-intro" data-i18n="components.description">Show or hide components and choose the time and weather position.</p>
+        <div class="component-card">
+          <label class="switch"><span data-i18n="components.interaction">Scene interaction</span><input type="checkbox" id="interactionEnabled" checked><i></i></label>
+          <p class="component-intro" data-i18n="components.interactionDescription">Turn off to disable mouse, keyboard, wheel and touch controls and hide the hint. Auto flight remains independent; turn it off to hold the camera still.</p>
+        </div>
         <div class="component-card" data-component-settings="logo">
           <label class="switch"><span data-i18n="components.logo">LOGO</span><input type="checkbox" data-component-visible checked><i></i></label>
         </div>
@@ -167,9 +171,9 @@
     <div id="observerWeatherGroup">
       <button id="observerWeather" class="observer-weather" type="button" aria-controls="weatherSource" aria-expanded="false">
         <span id="observerCondition" data-i18n="weather.connecting">Connecting to local weather…</span>
-        <span class="observer-temperature" data-weather-field="temperature"><span data-weather-metric="temperature">—</span><small class="sr-only" data-weather-metric="temperatureNote"></small></span>
+        <span class="observer-temperature" data-weather-field="temperature" hidden><span data-weather-metric="temperature">—</span><small class="sr-only" data-weather-metric="temperatureNote"></small></span>
       </button>
-      <dl class="observer-weather-details" id="observerWeatherMetrics">
+      <dl class="observer-weather-details" id="observerWeatherMetrics" hidden>
         <div data-weather-field="precipitation"><dt data-i18n="weather.precipitation">Precipitation</dt><dd><span data-weather-metric="precipitation">—</span><small class="sr-only" data-weather-metric="precipitationNote"></small></dd></div>
         <div data-weather-field="airQuality"><dt data-i18n="weather.airShort">Air</dt><dd><span class="air-quality-value" data-weather-metric="airQuality">—</span><small data-weather-metric="airQualityNote"></small></dd></div>
         <div data-weather-field="clouds" hidden><dt data-i18n="weather.coverage">Cloud cover</dt><dd id="observerClouds"></dd></div>
