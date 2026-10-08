@@ -32,7 +32,7 @@ Step into a changing natural world of clouds, meadows and petals, following real
 | **A moving sky** | Volumetric clouds, sunlight scattering, day and night palettes, about 5,000 catalog stars, constellation lines and five planets. |
 | **Weather taking shape** | Current weather, cloud cover and wind from Open-Meteo, plus 16 explorable weather presets from clear skies to thunderstorms, sleet and blizzards. |
 | **Where the wind passes** | Grass with multiple LOD levels, rolling waves, floating petals, opening flowers, fireflies and optional memory of flowers along your path. |
-| **A quiet interface** | Location and clock observations, three settings tabs, fullscreen and immersive modes, adapted for desktop and touch. |
+| **A quiet interface** | Location and clock observations, four settings tabs, customizable component visibility and positions, fullscreen and immersive modes, adapted for desktop and touch. |
 | **Three languages** | Simplified Chinese, Japanese and English, selected automatically from browser preferences and time zone or changed manually. |
 
 <table>
@@ -72,7 +72,11 @@ npm run preview   # Preview the production build at http://127.0.0.1:4173/
 
 | Input | Action |
 | --- | --- |
-| Drag the view | Look around |
+| Move the mouse during auto flight | Steer left / right and climb / dive; return to the screen centre for neutral, without holding a button |
+| Double-click left | Dash |
+| Double-click right | Turn around (briefly waits to distinguish a triple-click) |
+| Triple-click right | Pause / Resume flight |
+| Drag left while flight is paused | Look around |
 | WASD / Arrow keys | Move forward, backward and sideways |
 | Q / E | Descend / Ascend |
 | Shift / Space | Accelerate / Dash |
@@ -85,7 +89,9 @@ Settings stay in the current browser. Moving the time slider or changing its spe
 
 On desktop, click the toolbar's time status to open a compact time panel. It shares its controls with World settings. Constellation lines and orientation are under **Landscape → Astronomy**.
 
-After choosing an observation location, **Open world settings on startup** appears below the location controls. It is off by default, so future visits start with settings collapsed. Turn it on to open settings automatically on desktop or mobile.
+In **World settings → Components**, show or hide the LOGO, time and weather, and controls hint independently. Only time and weather offer nine screen positions or an adaptive default, with room kept for the LOGO, hint, and toolbar. The LOGO and hint keep their adaptive positions. Preferences stay in the current browser.
+
+Weather display options and **Open world settings on startup** are also under **Components**. The startup option becomes available after choosing an observation location and is off by default. Controls help remains accessible here when the hint is hidden.
 
 In immersive mode, **Show interface** hides after four seconds. Move the pointer to the bottom-right corner or tap that corner to reveal it. It stays visible while the pointer is nearby and hides four seconds after leaving. **Tab** can also reveal the button; **Esc** returns to the interface.
 

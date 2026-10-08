@@ -95,9 +95,15 @@ T_accum  *= T_segment
 
 ## 4. 天气与地表变化
 
-天气请求只获取当前 `weather_code`、`cloud_cover`、`wind_speed_10m` 和 `wind_direction_10m`，风速单位明确为 m/s。WMO 代码选择预设，实际云量和风速继续修正场景。Open-Meteo 的当前状态来自天气模型，不能理解为每个地点的逐秒现场传感器读数。[API 文档](https://open-meteo.com/en/docs)
+天气请求获取当前 `temperature_2m`、`precipitation`、`weather_code`、`cloud_cover`、`wind_speed_10m` 和 `wind_direction_10m`，明确使用摄氏度、毫米和 m/s。温度在显示时换算为用户选择的单位，默认摄氏度，选择保存在现有设置记录中；降水量注明 `current.interval` 对应的累计时段。WMO 代码选择预设，实际云量和风速继续修正场景。Open-Meteo 的当前状态来自天气模型，不能理解为每个地点的逐秒现场传感器读数。[API 文档](https://open-meteo.com/en/docs)
 
 每次请求有 8 秒超时、HTTP/字段/数值校验及请求序号保护。用户切换城市或模式后，旧请求不能覆盖新状态。每 15 分钟刷新；恢复标签页时若数据过期会重取。失败时撤销真实数据标记，继续动态天气并在界面说明来源。
+
+空气质量通过独立请求获取 Open-Meteo / CAMS 的当前 `us_aqi`，采用美国 AQI 分级，保留来源署名。该请求具有独立超时和同一套地点、模式、请求序号保护；失败只清空空气质量，不影响有效天气。新增指标缺失时显示“—”，不把缺失值当作零降水或良好空气。手动、动态及关闭天气效果模式不显示真实天气指标。[空气质量 API 文档](https://open-meteo.com/en/docs/air-quality-api)
+
+主界面将天气状况与温度放在同一行，其余指标采用可换行的简短条目，累计时段和 AQI 标准通过提示及设置提供。`showWeather` 控制整组显示，`showTemperature`、`showPrecipitation`、`showAirQuality`、`showClouds`、`showWind` 分别控制条目，均沿用 `meadow.settings.v1` 保存；降水量、空气质量、云量和风速默认隐藏。这些开关只控制主界面信息，不改变场景天气或 API 请求。
+
+组件页统一管理 LOGO、时间天气与操作提示的可见性，以及天气字段显示开关。只有时间天气允许选择九宫格位置，LOGO 与操作提示保持固定的自适应位置。`component-settings.js` 校验并保存 `hanagoyomi.components.v1`，按锚点和实际尺寸布局，通过 `ResizeObserver` 响应文字、天气字段及屏幕尺寸变化；时间天气避让固定组件与工具栏。布局不依赖 WebGL 状态。
 
 动态天气使用带权重的转移图，并根据季节与时间调整。天气参数连续混合，地面湿度和积雪拥有自己的积累、蒸发或融化过程，因此刚停止下雨时地面不会立刻变干。模拟时钟不会请求历史天气；时间流速对动态天气速度有单独上限。
 

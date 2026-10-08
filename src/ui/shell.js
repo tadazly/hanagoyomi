@@ -2,7 +2,9 @@ import { populateIcons } from './icons.js';
 import { initTimeControls } from './time-controls.js';
 import { fmtTime, zonedHours } from '../world/clock.js';
 import { CITIES, locationName } from '../data/cities.js';
-import { weatherPageUrl } from '../world/weather.js';
+import { airQualityPageUrl, weatherPageUrl } from '../world/weather.js';
+import { updateWeatherDetails } from './weather-details.js';
+import { initComponentSettings } from './component-settings.js';
 import { getSavedLocation, onLocationChange } from '../world/location.js';
 import { getLanguage, getLocale, onLanguageChange, setLanguage, setMessage, t, translateDocument } from '../i18n/index.js';
 const $ = (id) => document.getElementById(id);
@@ -111,6 +113,7 @@ export function initShell() {
   initTimeControls();
   populateIcons();
   translateDocument();
+  initComponentSettings();
   revealWeatherSource = initWeatherSource();
   const setRestoreButton = initRestoreButton();
   const timePopover = $('timePopover'), timeTrigger = $('liveStatus');
@@ -179,12 +182,12 @@ export function initShell() {
   document.querySelectorAll('[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => selectTab(btn.dataset.tab));
     btn.addEventListener('keydown', e => {
-      const tabs = ['now', 'weather', 'landscape'];
+      const tabs = [...document.querySelectorAll('[data-tab]')].map(tab => tab.dataset.tab);
       let idx = tabs.indexOf(btn.dataset.tab);
-      if (e.key === 'ArrowRight') idx = (idx + 1) % 3;
-      else if (e.key === 'ArrowLeft') idx = (idx + 2) % 3;
+      if (e.key === 'ArrowRight') idx = (idx + 1) % tabs.length;
+      else if (e.key === 'ArrowLeft') idx = (idx + tabs.length - 1) % tabs.length;
       else if (e.key === 'Home') idx = 0;
-      else if (e.key === 'End') idx = 2;
+      else if (e.key === 'End') idx = tabs.length - 1;
       else return;
       e.preventDefault(); selectTab(tabs[idx], true);
     });
@@ -225,6 +228,7 @@ export function initShell() {
   $('fullscreenBtn').addEventListener('click', fullscreen);
   document.addEventListener('fullscreenchange', refreshLabels);
   $('helpBtn').addEventListener('click', () => { setTimePopover(false); $('helpDialog').showModal(); });
+  $('componentHelpBtn').addEventListener('click', () => { setTimePopover(false); $('helpDialog').showModal(); });
   $('helpClose').addEventListener('click', () => $('helpDialog').close());
   $('helpDialog').addEventListener('click', e => { if (e.target === $('helpDialog')) $('helpDialog').close(); });
   $('reloadBtn').addEventListener('click', () => location.reload());
@@ -259,11 +263,18 @@ export function updateObservation(state) {
     lastDateKey = dateKey;
   }
   $('observerDate').textContent = dateFormatter.format(ms);
-  const weatherInfo = $('observerWeather');
-  delete weatherInfo.dataset.i18n;
-  weatherInfo.textContent = [t(`weather.${weather}`), t('weather.cloudValue', { value: Math.round(live?.cloud_cover ?? coverage * 100) }), t(live ? 'weather.windValue' : 'weather.cloudSpeedValue', { value: Number(live?.wind_speed_10m ?? wind).toFixed(1) })].join(' · ');
+  const condition = $('observerCondition'), group = $('observerWeatherGroup'), display = state.weatherDisplay || {};
+  delete condition.dataset.i18n;
+  condition.textContent = t(`weather.${weather}`);
+  group.hidden = display.show === false;
+  group.querySelectorAll('[data-weather-field]').forEach(field => { field.hidden = display[field.dataset.weatherField] === false; });
+  $('observerClouds').textContent = Math.round(live?.cloud_cover ?? coverage * 100) + '%';
+  $('observerWind').textContent = Number(live?.wind_speed_10m ?? wind).toFixed(1) + ' m/s';
+  $('observerWind').parentElement.title = t(live ? 'weather.windValue' : 'weather.cloudSpeedValue', { value: Number(live?.wind_speed_10m ?? wind).toFixed(1) });
+  $('observerWeatherMetrics').hidden = ![...$('observerWeatherMetrics').children].some(field => !field.hidden);
+  updateWeatherDetails(group, { live, airQuality: state.airQuality, temperatureUnit: state.temperatureUnit, simulated: state.simulatedWeather, compact: true });
   const source = $('weatherSource');
-  const sourceKey = `${getLocale()}|${loc.lat},${loc.lon}|${loc.tz}|${live ? `live:${live.fetchedAt}` : state.weatherSource}`;
+  const sourceKey = `${getLocale()}|${loc.lat},${loc.lon}|${loc.tz}|${state.temperatureUnit}|${state.airQuality?.fetchedAt}|${live ? `live:${live.fetchedAt}` : state.weatherSource}`;
   // 每半秒的观测刷新不重置隐藏计时，也不重建正在聚焦的来源链接。
   if (sourceKey !== lastSourceKey) {
     lastSourceKey = sourceKey;
@@ -275,7 +286,18 @@ export function updateObservation(state) {
         source.replaceChildren(document.createTextNode(''), link);
       }
       source.firstChild.textContent = t('weather.data') + ' ';
-      link.href = weatherPageUrl(loc);
+      link.href = weatherPageUrl(loc, state.temperatureUnit);
+      let airSource = source.querySelector('[data-air-source]');
+      if (state.airQuality) {
+        if (!airSource) {
+          airSource = document.createElement('span'); airSource.dataset.airSource = '';
+          const airLink = document.createElement('a');
+          airLink.target = '_blank'; airLink.rel = 'noopener noreferrer'; airLink.textContent = 'Open-Meteo / CAMS';
+          airSource.append(document.createTextNode(''), airLink); source.append(airSource);
+        }
+        airSource.firstChild.textContent = ' · ' + t('weather.airQuality') + ' ';
+        airSource.querySelector('a').href = airQualityPageUrl(loc);
+      } else airSource?.remove();
       source.title = t('weather.fetched', { time: new Date(live.fetchedAt).toLocaleTimeString(getLocale(), { timeZone: loc.tz }) });
     } else {
       source.textContent = t(state.weatherSource);

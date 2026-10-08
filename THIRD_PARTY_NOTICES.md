@@ -25,6 +25,10 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 “跟随天气”模式从 [Open-Meteo](https://open-meteo.com/) 获取当前天气。数据由 Open-Meteo.com 提供，遵循 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)，界面保留来源链接。免费 API 面向非商业用途；商业使用需依据其服务条款选择适当接口。天气数据会映射为场景参数，云形、降水、积水和积雪为艺术化表达。
 
+## 空气质量数据 — Open-Meteo / CAMS
+
+当前空气质量由 [Open-Meteo Air Quality API](https://open-meteo.com/en/docs/air-quality-api) 提供，底层模型数据来自 [Copernicus Atmosphere Monitoring Service（CAMS）](https://atmosphere.copernicus.eu/)。界面保留 Open-Meteo 与 CAMS 署名。显示的指数为美国 AQI（`us_aqi`），分级采用对应美国标准，不代表中国 AQI；模型数据并非当地监测站实测。数据使用遵循服务的署名及许可要求，见 [API 数据声明](https://open-meteo.com/en/docs/air-quality-api#citation-acknowledgement)。
+
 ## 天文算法参考 — SunCalc
 
 太阳与月亮的基础坐标计算参考 [SunCalc](https://github.com/mourner/suncalc) 的轻量公式及天文年历方法。SunCalc 使用 MIT License，Copyright (c) 2011–2015 Vladimir Agafonkin；[原始许可](https://github.com/mourner/suncalc/blob/master/LICENSE)。本项目保留来源署名。

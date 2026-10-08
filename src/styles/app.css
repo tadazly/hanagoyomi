@@ -1,4 +1,5 @@
 @import url('./controls.css');
+@import url('./components.css');
 
 :root {
   --ink: #262a23;
@@ -92,14 +93,39 @@ body[data-immersive='false'] .chrome { transition-property: opacity; }
 .service-note a { text-underline-offset: 3px; }
 .stats { font-family: system-ui, sans-serif; font-size: 12px; color: var(--ink-soft); overflow-wrap: anywhere; padding-bottom: 12px; }
 .stats p { margin: 5px 0; }
-.observation { position: fixed; left: calc(32px + env(safe-area-inset-left, 0px)); bottom: calc(38px + env(safe-area-inset-bottom, 0px)); }
+.observation { position: fixed; left: calc(32px + env(safe-area-inset-left, 0px)); bottom: calc(38px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 64px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); }
 .observer-place { border: 0; background: none; display: flex; align-items: center; padding: 0; color: inherit; gap: 10px; text-shadow: inherit; font-size: 15px; }
 .observer-place svg { width: 20px; height: 20px; }
 #observerEnglish { font-family: Georgia, serif; font-size: 11px; letter-spacing: .24em; margin-left: 2px; }
 .observer-time { display: block; font-family: Georgia, 'Times New Roman', serif; font-size: 96px; line-height: 1.07; font-weight: 400; font-variant-numeric: lining-nums tabular-nums; letter-spacing: -.055em; margin: 8px 0 3px; }
 .observer-date { margin: 0 0 12px; font-size: 16px; letter-spacing: .025em; }
-.observer-weather { display: block; margin: 0; padding: 0; border: 0; background: none; color: inherit; text-align: left; text-shadow: inherit; font-size: 14px; line-height: 1.5; letter-spacing: .025em; }
-.observer-source { margin: 12px 0 0; min-height: 1.5em; font-size: 11px; line-height: 1.5; letter-spacing: .015em; visibility: hidden; opacity: 0; pointer-events: none; transition: opacity .18s ease, visibility .18s ease; }
+.observer-weather { display: flex; align-items: baseline; gap: 12px; margin: 0; padding: 0; border: 0; background: none; color: inherit; text-align: left; text-shadow: inherit; font-size: 14px; line-height: 1.5; letter-spacing: .025em; }
+.observer-temperature { font-size: 20px; font-variant-numeric: tabular-nums; }
+.observer-weather-details { display: flex; flex-wrap: wrap; gap: 6px 18px; max-width: 380px; margin: 7px 0 0; font-size: 13px; line-height: 1.6; font-variant-numeric: tabular-nums; }
+.observer-weather-details > div { display: flex; align-items: baseline; gap: 7px; max-width: 100%; }
+.observer-weather-details dt { opacity: .75; }
+.observer-weather-details dd { margin: 0; min-width: 0; }
+.observer-weather-details small { font-size: inherit; }
+.observer-weather-details .air-quality-value::before { width: 5px; height: 5px; margin-right: 5px; }
+.weather-display-options { margin: 16px 0; }
+.weather-display-options .switch { margin: 0 0 16px; }
+.weather-option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+.weather-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 16px 0; font-variant-numeric: tabular-nums; }
+.weather-metrics > div { min-width: 0; }
+.weather-metrics dt { font-size: 12px; line-height: 1.5; opacity: .8; }
+.weather-metrics dd { margin: 5px 0 0; font-size: 23px; line-height: 1.25; }
+.weather-metrics small { display: block; margin-top: 6px; font-size: 11px; line-height: 1.5; opacity: .8; overflow-wrap: anywhere; }
+#panelWeatherMetrics { padding: 14px 0; border-block: 1px solid var(--track); gap: 12px; }
+#panelWeatherMetrics dd { font-size: 20px; }
+.air-quality-value::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--aqi-color); vertical-align: middle; }
+.air-quality-value[data-level='good'] { --aqi-color: #98c887; }
+.air-quality-value[data-level='moderate'] { --aqi-color: #dfc276; }
+.air-quality-value[data-level='sensitive'] { --aqi-color: #e5a56d; }
+.air-quality-value[data-level='unhealthy'] { --aqi-color: #e68d8b; }
+.air-quality-value[data-level='veryUnhealthy'] { --aqi-color: #c89cbc; }
+.air-quality-value[data-level='hazardous'] { --aqi-color: #c17b91; }
+.air-quality-value:not([data-level]), .air-quality-value[data-level='unknown'] { --aqi-color: transparent; }
+.observer-source { margin: 12px 0 0; min-height: 1.5em; max-width: 380px; font-size: 11px; line-height: 1.5; letter-spacing: .015em; visibility: hidden; opacity: 0; pointer-events: none; transition: opacity .18s ease, visibility .18s ease; }
 .observer-source[data-visible='true'] { visibility: visible; opacity: .8; pointer-events: auto; }
 .observer-source a { text-decoration: none; }
 .observer-source a:hover, .observer-source a:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
@@ -154,7 +180,9 @@ kbd { display: inline-block; min-width: 16px; font: 10px system-ui, sans-serif; 
   .panel-heading { padding: 18px 22px 10px; }
   .panel-body { padding-top: 17px; }
   body[data-panel-open='true'] .observation, body[data-panel-open='true'] .hint { visibility: hidden; opacity: 0; pointer-events: none; }
-  .observation { left: 22px; bottom: calc(34px + env(safe-area-inset-bottom, 0px)); }
+  .observation { left: 22px; bottom: calc(34px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 44px); }
+  .observer-weather-details { font-size: 12px; gap: 5px 16px; }
+  .observer-temperature { font-size: 18px; }
   .observer-time { font-size: 72px; }
   .observer-place { font-size: 14px; }
   .observer-date { font-size: 14px; margin-bottom: 10px; }

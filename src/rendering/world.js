@@ -3,12 +3,14 @@ import { VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CL
 import { STAR_DATA, LINE_DATA } from '../data/stars.js';
 import { CITIES, COMMON_CITIES, cityName, locationName, searchCities } from '../data/cities.js';
 import { WX_TYPES, WX_KEYS, wxPreset, WX_NEXT } from '../world/weather-presets.js';
-import { fetchWeather } from '../world/weather.js';
+import { fetchAirQuality, fetchWeather } from '../world/weather.js';
+import { updateWeatherDetails } from '../ui/weather-details.js';
 import { getSavedLocation, saveLocation } from '../world/location.js';
 import { zonedHours, zonedDayStart, localTimeToUTC, fmtTime, advanceClock, timezoneOffset, TIME_SPEEDS as SPEEDS } from '../world/clock.js';
 import { getAstronomy, sunEventsText, phaseName, phaseIndex, getSunEvents } from '../world/astronomy.js';
 import { getLocale, onLanguageChange, setMessage, t } from '../i18n/index.js';
 import { bindTimeActions, updateTimeControls } from '../ui/time-controls.js';
+import { bindMouseFlightInput, flightStickAxes } from './flight-input.js';
 
 export function startWorld(onUpdate = () => {}) {
 
@@ -563,13 +565,14 @@ let simMs = Date.now();
 const S = {
   time: 0, speed: 1, wxSync: true, constel: false, flies: true, flowerGlow: false, bloom: true, streamDist: 'near', streamScale: false, infMem: false, bloomR: 4, wxMode: 'follow', wxType: 'cloudy', fogVisS: 1000, rainAmt: 0, snowAmt: 0, boltFreq: 0, puddle: 0, snowMax: 0, lensDrops: true, sunAz: 0, coverage: 0.58, density: 1.0, wind: 40, breeze: 0.65, petals: true,
   heightSlider: 0, dof: 0.6, sway: !reduceMotion, quality: coarse ? 'med' : 'high', god: !coarse, auto: !reduceMotion,
-  fovY: 60, x: 0, z: 0, agl: 2.2,
+  fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius',
+  showWeather: true, showTemperature: true, showPrecipitation: false, showAirQuality: false, showClouds: false, showWind: false,
 };
 /* settings persist in this browser: everything the panel controls except the clock itself */
 const SETTINGS_KEY = 'meadow.settings.v1';
 const PERSIST_KEYS = ['auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof',
   'heightSlider', 'agl', 'speed', 'streamDist', 'wxMode', 'wxType', 'coverage', 'density', 'wind', 'breeze', 'fogVisS', 'rainAmt', 'snowAmt', 'boltFreq',
-  'puddle', 'snowMax', 'qualityUser', 'bloomR'];
+  'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind'];
 try {
   const sv = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
   if (sv && typeof sv === 'object'){
@@ -577,6 +580,7 @@ try {
     if (!['near', 'mid', 'far'].includes(S.streamDist)) S.streamDist = 'near';
     if (!['follow', 'dynamic', 'manual', 'off'].includes(S.wxMode)) S.wxMode = 'follow';
     if (!WX_TYPES[S.wxType]) S.wxType = 'cloudy';
+    if (!['celsius', 'fahrenheit'].includes(S.temperatureUnit)) S.temperatureUnit = 'celsius';
   }
 } catch (e) {}
 S.speed = Number.isInteger(S.speed) && S.speed >= 0 && S.speed < SPEEDS.length ? S.speed : 1;
@@ -809,19 +813,26 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 window.addEventListener('keydown', (e) => { if (e.key === ' ' && !e.target.closest('input, textarea, select, button, summary') && !$('helpDialog').open){ sprintUntil = performance.now() + 1600; e.preventDefault(); } });
-window.addEventListener('blur', () => keys.clear());
-let drag = null;
+window.addEventListener('blur', () => { keys.clear(); mouseFlight.reset(); });
 /* touch flies the petal stream like a flight game: one finger is a virtual stick measured from where it landed;
    double taps: one finger = sprint, two fingers = turn around, three fingers = hover / fly on */
 const touches = new Map();
 const stick = {active: false, id: -1, ox: 0, oy: 0, x: 0, y: 0};
 let gesture = null, lastTap = {n: 0, t: 0}, lastSteerAt = -1e9, sprintUntil = 0;
+const mouseFlight = bindMouseFlightInput({
+  canvas, isFlying: () => S.auto, isEnabled: () => !$('helpDialog').open,
+  look: (dx, dy) => {
+    const k = (S.fovY / 60) * 0.0032;
+    cam.yawT += dx * k; cam.pitchT = clamp(cam.pitchT - dy * k, -1.45, 1.45);
+  },
+  dash: () => onDoubleTap(1), turn: () => onDoubleTap(2), toggleFlight: () => onDoubleTap(3),
+});
+window.addEventListener('resize', () => mouseFlight.reset());
 const capture = (id) => { try { canvas.setPointerCapture(id); } catch (err) {} };
 canvas.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'mouse') return;
+  mouseFlight.reset();
   capture(e.pointerId);
-  if (e.pointerType === 'mouse'){
-    drag = {id: e.pointerId, x: e.clientX, y: e.clientY}; canvas.classList.add('dragging'); stopAuto(); return;
-  }
   touches.set(e.pointerId, {x0: e.clientX, y0: e.clientY});
   if (!gesture) gesture = {t0: performance.now(), maxN: 0, moved: false};
   gesture.maxN = Math.max(gesture.maxN, touches.size);
@@ -829,12 +840,6 @@ canvas.addEventListener('pointerdown', (e) => {
   else stick.active = false;
 });
 canvas.addEventListener('pointermove', (e) => {
-  if (drag && e.pointerId === drag.id){
-    const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
-    const k = (S.fovY / 60) * 0.0032;
-    cam.yawT += dx * k; cam.pitchT = clamp(cam.pitchT - dy * k, -1.45, 1.45);
-    return;
-  }
   const tp = touches.get(e.pointerId);
   if (!tp) return;
   if (gesture && Math.hypot(e.clientX - tp.x0, e.clientY - tp.y0) > 14) gesture.moved = true;
@@ -843,10 +848,9 @@ canvas.addEventListener('pointermove', (e) => {
 function onDoubleTap(n){
   if (n === 1) sprintUntil = performance.now() + 1600;
   else if (n === 2){ cam.yawT += Math.PI; lastSteerAt = performance.now(); }
-  else { S.auto = !S.auto; $('auto').checked = S.auto; }
+  else setAuto(!S.auto);
 }
 const endPointer = (e) => {
-  if (drag && e.pointerId === drag.id){ drag = null; canvas.classList.remove('dragging'); return; }
   if (!touches.has(e.pointerId)) return;
   touches.delete(e.pointerId);
   if (stick.id === e.pointerId) stick.active = false;
@@ -927,9 +931,21 @@ function setWxMode(mode){
   if (mode === 'off') wxSetTarget('clear', wxPreset('clear'), 15);
   else if (mode === 'manual'){ markWxChips(); wxSetTarget(S.wxType, manualParams(), 4); }
   else if (mode === 'dynamic') wxStartDynamic(true);
-  else { WXS.followOK = false; WXS.src = ''; wxStartDynamic(true); syncWeather(); }
+  else { WXS.followOK = false; WXS.airQuality = null; WXS.src = ''; wxStartDynamic(true); syncWeather(); }
 }
 document.querySelectorAll('input[name="wxMode"]').forEach(r => r.addEventListener('change', () => { if (r.checked) setWxMode(r.value); }));
+document.querySelectorAll('input[name="temperatureUnit"]').forEach(r => {
+  r.checked = r.value === S.temperatureUnit;
+  r.addEventListener('change', () => {
+    if (!r.checked) return;
+    S.temperatureUnit = r.value;
+    saveSettings(); wxStatus();
+  });
+});
+for (const key of ['showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind']) {
+  $(key).checked = S[key];
+  $(key).addEventListener('change', () => { S[key] = $(key).checked; saveSettings(); });
+}
 function wxStatus(){
   const weather = t(`weather.${WXS.type}`);
   $('wxNow').textContent = WXS.prog < 1 ? t('weather.transition', { weather }) : weather;
@@ -938,12 +954,15 @@ function wxStatus(){
   if (WP.snow > 0.02) parts.push(t('weather.snowValue', { value: Math.round(WP.snow * 100) }));
   if (WXS.wet > 0.02) parts.push(t('weather.wetValue', { value: Math.round(WXS.wet * 100) }));
   if (WXS.snowCov > 0.02) parts.push(t('weather.snowCoverValue', { value: Math.round(WXS.snowCov * 100) }));
-  const live = WXS.followOK && WXS.live;
+  const live = S.wxMode === 'follow' && WXS.followOK ? WXS.live : null;
+  updateWeatherDetails($('panelWeatherMetrics'), { live, airQuality: live ? WXS.airQuality : null, temperatureUnit: S.temperatureUnit, simulated: S.wxMode !== 'follow' || Boolean(WXS.src && !live) });
   const src = S.wxMode === 'dynamic' ? t('weather.dynamicDescription', { minutes: Math.max(1, Math.round((WXS.until - wxClock) / 60000)) })
     : S.wxMode === 'off' ? t('weather.offDescription') : S.wxMode === 'manual' ? t('weather.manualDescription')
     : live ? t('weather.liveDescription', { city: locationName(LOC), weather: t(`weather.${live.type}`), clouds: Math.round(live.cloud_cover), wind: Number(live.wind_speed_10m).toFixed(1) })
     : t(WXS.src ? 'weather.unavailable' : 'weather.fetching');
-  $('wxInfo').textContent = parts.join(' · ') + ' · ' + src;
+  $('wxInfo').textContent = live
+    ? [t('weather.cloudValue', { value: Math.round(live.cloud_cover) }), t('weather.windValue', { value: Number(live.wind_speed_10m).toFixed(1) })].join(' · ')
+    : parts.join(' · ') + ' · ' + src;
 }
 bindRange('dof', 'dof', (v) => v < 0.01 ? t('common.off') : Math.round(v * 100) + '%');
 const fmtAgl = (a) => a < 10 ? a.toFixed(1) + ' m' : Math.round(a) + ' m';
@@ -954,14 +973,19 @@ const heightCtl = bindRange('height', 'heightSlider', (v) => fmtAgl(aglFromSlide
 });
 function syncHeightSlider(){ S.heightSlider = sliderFromAgl(S.agl); heightCtl.el.value = S.heightSlider; heightCtl.paint(); }
 const toggles = {auto: 'auto', god: 'god', petals: 'petals', sway: 'sway', constel: 'constel', flies: 'flies', flowerGlow: 'flowerGlow', bloom: 'bloom', streamScale: 'streamScale', infMem: 'infMem', lensDrops: 'lensDrops'};
-for (const [id, key] of Object.entries(toggles)){ const el = $(id); el.checked = S[key]; el.addEventListener('change', () => { S[key] = el.checked; }); }
+for (const [id, key] of Object.entries(toggles)){ const el = $(id); el.checked = S[key]; el.addEventListener('change', () => { if (key === 'auto') setAuto(el.checked); else S[key] = el.checked; }); }
 $('clearMem').addEventListener('click', () => {
   memPts = []; memGrid = new Map(); memLastX = NaN; memDirty = false;
   try { localStorage.removeItem(MEM_KEY); } catch (e) {}
   touchFBO.forEach(fb => { gl.bindFramebuffer(gl.FRAMEBUFFER, fb); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); });
 });
 window.addEventListener('pagehide', () => { if (S.infMem){ memDirty = true; memSave(true); } });
-function stopAuto(){ if (S.auto){ S.auto = false; $('auto').checked = false; } }
+function setAuto(value){
+  S.auto = value; $('auto').checked = value; mouseFlight.reset();
+  if (!value) sprintUntil = 0;
+  saveSettings();
+}
+function stopAuto(){ if (S.auto) setAuto(false); }
 function setQuality(q){ S.quality = q; document.querySelectorAll('input[name="q"]').forEach(r => { r.checked = r.value === q; }); resize(true); }
 document.querySelectorAll('input[name="sdist"]').forEach(r => {
   r.checked = r.value === S.streamDist;
@@ -986,7 +1010,7 @@ function renderLoc(){
   });
 }
 function setLocation(loc){
-  LOC = loc; lightKey = ''; expo = NaN; WXS.followOK = false; WXS.live = null; WXS.src = '';
+  LOC = loc; lightKey = ''; expo = NaN; WXS.followOK = false; WXS.live = null; WXS.airQuality = null; WXS.src = '';
   saveLocation(LOC);
   renderLoc(); syncWeather();
 }
@@ -1034,9 +1058,23 @@ $('geoBtn').addEventListener('click', () => {
 
 /* 当地天气请求失败时继续动态天气；始终在观测信息中说明数据来源。 */
 let weatherRequest = 0;
+async function syncAirQuality(loc, request){
+  const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
+  const isCurrent = () => request === weatherRequest && loc === LOC && S.wxMode === 'follow';
+  try {
+    const airQuality = await fetchAirQuality(loc, { signal: controller.signal });
+    if (isCurrent()) WXS.airQuality = airQuality;
+  } catch {
+    if (isCurrent()) WXS.airQuality = null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 async function syncWeather(){
   if (S.wxMode !== 'follow') return;
   const loc = LOC, request = ++weatherRequest;
+  // 空气质量独立获取；失败或超时不影响正常天气显示。
+  void syncAirQuality(loc, request);
   const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
   try {
     const c = await fetchWeather(loc, { signal: controller.signal });
@@ -1060,6 +1098,7 @@ async function syncWeather(){
 setInterval(() => { if (S.wxMode === 'follow') syncWeather(); }, 15 * 60 * 1000);
 $('retryWeather').addEventListener('click', () => { setWxMode('follow'); });
 document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { keys.clear(); mouseFlight.reset(); }
   if (!document.hidden && (!WXS.live || Date.now() - WXS.live.fetchedAt > 15 * 60 * 1000)) syncWeather();
 });
 renderLoc();
@@ -1082,20 +1121,16 @@ function updateCamera(dt){
   if (keys.has('e')) mu += 1;
   if (keys.has('q')) mu -= 1;
   const fast = keys.has('shift') ? 5 : 1;
-  /* virtual stick: deflection from the touch-down point, with a small dead zone */
-  let stX = 0, stY = 0;
-  if (stick.active){
-    const R = Math.max(40, Math.min(cssW, cssH) * 0.22), dz = (v) => Math.sign(v) * Math.max(0, Math.abs(v) - 0.08) / 0.92;
-    stX = dz(clamp((stick.x - stick.ox) / R, -1, 1)); stY = dz(clamp((stick.y - stick.oy) / R, -1, 1));
-    if (Math.abs(stY) < Math.abs(stX) * 0.6) stY = 0;   /* a sideways swipe should not creep the altitude */
-    if (stX || stY) lastSteerAt = performance.now();
-  }
+  const flightStick = stick.active ? stick : mouseFlight.stick;
+  const stickActive = flightStick.active && (flightStick === stick || S.auto) && !$('helpDialog').open && !document.hidden;
+  const { x: stX, y: stY } = flightStickAxes({ ...flightStick, active: stickActive }, cssW, cssH);
+  if (stX || stY) lastSteerAt = performance.now();
   const steering = performance.now() - lastSteerAt < 3000;
   if (S.auto && !steering){
     cam.yawT += (0.16 * Math.sin(autoT * 0.19) + 0.09 * Math.sin(autoT * 0.071 + 1.3)) * dt;
     cam.pitchT = 0.035 + 0.05 * Math.sin(autoT * 0.13);
   }
-  if (stick.active){
+  if (stickActive){
     cam.yawT += stX * 1.1 * dt;
     cam.pitchT = 0.035 - stY * 0.22;
     if (stY){ S.agl = clamp(S.agl * Math.exp(-stY * 0.9 * dt), 1.2, 800); syncHeightSlider(); }
@@ -1103,10 +1138,10 @@ function updateCamera(dt){
   /* chase camera (as in flight games): while flying, pitch looks at the lead petal and keeps it a little below centre,
      so slopes, dives and climbs never carry the stream out of frame */
   const lead = trailHist.length ? trailHist[trailHist.length - 1].p : null;
-  if ((S.auto || stick.active) && lead && S.petals){
+  if ((S.auto || stickActive) && lead && S.petals){
     const dh = Math.max(1, Math.hypot(lead[0] - S.x, lead[2] - S.z));
     const look = Math.atan2(lead[1] - cam.y, dh) + 0.12;
-    cam.pitchT = clamp(look - (stick.active ? stY * 0.18 : 0) + (S.auto && !steering ? 0.02 * Math.sin(autoT * 0.13) : 0), -0.75, 0.6);
+    cam.pitchT = clamp(look - (stickActive ? stY * 0.18 : 0) + (S.auto && !steering ? 0.02 * Math.sin(autoT * 0.13) : 0), -0.75, 0.6);
   }
   /* inertia on look, banking into turns */
   const k = 1 - Math.exp(-dt * 8), py = cam.yaw;
@@ -1677,6 +1712,9 @@ function frame(now){
     updateTimeControls(timeState);
     onUpdate({
       loc: LOC, ms: simMs, live, followNow, speed: SPEEDS[S.speed | 0],
+      airQuality: live ? WXS.airQuality : null, temperatureUnit: S.temperatureUnit,
+      weatherDisplay: { show: S.showWeather, temperature: S.showTemperature, precipitation: S.showPrecipitation, airQuality: S.showAirQuality, clouds: S.showClouds, wind: S.showWind },
+      simulatedWeather: S.wxMode !== 'follow' || Boolean(WXS.src && !live),
       weather: live ? live.type : WXS.type,
       coverage: WP.cov, wind: WP.wind,
       weatherSource: S.wxMode === 'manual' ? 'weather.source.manual' : S.wxMode === 'off' ? 'weather.source.off' : S.wxMode === 'dynamic' ? 'weather.source.dynamic' : WXS.src ? 'weather.source.fallback' : 'weather.source.connecting',

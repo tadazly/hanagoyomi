@@ -16,8 +16,9 @@
   <title data-i18n="app.title">花暦 · Hanagoyomi</title>
 </head>
 <body>
-  <canvas id="view" tabindex="-1" aria-label="Live meadow, flowers and volumetric clouds; drag to look around, WASD to move" data-i18n-aria-label="app.canvas"></canvas>
-  <header class="masthead chrome">
+  <canvas id="view" tabindex="-1" aria-label="Live meadow, flowers and volumetric clouds; move the mouse to steer in auto flight, double-click left to dash, double-click right to turn, triple-click right to pause or resume" data-i18n-aria-label="app.canvas"></canvas>
+  <div id="componentBounds" aria-hidden="true"></div>
+  <header class="masthead chrome ui-component" data-ui-component="logo">
     <div class="brand"><span data-icon="flower" class="brand-mark" aria-hidden="true"></span><div><h1 translate="no">花暦</h1><span class="wordmark">HANAGOYOMI</span></div></div>
   </header>
   <nav class="toolbar chrome" aria-label="World tools" data-i18n-aria-label="toolbar.label">
@@ -38,6 +39,7 @@
       <button role="tab" id="tab-now" aria-controls="pane-now" aria-selected="true" data-tab="now" data-i18n="tab.now">Now</button>
       <button role="tab" id="tab-weather" aria-controls="pane-weather" aria-selected="false" tabindex="-1" data-tab="weather" data-i18n="tab.weather">Weather</button>
       <button role="tab" id="tab-landscape" aria-controls="pane-landscape" aria-selected="false" tabindex="-1" data-tab="landscape" data-i18n="tab.landscape">Landscape</button>
+      <button role="tab" id="tab-components" aria-controls="pane-components" aria-selected="false" tabindex="-1" data-tab="components" data-i18n="tab.components">Components</button>
     </div>
     <div class="panel-body" id="panelBody">
       <section id="pane-now" role="tabpanel" aria-labelledby="tab-now">
@@ -49,7 +51,6 @@
         <div class="chips city-common" id="cityCommon"></div>
         <button class="btn outline" id="geoBtn" type="button"><span data-icon="location"></span><span data-i18n="location.useMine">Use my location</span></button>
         <p class="loc-sub feedback" id="geoMsg" role="status"></p>
-        <label class="switch" id="startupPanelOption" hidden><span data-i18n="panel.openOnStartup">Open world settings on startup</span><input type="checkbox" id="openPanelOnStartup"><i></i></label>
         <div class="divider"></div>
         <h2 data-i18n="time.title">Time</h2>
         <div id="timeControls"></div>
@@ -63,7 +64,17 @@
         <label><input type="radio" name="wxMode" value="off"><span data-i18n="common.off">Off</span></label>
       </div>
       <p class="loc-now" id="wxNow">Partly cloudy</p>
+      <dl class="weather-metrics" id="panelWeatherMetrics">
+        <div><dt data-i18n="weather.temperature">Temperature</dt><dd><span data-weather-metric="temperature">—</span><small data-weather-metric="temperatureNote"></small></dd></div>
+        <div><dt data-i18n="weather.precipitation">Precipitation</dt><dd><span data-weather-metric="precipitation">—</span><small data-weather-metric="precipitationNote"></small></dd></div>
+        <div><dt data-i18n="weather.airQuality">Air quality</dt><dd><span class="air-quality-value" data-weather-metric="airQuality">—</span><small data-weather-metric="airQualityNote"></small></dd></div>
+      </dl>
       <p class="loc-sub" id="wxInfo"></p>
+      <p class="ctl-label" id="temperatureUnitLabel" data-i18n="weather.temperatureUnit">Temperature unit</p>
+      <div class="seg seg2" role="radiogroup" aria-labelledby="temperatureUnitLabel">
+        <label><input type="radio" name="temperatureUnit" value="celsius" checked><span data-i18n="weather.celsius">Celsius °C</span></label>
+        <label><input type="radio" name="temperatureUnit" value="fahrenheit"><span data-i18n="weather.fahrenheit">Fahrenheit °F</span></label>
+      </div>
       <div id="wxManual" hidden>
         <div class="chips" id="wxTypes"></div>
         <label class="ctl"><span data-i18n="weather.coverage">Cloud cover</span><output for="coverage"></output><input type="range" id="coverage" min="0.12" max="0.97" step="0.01"></label>
@@ -81,6 +92,7 @@
 
         <button class="btn outline" id="retryWeather"><span data-icon="refresh"></span><span data-i18n="weather.refresh">Refresh local weather</span></button>
         <p class="service-note"><span data-i18n="weather.data">Weather data</span> <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></p>
+        <p class="service-note"><span data-i18n="weather.airQuality">Air quality</span> · <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" rel="noopener noreferrer">Open-Meteo</a> / <a href="https://atmosphere.copernicus.eu/" target="_blank" rel="noopener noreferrer">CAMS</a> · <span data-i18n="weather.usAqi">US AQI</span></p>
       </section>
       <section id="pane-landscape" role="tabpanel" aria-labelledby="tab-landscape" hidden>      <h2 data-i18n="landscape.title">Meadow and flowers</h2>
       <label class="switch"><span data-i18n="landscape.petals">Petal stream</span><input type="checkbox" id="petals"><i></i></label>
@@ -117,18 +129,56 @@
           <div class="stats"><p><span id="fps">--</span> FPS</p><p id="ms">Frame time -- ms</p><p id="res">Cloud buffer --</p><p id="clock">Local time --</p><p id="blades">Grass blades --</p><p id="gpu"></p></div>
         </details>
       </section>
+      <section id="pane-components" role="tabpanel" aria-labelledby="tab-components" hidden>
+        <h2 data-i18n="components.title">Interface components</h2>
+        <p class="component-intro" data-i18n="components.description">Show or hide components and choose the time and weather position.</p>
+        <div class="component-card" data-component-settings="logo">
+          <label class="switch"><span data-i18n="components.logo">LOGO</span><input type="checkbox" data-component-visible checked><i></i></label>
+        </div>
+        <div class="component-card" data-component-settings="observation">
+          <label class="switch"><span data-i18n="components.observation">Time and weather</span><input type="checkbox" data-component-visible checked><i></i></label>
+          <div class="component-placement"><div><p data-i18n="components.position">Position</p><strong data-component-current></strong><button class="component-default" type="button" data-component-default data-i18n="components.defaultPosition">Default position</button></div><fieldset class="position-grid"><legend class="sr-only" data-i18n="components.observationPosition">Time and weather position</legend></fieldset></div>
+          <details class="advanced weather-display-options" id="weatherDisplayOptions">
+            <summary><span data-i18n="weather.displayOptions">Weather display</span><span data-icon="chevron"></span></summary>
+            <label class="switch"><span data-i18n="weather.showWeather">Show weather information</span><input type="checkbox" id="showWeather" checked><i></i></label>
+            <div class="weather-option-grid">
+              <label class="switch"><span data-i18n="weather.temperature">Temperature</span><input type="checkbox" id="showTemperature" checked><i></i></label>
+              <label class="switch"><span data-i18n="weather.precipitation">Precipitation</span><input type="checkbox" id="showPrecipitation"><i></i></label>
+              <label class="switch"><span data-i18n="weather.airQuality">Air quality</span><input type="checkbox" id="showAirQuality"><i></i></label>
+              <label class="switch"><span data-i18n="weather.coverage">Cloud cover</span><input type="checkbox" id="showClouds"><i></i></label>
+              <label class="switch"><span data-i18n="weather.windSpeed">Wind speed</span><input type="checkbox" id="showWind"><i></i></label>
+            </div>
+          </details>
+        </div>
+        <div class="component-card" data-component-settings="hint">
+          <label class="switch"><span data-i18n="components.hint">Controls hint</span><input type="checkbox" data-component-visible checked><i></i></label>
+          <button class="component-default" id="componentHelpBtn" type="button" data-i18n="help.open">Show controls</button>
+        </div>
+        <h2 data-i18n="components.startup">Startup</h2>
+        <label class="switch" id="startupPanelOption" hidden><span data-i18n="panel.openOnStartup">Open world settings on startup</span><input type="checkbox" id="openPanelOnStartup"><i></i></label>
+        <button class="btn outline" id="resetComponents" type="button" data-i18n="components.reset">Restore component settings</button>
+      </section>
     </div>
   </aside>
-  <section class="observation chrome" aria-label="Nature right now" data-i18n-aria-label="observation.label">
+  <section class="observation chrome ui-component" data-ui-component="observation" aria-label="Nature right now" data-i18n-aria-label="observation.label">
     <button class="observer-place" id="placeBtn" aria-label="Change observation location" data-i18n-aria-label="location.change"><span data-icon="location"></span><span id="observerCity">Tokyo</span><span id="observerEnglish">TOKYO</span></button>
     <time id="observerTime" class="observer-time">--:--</time>
     <p id="observerDate" class="observer-date"></p>
     <div id="observerWeatherGroup">
-      <button id="observerWeather" class="observer-weather" type="button" aria-controls="weatherSource" aria-expanded="false" data-i18n="weather.connecting">Connecting to local weather…</button>
+      <button id="observerWeather" class="observer-weather" type="button" aria-controls="weatherSource" aria-expanded="false">
+        <span id="observerCondition" data-i18n="weather.connecting">Connecting to local weather…</span>
+        <span class="observer-temperature" data-weather-field="temperature"><span data-weather-metric="temperature">—</span><small class="sr-only" data-weather-metric="temperatureNote"></small></span>
+      </button>
+      <dl class="observer-weather-details" id="observerWeatherMetrics">
+        <div data-weather-field="precipitation"><dt data-i18n="weather.precipitation">Precipitation</dt><dd><span data-weather-metric="precipitation">—</span><small class="sr-only" data-weather-metric="precipitationNote"></small></dd></div>
+        <div data-weather-field="airQuality"><dt data-i18n="weather.airShort">Air</dt><dd><span class="air-quality-value" data-weather-metric="airQuality">—</span><small data-weather-metric="airQualityNote"></small></dd></div>
+        <div data-weather-field="clouds" hidden><dt data-i18n="weather.coverage">Cloud cover</dt><dd id="observerClouds"></dd></div>
+        <div data-weather-field="wind" hidden><dt data-i18n="weather.windSpeed">Wind speed</dt><dd id="observerWind"></dd></div>
+      </dl>
       <p class="observer-source" id="weatherSource" data-visible="false" aria-hidden="true"></p>
     </div>
   </section>
-  <footer class="hint chrome"><button id="helpBtn" aria-label="Show controls" data-i18n-aria-label="help.open"><span data-icon="mouse"></span><span id="hintText"><span data-i18n="hint.drag">Drag to look around</span><span class="hint-dot">·</span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> <span data-i18n="hint.move">Move</span><span class="hint-dot">·</span><kbd data-i18n="hint.space">Space</kbd> <span data-i18n="hint.dash">Dash</span></span></button></footer>
+  <footer class="hint chrome ui-component" data-ui-component="hint"><button id="helpBtn" aria-label="Show controls" data-i18n-aria-label="help.open"><span data-icon="mouse"></span><span id="hintText" data-i18n="hint.mouse">Mouse to steer · Double-click left: dash · Right: double-click to turn, triple-click to pause / resume</span></button></footer>
   <div class="restore-zone" id="restoreZone" hidden><button class="restore-button glass" id="restoreBtn" type="button" data-visible="false"><span data-icon="eye"></span><span data-i18n="immersive.restore">Show interface</span></button></div>
   <div class="loader" id="loader" role="status"><div><span data-icon="flower" class="loader-flower"></span><span id="loadText" data-i18n="loader.meadow">Waking the meadow</span><b id="loadBar"></b></div></div>
   <div class="error" id="error" role="alert"><div class="glass"><h2 data-i18n="error.title">The meadow cannot open yet</h2><p id="errorText"></p><button class="btn primary" id="reloadBtn" data-i18n="error.reload">Reload</button></div></div>
@@ -136,7 +186,7 @@
   <dialog id="helpDialog" class="help-dialog glass" aria-labelledby="helpTitle">
     <div class="panel-heading"><h2 id="helpTitle" data-i18n="help.title">Roam Hanagoyomi</h2><button class="plain-icon" id="helpClose" aria-label="Close controls" data-i18n-aria-label="help.close"><span data-icon="close"></span></button></div>
     <p data-i18n="help.about">The sky follows the observation location’s real time. Weather updates every 15 minutes. The meadow is a procedurally generated imaginary landscape.</p>
-    <dl class="help-controls"><dt data-i18n="help.drag">Drag the view</dt><dd data-i18n="help.look">Look around</dd><dt data-i18n="help.moveKeys">W A S D / Arrow keys</dt><dd data-i18n="help.move">Move in any direction</dd><dt>Q / E</dt><dd data-i18n="help.vertical">Descend / Ascend</dd><dt data-i18n="help.boostKeys">Shift / Space</dt><dd data-i18n="help.boost">Accelerate / Dash</dd><dt data-i18n="help.scroll">Scroll wheel</dt><dd data-i18n="help.fov">Adjust field of view</dd><dt>F / H / Esc</dt><dd data-i18n="help.modes">Fullscreen / Immersive / Return</dd></dl>
+    <dl class="help-controls"><dt data-i18n="help.mouseMove">Move the mouse (auto flight)</dt><dd data-i18n="help.mouseSteer">Steer left / right, climb / dive; centre to neutral</dd><dt data-i18n="help.mouseDash">Double-click left</dt><dd data-i18n="hint.dash">Dash</dd><dt data-i18n="help.mouseTurn">Double-click right</dt><dd data-i18n="help.turn">Turn around</dd><dt data-i18n="help.mousePause">Triple-click right</dt><dd data-i18n="help.pauseFlight">Pause / Resume flight</dd><dt data-i18n="help.drag">Drag left (flight paused)</dt><dd data-i18n="help.look">Look around</dd><dt data-i18n="help.moveKeys">W A S D / Arrow keys</dt><dd data-i18n="help.move">Move in any direction</dd><dt>Q / E</dt><dd data-i18n="help.vertical">Descend / Ascend</dd><dt data-i18n="help.boostKeys">Shift / Space</dt><dd data-i18n="help.boost">Accelerate / Dash</dd><dt data-i18n="help.scroll">Scroll wheel</dt><dd data-i18n="help.fov">Adjust field of view</dd><dt>F / H / Esc</dt><dd data-i18n="help.modes">Fullscreen / Immersive / Return</dd></dl>
     <p class="touch-help" data-i18n="help.touch">Touch: swipe with one finger to steer the petals. Double-tap with one finger to dash, two to turn around, or three to pause or resume flight.</p>
     <p class="service-note" data-i18n="help.privacy">Location and settings stay in this browser. When you use geolocation, coordinates are sent to Open-Meteo to request weather.</p>
     <a class="project-link" href="https://github.com/tadazly/hanagoyomi" target="_blank" rel="noopener noreferrer"><span data-i18n="github.explore">Explore Hanagoyomi on GitHub</span><span data-icon="arrow-up-right"></span></a>
