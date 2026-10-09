@@ -103,6 +103,10 @@ npm run preview   # 预览生产构建，http://127.0.0.1:4173/
 
 沉浸模式的 **返回界面** 按钮显示四秒后自动隐藏。鼠标靠近右下角或触摸该区域可唤出按钮；鼠标停留时保持显示，离开后四秒隐藏。也可按 **Tab** 唤出按钮，或按 **Esc** 返回界面。
 
+## Wallpaper Engine
+
+运行 `npm run build:wallpaper` 生成独立的 `dist-wallpaper/`，将其中的 `index.html` 导入 Wallpaper Engine。默认高画质、关闭手动交互并开启自动飞行，提供原生设置和自动隐藏工具栏。详见 [壁纸构建与验收](docs/WALLPAPER_ENGINE.md)。
+
 ## 界面语言
 
 支持简体中文、日语和英语。首次打开按以下优先级选择语言：

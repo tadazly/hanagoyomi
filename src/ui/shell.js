@@ -7,9 +7,64 @@ import { updateWeatherDetails } from './weather-details.js';
 import { initComponentSettings } from './component-settings.js';
 import { getSavedLocation, onLocationChange } from '../world/location.js';
 import { getLanguage, getLocale, onLanguageChange, setLanguage, setMessage, t, translateDocument } from '../i18n/index.js';
+import { WALLPAPER_MODE, storageKey } from '../platform/environment.js';
 const $ = (id) => document.getElementById(id);
 let toastTimer, lastDateKey = '', lastSourceKey = '', dateFormatter, lastObservation;
 let revealWeatherSource = () => {};
+
+function initLanguageControls() {
+  const select = $('languageSelect');
+  select.addEventListener('change', event => setLanguage(event.target.value));
+  if (!WALLPAPER_MODE) return;
+  // CEF 离屏渲染在显示原生 select 时会崩溃；保留其状态桥接，使用普通按钮绘制选项。
+  select.hidden = true;
+  select.parentElement.classList.add('wallpaper-language-field');
+  const group = document.createElement('div');
+  group.className = 'seg wallpaper-language-options';
+  group.setAttribute('role', 'group');
+  group.setAttribute('data-i18n-aria-label', 'language.label');
+  group.setAttribute('aria-label', t('language.label'));
+  for (const option of select.options) {
+    const button = document.createElement('button');
+    button.type = 'button'; button.dataset.languageOption = option.value;
+    if (option.lang) button.lang = option.lang;
+    if (option.dataset.i18n) setMessage(button, option.dataset.i18n);
+    else button.textContent = option.textContent;
+    button.addEventListener('click', () => setLanguage(option.value));
+    group.append(button);
+  }
+  const refresh = () => group.querySelectorAll('button').forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.languageOption === select.value));
+  });
+  select.after(group);
+  onLanguageChange(refresh);
+  refresh();
+}
+
+function initWallpaperToolbar() {
+  if (!WALLPAPER_MODE) return;
+  const toolbar = document.querySelector('.toolbar');
+  const zone = document.createElement('div'); zone.id = 'wallpaperToolbarZone';
+  document.body.append(zone);
+  let timer, hovered = false;
+  const held = () => hovered || !$('panel').hidden || !$('timePopover').hidden || $('helpDialog').open || Boolean(toolbar.querySelector(':focus-visible'));
+  const hideLater = () => {
+    clearTimeout(timer);
+    if (!held()) timer = setTimeout(() => { if (!held()) toolbar.dataset.visible = 'false'; }, 4000);
+  };
+  const reveal = () => { toolbar.dataset.visible = 'true'; hideLater(); };
+  for (const element of [zone, toolbar]) {
+    element.addEventListener('pointerenter', () => { hovered = true; reveal(); });
+    element.addEventListener('pointerleave', () => { hovered = false; hideLater(); });
+    element.addEventListener('pointerdown', reveal);
+  }
+  toolbar.addEventListener('focusin', reveal); toolbar.addEventListener('focusout', hideLater);
+  const changes = new MutationObserver(() => { if (held()) reveal(); else hideLater(); });
+  changes.observe(document.body, { attributes: true, attributeFilter: ['data-panel-open'] });
+  changes.observe($('timePopover'), { attributes: true, attributeFilter: ['hidden'] });
+  changes.observe($('helpDialog'), { attributes: true, attributeFilter: ['open'] });
+  reveal();
+}
 
 function initWeatherSource() {
   const group = $('observerWeatherGroup'), weather = $('observerWeather'), source = $('weatherSource');
@@ -113,7 +168,7 @@ export function initShell() {
   initTimeControls();
   populateIcons();
   translateDocument();
-  initComponentSettings();
+  const components = initComponentSettings();
   revealWeatherSource = initWeatherSource();
   const setRestoreButton = initRestoreButton();
   const timePopover = $('timePopover'), timeTrigger = $('liveStatus');
@@ -126,7 +181,7 @@ export function initShell() {
     }
     const anchor = timeTrigger.getBoundingClientRect();
     const left = Math.max(12, Math.min(anchor.right - timePopover.offsetWidth, window.innerWidth - timePopover.offsetWidth - 12));
-    const top = anchor.bottom + 12;
+    const top = WALLPAPER_MODE ? Math.max(12, anchor.top - timePopover.offsetHeight - 12) : anchor.bottom + 12;
     timePopover.style.left = `${left}px`;
     timePopover.style.top = `${top}px`;
     timePopover.style.maxHeight = `${Math.max(0, window.innerHeight - top - 12)}px`;
@@ -148,7 +203,7 @@ export function initShell() {
   document.addEventListener('focusin', dismissTimePopover);
   window.addEventListener('resize', positionTimePopover);
   document.addEventListener('fullscreenchange', positionTimePopover);
-  $('languageSelect').addEventListener('change', event => setLanguage(event.target.value));
+  initLanguageControls();
   const refreshLabels = () => {
     $('panelToggle').setAttribute('aria-label', t($('panel').hidden ? 'panel.open' : 'panel.close'));
     $('fullscreenBtn').setAttribute('aria-label', t(document.fullscreenElement ? 'fullscreen.exit' : 'fullscreen.enter'));
@@ -195,15 +250,15 @@ export function initShell() {
   const narrow = matchMedia('(max-width: 700px)');
   const savedLocation = getSavedLocation(), startupOption = $('startupPanelOption'), startupToggle = $('openPanelOnStartup');
   let openOnStartup = false;
-  try { openOnStartup = localStorage.getItem('hanagoyomi.panelOnStartup.v1') === 'true'; } catch {}
+  try { openOnStartup = localStorage.getItem(storageKey('hanagoyomi.panelOnStartup.v1')) === 'true'; } catch {}
   startupToggle.checked = openOnStartup;
   startupOption.hidden = !savedLocation;
   onLocationChange(() => { startupOption.hidden = false; });
   startupToggle.addEventListener('change', () => {
-    try { localStorage.setItem('hanagoyomi.panelOnStartup.v1', String(startupToggle.checked)); } catch {}
+    try { localStorage.setItem(storageKey('hanagoyomi.panelOnStartup.v1'), String(startupToggle.checked)); } catch {}
   });
   // 初次访问沿用原来的布局；设置过地点后才按用户保存的启动选项展开。
-  setPanel(savedLocation ? openOnStartup : !narrow.matches);
+  setPanel(WALLPAPER_MODE ? openOnStartup : savedLocation ? openOnStartup : !narrow.matches);
   $('panelToggle').addEventListener('click', () => setPanel($('panel').hidden));
   $('panelClose').addEventListener('click', () => setPanel(false, true));
   $('placeBtn').addEventListener('click', () => { setPanel(true); selectTab('now'); $('citySearch').focus(); });
@@ -248,6 +303,13 @@ export function initShell() {
     if (e.key.toLowerCase() === 'h') setImmersive(document.body.dataset.immersive !== 'true');
     if (e.key.toLowerCase() === 'f') fullscreen();
   });
+  if (WALLPAPER_MODE) {
+    $('fullscreenBtn').hidden = true;
+    document.querySelector('.github-button').hidden = true;
+    $('geoBtn').hidden = true;
+    initWallpaperToolbar();
+  }
+  return { components, setPanel };
 }
 
 export function updateObservation(state) {
@@ -286,7 +348,7 @@ export function updateObservation(state) {
         link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Open-Meteo';
         source.replaceChildren(document.createTextNode(''), link);
       }
-      source.firstChild.textContent = t('weather.data') + ' ';
+      source.firstChild.textContent = t(live.cached ? 'weather.source.cached' : 'weather.data') + ' ';
       link.href = weatherPageUrl(loc, state.temperatureUnit);
       let airSource = source.querySelector('[data-air-source]');
       if (state.airQuality) {

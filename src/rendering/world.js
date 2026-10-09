@@ -11,6 +11,10 @@ import { getAstronomy, sunEventsText, phaseName, phaseIndex, getSunEvents } from
 import { getLocale, onLanguageChange, setMessage, t } from '../i18n/index.js';
 import { bindTimeActions, updateTimeControls } from '../ui/time-controls.js';
 import { bindMouseFlightInput, flightStickAxes } from './flight-input.js';
+import { WALLPAPER_MODE, storageKey } from '../platform/environment.js';
+import { wallpaperSettings } from '../platform/wallpaper.js';
+import { createFrameGate } from '../platform/frame-gate.js';
+import { readWeatherCache, saveWeatherCache } from '../world/weather-cache.js';
 
 export function startWorld(onUpdate = () => {}) {
 
@@ -37,6 +41,16 @@ let contextLost = false;
 canvas.addEventListener('webglcontextlost', (event) => {
   event.preventDefault(); contextLost = true;
   fail('error.contextLost');
+});
+canvas.addEventListener('webglcontextrestored', () => {
+  if (!WALLPAPER_MODE) return;
+  // 完整重建资源；连续丢失时保留错误与手动重试入口，避免无限重载。
+  try {
+    const key = storageKey('contextRecovery'), previous = Number(sessionStorage.getItem(key));
+    if (Date.now() - previous < 120000) return;
+    sessionStorage.setItem(key, String(Date.now()));
+    location.reload();
+  } catch { /* 存储不可用时保留手动重试，避免重载循环。 */ }
 });
 if (coarse) setMessage($('hintText'), 'hint.touch');
 
@@ -202,7 +216,7 @@ const stampUni = new Float32Array(80);
 let touchIdx = 0, touchCx = NaN, touchCz = NaN, touchDecayAcc = 0;
 /* infinite memory: the stream's path is logged (one point per ~0.7 m, wall-clock stamped, indexed in 64 m cells) and
    re-stamped into the touch map wherever it scrolls, so flowers stay open however far you roam; saved locally */
-const MEM_KEY = 'meadow.trail.v1', MEM_CELL = 64, MEM_MAX = 30000;
+const MEM_KEY = storageKey('meadow.trail.v1'), MEM_CELL = 64, MEM_MAX = 30000;
 let memPts = [], memGrid = new Map(), memDirty = false, memLastSave = 0, memLastX = NaN, memLastZ = NaN, restampCx = NaN, restampCz = NaN, restampFrame = 0;
 const memKey = (x, z) => Math.floor(x / MEM_CELL) + ',' + Math.floor(z / MEM_CELL);
 function memIndex(){
@@ -564,12 +578,12 @@ const TILE = 32, LAYER_WIDTH = [1.0, 2.4, 6.0];
 let simMs = Date.now();
 const S = {
   time: 0, speed: 1, wxSync: true, constel: false, flies: true, flowerGlow: false, bloom: true, streamDist: 'near', streamScale: false, infMem: false, bloomR: 4, wxMode: 'follow', wxType: 'cloudy', fogVisS: 1000, rainAmt: 0, snowAmt: 0, boltFreq: 0, puddle: 0, snowMax: 0, lensDrops: true, sunAz: 0, coverage: 0.58, density: 1.0, wind: 40, breeze: 0.65, petals: true,
-  heightSlider: 0, dof: 0.6, sway: !reduceMotion, quality: coarse ? 'med' : 'high', god: !coarse, auto: !reduceMotion,
-  fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: true,
+  heightSlider: 0, dof: 0.6, sway: !reduceMotion, quality: WALLPAPER_MODE ? 'high' : coarse ? 'med' : 'high', god: !coarse, auto: WALLPAPER_MODE || !reduceMotion,
+  fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: !WALLPAPER_MODE,
   showWeather: true, showTemperature: true, showPrecipitation: false, showAirQuality: false, showClouds: false, showWind: false,
 };
 /* settings persist in this browser: everything the panel controls except the clock itself */
-const SETTINGS_KEY = 'meadow.settings.v1';
+const SETTINGS_KEY = storageKey('meadow.settings.v1');
 const PERSIST_KEYS = ['auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof',
   'heightSlider', 'agl', 'speed', 'streamDist', 'wxMode', 'wxType', 'coverage', 'density', 'wind', 'breeze', 'fogVisS', 'rainAmt', 'snowAmt', 'boltFreq',
   'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind', 'interactionEnabled'];
@@ -600,7 +614,7 @@ const aglFromSlider = (v) => 1.2 + 6500 * Math.pow(v / 1000, 2.2);
 const sliderFromAgl = (a) => Math.pow(Math.max(a - 1.2, 0) / 6500, 1 / 2.2) * 1000;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
-let userPickedQuality = false;
+let userPickedQuality = WALLPAPER_MODE;
 const cam = {yaw: 0, pitch: 0.04, roll: 0, yawT: 0, pitchT: 0.04, vx: 0, vz: 0, y: 0, focus: 40, fov: 60};
 let lastView = null, frozenView = null;
 
@@ -754,8 +768,9 @@ function freeTargets(){
 }
 function resize(force){
   const q = QUALITY[S.quality];
-  const dpr = Math.min(window.devicePixelRatio || 1, q.dpr);
+  let dpr = Math.min(window.devicePixelRatio || 1, q.dpr) * (WALLPAPER_MODE ? wallpaperSettings.renderScale : 1);
   cssW = canvas.clientWidth; cssH = canvas.clientHeight;
+  if (WALLPAPER_MODE) dpr = Math.min(dpr, Math.sqrt(3840 * 2160 / Math.max(1, cssW * cssH)));
   const w = Math.max(1, Math.floor(cssW * dpr)), h = Math.max(1, Math.floor(cssH * dpr));
   if (!force && w === W && h === H) return;
   W = w; H = h; canvas.width = W; canvas.height = H;
@@ -966,7 +981,7 @@ function wxStatus(){
     : live ? t('weather.liveDescription', { city: locationName(LOC), weather: t(`weather.${live.type}`), clouds: Math.round(live.cloud_cover), wind: Number(live.wind_speed_10m).toFixed(1) })
     : t(WXS.src ? 'weather.unavailable' : 'weather.fetching');
   $('wxInfo').textContent = live
-    ? [t('weather.cloudValue', { value: Math.round(live.cloud_cover) }), t('weather.windValue', { value: Number(live.wind_speed_10m).toFixed(1) })].join(' · ')
+    ? [t('weather.cloudValue', { value: Math.round(live.cloud_cover) }), t('weather.windValue', { value: Number(live.wind_speed_10m).toFixed(1) }), ...(live.cached ? [t('weather.source.cached')] : [])].join(' · ')
     : parts.join(' · ') + ' · ' + src;
 }
 bindRange('dof', 'dof', (v) => v < 0.01 ? t('common.off') : Math.round(v * 100) + '%');
@@ -1082,6 +1097,17 @@ $('geoBtn').addEventListener('click', () => {
 
 /* 当地天气请求失败时继续动态天气；始终在观测信息中说明数据来源。 */
 let weatherRequest = 0;
+function cachedWeather(loc) {
+  try { return readWeatherCache(localStorage, loc); } catch { return null; }
+}
+function applyObservedWeather(c) {
+  const type = c.type, pp = wxPreset(type);
+  pp.cov = clamp(0.12 + 0.85 * c.cloud_cover / 100, 0.12, 0.97);
+  pp.wind = clamp(c.wind_speed_10m * 3, 0, 200); pp.breeze = clamp(0.12 + c.wind_speed_10m / 12, 0, 1);
+  WIND_ANGLE = Math.PI / 2 - ((c.wind_direction_10m + 180) * RAD + S.sunAz * RAD);
+  WXS.followOK = true; WXS.live = c; wxSetTarget(type, pp, 30);
+  WXS.src = c.cached ? 'cached' : 'live';
+}
 async function syncAirQuality(loc, request){
   const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
   const isCurrent = () => request === weatherRequest && loc === LOC && S.wxMode === 'follow';
@@ -1097,20 +1123,22 @@ async function syncAirQuality(loc, request){
 async function syncWeather(){
   if (S.wxMode !== 'follow') return;
   const loc = LOC, request = ++weatherRequest;
+  if (WALLPAPER_MODE && !WXS.live) {
+    const cached = cachedWeather(loc);
+    if (cached) applyObservedWeather(cached);
+  }
   // 空气质量独立获取；失败或超时不影响正常天气显示。
   void syncAirQuality(loc, request);
   const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
   try {
     const c = await fetchWeather(loc, { signal: controller.signal });
     if (request !== weatherRequest || loc !== LOC || S.wxMode !== 'follow') return;
-    const type = c.type, pp = wxPreset(type);
-    pp.cov = clamp(0.12 + 0.85 * c.cloud_cover / 100, 0.12, 0.97);
-    pp.wind = clamp(c.wind_speed_10m * 3, 0, 200); pp.breeze = clamp(0.12 + c.wind_speed_10m / 12, 0, 1);
-    WIND_ANGLE = Math.PI / 2 - ((c.wind_direction_10m + 180) * RAD + S.sunAz * RAD);
-    WXS.followOK = true; WXS.live = c; wxSetTarget(type, pp, 30);
-    WXS.src = 'live';
+    applyObservedWeather(c);
+    if (WALLPAPER_MODE) { try { saveWeatherCache(localStorage, loc, c); } catch {} }
   } catch (e) {
     if (request === weatherRequest && loc === LOC && S.wxMode === 'follow') {
+      const cached = WALLPAPER_MODE ? cachedWeather(loc) : null;
+      if (cached) { applyObservedWeather(cached); return; }
       WXS.followOK = false; WXS.live = null;
       WXS.src = 'unavailable';
       wxStartDynamic(true);
@@ -1270,6 +1298,8 @@ function boxVisible(planes, x0, x1, y0, y1, z0, z1){
 /*  Frame                                                              */
 /* ================================================================== */
 let last = performance.now(), frameNo = 0, simTime = 0, prev = null, skyKey = '';
+let animationFrame = 0;
+const frameGate = createFrameGate();
 let statAcc = 0, statFrames = 0, statT = 0, perfFrames = 0, perfAcc = 0, downgrades = 0, bladeEst = 0;
 const NEAR = 0.08, FARP = 80000;
 const depthAB = [(FARP + NEAR) / (FARP - NEAR), -2 * FARP * NEAR / (FARP - NEAR)];
@@ -1278,7 +1308,7 @@ function frame(now){
   if (contextLost) return;
   const elapsedMs = Math.max(0, now - last);
   const dt = Math.min(0.1, elapsedMs / 1000); last = now;
-  if (!noiseReady){ genStep(14); requestAnimationFrame(tick); return; }
+  if (!noiseReady){ genStep(14); return; }
   resize(false);
   simTime += dt;
 
@@ -1730,7 +1760,7 @@ function frame(now){
   histIdx = 1 - histIdx; frameNo++;
 
   /* stats + adaptive quality */
-  statAcc += dt; statFrames++; statT += dt;
+  statAcc += elapsedMs / 1000; statFrames++; statT += elapsedMs / 1000;
   if (statT > 0.5){
     const fps = statFrames / statAcc;
     $('fps').textContent = fps.toFixed(1); setMessage($('ms'), 'rendering.frameTime', { value: (1000 / fps).toFixed(1) });
@@ -1748,7 +1778,7 @@ function frame(now){
       hideUnavailableWeather: S.wxMode !== 'follow',
       weather: live ? live.type : WXS.type,
       coverage: WP.cov, wind: WP.wind,
-      weatherSource: S.wxMode === 'manual' ? 'weather.source.manual' : S.wxMode === 'off' ? 'weather.source.off' : S.wxMode === 'dynamic' ? 'weather.source.dynamic' : WXS.src ? 'weather.source.fallback' : 'weather.source.connecting',
+      weatherSource: S.wxMode === 'manual' ? 'weather.source.manual' : S.wxMode === 'off' ? 'weather.source.off' : S.wxMode === 'dynamic' ? 'weather.source.dynamic' : live?.cached ? 'weather.source.cached' : WXS.src ? 'weather.source.fallback' : 'weather.source.connecting',
       sun: timeState.sun, sunAltitude: AST.sunAlt / RAD, phase: timeState.phase,
     });
     setMessage($('blades'), grassOn ? 'rendering.blades' : 'rendering.noGrass', { count: Math.round(bladeEst).toLocaleString(getLocale()) });
@@ -1762,17 +1792,42 @@ function frame(now){
       if (avg > 0.042 && idx > 0){ downgrades++; setQuality(order[idx - 1]); }
     }
   }
-  requestAnimationFrame(tick);
 }
 
 function tick(now) {
+  animationFrame = 0;
+  if (contextLost || (WALLPAPER_MODE && wallpaperSettings.paused)) return;
+  animationFrame = requestAnimationFrame(tick);
+  if (WALLPAPER_MODE && (document.hidden || !frameGate.ready(now, wallpaperSettings.fps))) return;
   try { frame(now); }
   catch (error) {
+    cancelAnimationFrame(animationFrame); animationFrame = 0;
     console.error('Hanagoyomi 渲染中断', error);
     fail('error.rendering');
   }
 }
 resize(true);
-requestAnimationFrame(tick);
+animationFrame = requestAnimationFrame(tick);
+
+return {
+  save: saveSettings,
+  resize: () => resize(true),
+  setCity(name) {
+    let city = CITIES.find(c => c[1] === name);
+    if (name === 'system') {
+      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      city = CITIES.find(c => c[1] === 'Shanghai' && c[4] === zone) || CITIES.find(c => c[4] === zone) || CITIES.find(c => c[1] === 'Tokyo');
+    }
+    if (city) setLocation(cityLoc(city));
+  },
+  setPaused(paused) {
+    if (paused) { cancelAnimationFrame(animationFrame); animationFrame = 0; saveSettings(); return; }
+    last = performance.now(); frameGate.reset(); prev = null; needReset = true; skyKey = '';
+    statAcc = statFrames = statT = perfFrames = perfAcc = 0;
+    keys.clear(); mouseFlight.reset();
+    if (!WXS.live || Date.now() - WXS.live.fetchedAt > 15 * 60 * 1000) void syncWeather();
+    if (!animationFrame && !contextLost) animationFrame = requestAnimationFrame(tick);
+  },
+};
 
 }

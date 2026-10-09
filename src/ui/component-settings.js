@@ -1,14 +1,15 @@
 import { onLanguageChange, setMessage, t } from '../i18n/index.js';
+import { WALLPAPER_MODE, storageKey } from '../platform/environment.js';
 
-export const COMPONENTS_KEY = 'hanagoyomi.components.v1';
+export const COMPONENTS_KEY = storageKey('hanagoyomi.components.v1');
 export const POSITIONS = ['top-left', 'top-center', 'top-right', 'middle-left', 'middle-center', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right'];
 const COMPONENTS = ['logo', 'observation', 'hint'];
 const ARROWS = ['↖', '↑', '↗', '←', '●', '→', '↙', '↓', '↘'];
 
-export function componentPreferences(saved) {
+export function componentPreferences(saved, wallpaper = WALLPAPER_MODE) {
   return Object.fromEntries(COMPONENTS.map(name => [name, {
     visible: typeof saved?.[name]?.visible === 'boolean' ? saved[name].visible : true,
-    ...(name === 'observation' ? { position: POSITIONS.includes(saved?.[name]?.position) ? saved[name].position : 'default' } : {}),
+    ...(name === 'observation' || (wallpaper && name === 'logo') ? { position: POSITIONS.includes(saved?.[name]?.position) ? saved[name].position : 'default' } : {}),
   }]));
 }
 
@@ -62,7 +63,7 @@ export function initComponentSettings() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(COMPONENTS_KEY)); } catch {}
   try {
-    const enabled = JSON.parse(localStorage.getItem('meadow.settings.v1'))?.interactionEnabled;
+    const enabled = JSON.parse(localStorage.getItem(storageKey('meadow.settings.v1')))?.interactionEnabled;
     if (typeof enabled === 'boolean') document.body.dataset.sceneInteractive = String(enabled);
   } catch {}
   let preferences = componentPreferences(saved), queued = false;
@@ -73,7 +74,7 @@ export function initComponentSettings() {
   const layout = () => {
     queued = false;
     const bounds = boundsElement.getBoundingClientRect(), toolbar = document.querySelector('.toolbar').getBoundingClientRect();
-    const defaults = { logo: 'top-left', observation: 'bottom-left', hint: innerWidth <= 700 ? 'bottom-right' : innerWidth <= 1100 ? 'bottom-left' : 'bottom-center' };
+    const defaults = { logo: WALLPAPER_MODE ? 'top-right' : 'top-left', observation: WALLPAPER_MODE ? 'bottom-center' : 'bottom-left', hint: innerWidth <= 700 ? 'bottom-right' : innerWidth <= 1100 ? 'bottom-left' : 'bottom-center' };
     const items = COMPONENTS.filter(visible).map(name => {
       const element = elements[name], rect = element.getBoundingClientRect();
       const position = preferences[name].position;
@@ -108,6 +109,15 @@ export function initComponentSettings() {
     requestLayout();
   };
   for (const name of COMPONENTS) {
+    if (WALLPAPER_MODE && name === 'logo') {
+      const logoCard = document.querySelector('[data-component-settings="logo"]');
+      const template = document.querySelector('[data-component-settings="observation"] .component-placement').cloneNode(true);
+      template.querySelector('.position-grid').replaceChildren();
+      const legend = document.createElement('legend'); legend.className = 'sr-only';
+      setMessage(legend, 'components.logo'); template.querySelector('.position-grid').append(legend);
+      template.querySelector('[data-component-default]').removeAttribute('id');
+      logoCard.append(template);
+    }
     const card = document.querySelector(`[data-component-settings="${name}"]`), grid = card.querySelector('.position-grid');
     if (grid) POSITIONS.forEach((position, index) => {
       const label = document.createElement('label'), input = document.createElement('input'), icon = document.createElement('span');
@@ -138,4 +148,10 @@ export function initComponentSettings() {
   Object.values(elements).forEach(element => observer.observe(element));
   observer.observe(document.querySelector('.toolbar'));
   refresh();
+  return { set(name, update) {
+    if (!COMPONENTS.includes(name)) return;
+    if (typeof update.visible === 'boolean') preferences[name].visible = update.visible;
+    if (update.position === 'default' || POSITIONS.includes(update.position)) preferences[name].position = update.position;
+    save(); refresh();
+  } };
 }

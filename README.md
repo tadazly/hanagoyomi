@@ -97,6 +97,10 @@ Turn off **Components → Scene interaction** to disable mouse, keyboard, wheel,
 
 In immersive mode, **Show interface** hides after four seconds. Move the pointer to the bottom-right corner or tap that corner to reveal it. It stays visible while the pointer is nearby and hides four seconds after leaving. **Tab** can also reveal the button; **Esc** returns to the interface.
 
+## Wallpaper Engine
+
+Run `npm run build:wallpaper` and import `dist-wallpaper/index.html` into Wallpaper Engine. This separate build starts at high quality with automatic flight and manual interaction disabled, and includes native properties and an auto-hiding toolbar. See [build and acceptance notes](docs/WALLPAPER_ENGINE.md).
+
 ## Interface language
 
 The interface supports Simplified Chinese, Japanese and English. On first load, language selection follows this order:

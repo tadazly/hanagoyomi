@@ -23,6 +23,20 @@ body .ui-component[data-ui-column='right'] { text-align: right; }
 .component-card .weather-display-options { margin: 18px 0 0; }
 body[data-scene-interactive='false'] #view { cursor: default; }
 .switch:has(input:disabled) { opacity: .5; cursor: default; }
+body[data-wallpaper='true'] #componentBounds { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+body[data-wallpaper='true'] .toolbar { top: auto; bottom: 72px; z-index: 10; transition: opacity .25s ease; }
+body[data-wallpaper='true'] .panel { max-height: calc(100dvh - 248px); }
+.wallpaper-language-field { flex-wrap: wrap; gap: 4px; }
+.wallpaper-language-options { flex-basis: 100%; margin: 5px 0 0; }
+.wallpaper-language-options button { min-width: 0; padding: 8px 3px; border: 0; border-radius: 5px; background: transparent; color: var(--ink-soft); font-size: 12px; overflow-wrap: anywhere; }
+.wallpaper-language-options button[aria-pressed='true'] { background: rgba(255,255,255,.7); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.07); }
+body[data-wallpaper='true'] #restoreBtn { bottom: 72px; }
+body[data-wallpaper='true'] .restore-zone { height: 160px; }
+body[data-wallpaper='true'] .time-popover { z-index: 11; }
+body[data-wallpaper='true'] .toolbar[data-visible='false'] { opacity: 0; pointer-events: none; }
+#wallpaperToolbarZone { position: fixed; right: 0; bottom: 0; width: 260px; height: 160px; z-index: 9; }
+body[data-wallpaper='true'][data-immersive='true'] #wallpaperToolbarZone { display: none; }
+body[data-wallpaper='true'] .ui-component[data-ui-column='right'] .brand { justify-content: flex-end; }
 @media (max-width: 700px) {
   #componentBounds { inset: calc(20px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px)); }
   body .ui-component { max-width: calc(100vw - 40px); }

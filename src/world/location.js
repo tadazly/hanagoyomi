@@ -1,4 +1,5 @@
-const LOCATION_KEY = 'meadow.loc';
+import { storageKey } from '../platform/environment.js';
+const LOCATION_KEY = storageKey('meadow.loc');
 const listeners = new Set();
 
 // 启动面板与世界渲染使用同一份校验，损坏的记录不会被当作已设置地点。

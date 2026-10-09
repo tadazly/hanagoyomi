@@ -1,6 +1,7 @@
 import { MESSAGES } from './messages.js';
+import { storageKey } from '../platform/environment.js';
 
-export const LANGUAGE_KEY = 'hanagoyomi.language.v1';
+export const LANGUAGE_KEY = storageKey('hanagoyomi.language.v1');
 export const LOCALES = { en: 'en-US', zh: 'zh-CN', ja: 'ja-JP' };
 const CHINESE_ZONES = new Set(['Asia/Shanghai', 'Asia/Chongqing', 'Asia/Chungking', 'Asia/Harbin', 'Asia/Urumqi', 'Asia/Hong_Kong', 'Asia/Macau', 'Asia/Macao', 'Asia/Taipei', 'PRC', 'ROC']);
 let currentLanguage = 'en', automatic = true;

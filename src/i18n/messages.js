@@ -170,6 +170,7 @@ const entries = {
   'weather.source.dynamic': ['Dynamic weather', '动态天气', '自動変化する天気'],
   'weather.source.fallback': ['Dynamic weather · Weather service unavailable', '动态天气 · 暂未连接天气服务', '自動変化 · 気象サービスに接続できません'],
   'weather.source.connecting': ['Connecting to Open-Meteo…', '正在连接 Open-Meteo…', 'Open-Meteo に接続中…'],
+  'weather.source.cached': ['Cached weather · Waiting for an update', '最近天气缓存 · 等待更新', '保存した天気 · 更新待ち'],
   'weather.fetched': ['Last fetched {time}', '最近获取 {time}', '最終取得 {time}'],
   'weather.boltValue': ['About {value} flashes / 10 s', '每 10 秒约 {value} 次', '10 秒あたり約 {value} 回'],
   'weather.httpError': ['Weather service returned HTTP {status}', '天气服务返回 HTTP {status}', '気象サービスが HTTP {status} を返しました'],
