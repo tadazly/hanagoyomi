@@ -10,7 +10,7 @@
 
 Step into a changing natural world of clouds, meadows and petals, following real places, local time and weather.
 
-[**Try it live ↗**](https://hanagoyomi.luyilabs.com/) · [![Steam Workshop](https://img.shields.io/badge/Steam-Workshop-1b9fff?style=for-the-badge&logo=steam&logoColor=white&labelColor=171a21)](https://steamcommunity.com/sharedfiles/filedetails/?id=3815915459) · [Technical reference](docs/TECHNICAL.md) · [Run locally](#run-locally) · [Contributing](CONTRIBUTING.md)
+[**Try it live ↗**](https://hanagoyomi.luyilabs.com/) · [**Subscribe on Steam Workshop ↗**](https://steamcommunity.com/sharedfiles/filedetails/?id=3815915459) · [Technical reference](docs/TECHNICAL.md) · [Run locally](#run-locally) · [Contributing](CONTRIBUTING.md)
 
 [![MIT License](https://img.shields.io/badge/License-MIT-65745b?style=flat-square)](LICENSE)
 [![Checks and build](https://github.com/tadazly/hanagoyomi/actions/workflows/ci.yml/badge.svg)](https://github.com/tadazly/hanagoyomi/actions/workflows/ci.yml)

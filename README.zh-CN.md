@@ -10,7 +10,7 @@
 
 跟随真实地点、当地时间与天气，在云、草原和花瓣之间，走进一个不断变化的自然世界。
 
-[**在线体验 ↗**](https://hanagoyomi.luyilabs.com/) · [![Steam 创意工坊](https://img.shields.io/badge/Steam-%E5%88%9B%E6%84%8F%E5%B7%A5%E5%9D%8A-1b9fff?style=for-the-badge&logo=steam&logoColor=white&labelColor=171a21)](https://steamcommunity.com/sharedfiles/filedetails/?id=3815915459) · [技术参考](docs/TECHNICAL.md) · [本地运行](#本地运行) · [参与贡献](CONTRIBUTING.md)
+[**在线体验 ↗**](https://hanagoyomi.luyilabs.com/) · [**在创意工坊中订阅 ↗**](https://steamcommunity.com/sharedfiles/filedetails/?id=3815915459) · [技术参考](docs/TECHNICAL.md) · [本地运行](#本地运行) · [参与贡献](CONTRIBUTING.md)
 
 [![MIT License](https://img.shields.io/badge/License-MIT-65745b?style=flat-square)](LICENSE)
 [![检查与构建](https://github.com/tadazly/hanagoyomi/actions/workflows/ci.yml/badge.svg)](https://github.com/tadazly/hanagoyomi/actions/workflows/ci.yml)
