@@ -10,7 +10,7 @@ npm run build:wallpaper
 
 将 `dist-wallpaper/index.html` 导入 Wallpaper Engine 编辑器；只导入这个独立目录。壁纸包含经典脚本、样式、城市和星表，不需要 Node.js、本地服务器或 CDN。`npm run build` 仍生成原网站到 `dist/`，不会包含壁纸默认行为。
 
-`wallpaper/project.js` 定义中英双语标题、简介、分类及原生属性；`wallpaper/preview.gif` 为指定会话最新的四场景动态预览。`dist-wallpaper/workshop-title.txt` 和 `workshop-description.txt` 可用于提交页面。演示视频为 https://www.youtube.com/watch?v=oxYg9Qka6ak。
+`wallpaper/project.js` 定义中英双语标题、简介、分类及原生属性；`wallpaper/preview.gif` 为创意工坊动态预览，随独立构建一起打包。`dist-wallpaper/workshop-title.txt` 和 `workshop-description.txt` 可用于提交页面。演示视频为 https://www.youtube.com/watch?v=oxYg9Qka6ak。
 
 ## 默认体验与设置
 
