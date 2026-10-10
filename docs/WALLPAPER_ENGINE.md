@@ -10,7 +10,9 @@ npm run build:wallpaper
 
 将 `dist-wallpaper/index.html` 导入 Wallpaper Engine 编辑器；只导入这个独立目录。壁纸包含经典脚本、样式、城市和星表，不需要 Node.js、本地服务器或 CDN。`npm run build` 仍生成原网站到 `dist/`，不会包含壁纸默认行为。
 
-`wallpaper/project.js` 定义中英双语标题、简介、分类及原生属性；`wallpaper/preview.gif` 为创意工坊动态预览，随独立构建一起打包。`dist-wallpaper/workshop-title.txt` 和 `workshop-description.txt` 可用于提交页面。演示视频为 https://www.youtube.com/watch?v=oxYg9Qka6ak。
+`wallpaper/project.js` 定义分类及原生属性，默认标题与描述采用英文，避免编辑器更新覆盖 Steam 的默认英文版本。`wallpaper/workshop-copy.js` 保存已审核的中文、日文、英文工坊文案，三语标题均包含 `Flower Meadow`。`wallpaper/preview.gif` 为创意工坊动态预览，随独立构建一起打包。
+
+`dist-wallpaper/workshop-title.txt` 和 `workshop-description.txt` 为默认英文文案；带有 `.english`、`.schinese`、`.japanese` 后缀的对应文件和 `workshop-localizations.json` 提供三套独立文案。在 Steam 工坊的“编辑标题与描述”中按语言分别保存，不能只在同一份描述中拼接三语。中文描述额外包含 B 站演示：https://www.bilibili.com/video/BV1mopT6oExv/；三语均保留 YouTube 演示：https://www.youtube.com/watch?v=oxYg9Qka6ak。
 
 ## 默认体验与设置
 
@@ -37,6 +39,8 @@ npm run build:wallpaper
 测试和构建不能替代宿主验收。发布前在真实 Wallpaper Engine 中验证：首次启动默认值、画质与帧率设置、暂停恢复、原生属性、4 秒工具栏、组件位置保存、昼夜与雨雪、断网回退，以及超宽屏布局。提交后核对 Workshop 页面、动态预览、中英简介、演示视频和公开状态。
 
 后续更新同一条 Workshop 作品时，更新原编辑器项目的构建资源，保留其 `project.json` 中的 `workshopid`，并从原项目提交更新。独立构建不携带作品 ID，便于首次导入，不能直接覆盖原项目的发布身份。
+
+更新原编辑器项目时，其默认标题与描述也应保持英文；中日文通过工坊网站的语言字段维护。更新后逐页核对 `english`、`schinese`、`japanese` 文案，并检查未提供翻译的语言是否回退英文。分类 Genre 在官方编辑器中为单选，本项目保留 Nature。
 
 已发布作品：[花暦 Hanagoyomi](https://steamcommunity.com/sharedfiles/filedetails/?id=3815915459)，作品 ID 为 `3815915459`，分类为 Nature，自适应分辨率，公开可见。
 

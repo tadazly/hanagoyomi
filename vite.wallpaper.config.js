@@ -2,6 +2,7 @@ import { defineConfig, mergeConfig } from 'vite';
 import { readFileSync } from 'node:fs';
 import base from './vite.config.js';
 import { project, workshopTitle, workshopDescription } from './wallpaper/project.js';
+import { workshopLocalizations } from './wallpaper/workshop-copy.js';
 
 export default mergeConfig(base, defineConfig({
   base: './',
@@ -22,6 +23,11 @@ export default mergeConfig(base, defineConfig({
         ['preview.gif', readFileSync(new URL('./wallpaper/preview.gif', import.meta.url))],
         ['workshop-title.txt', workshopTitle],
         ['workshop-description.txt', workshopDescription],
+        ['workshop-localizations.json', JSON.stringify(workshopLocalizations, null, 2)],
+        ...Object.entries(workshopLocalizations).flatMap(([language, copy]) => [
+          [`workshop-title.${language}.txt`, copy.title],
+          [`workshop-description.${language}.txt`, copy.description],
+        ]),
       ]) this.emitFile({ type: 'asset', fileName, source });
     },
   }],

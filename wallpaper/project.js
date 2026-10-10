@@ -1,35 +1,10 @@
 import { CITIES } from '../src/data/cities.js';
 import { WX_TYPES } from '../src/world/weather-presets.js';
 import { MESSAGES } from '../src/i18n/messages.js';
+import { workshopLocalizations } from './workshop-copy.js';
 
-export const workshopTitle = '花暦 Hanagoyomi｜实时天气与昼夜花海 · Living Meadow — Real-Time Weather & Day/Night';
-export const workshopDescription = `[h1]花暦 · Hanagoyomi[/h1]
-让桌面住进一片随时间与天气变化的花海。看云经过、草浪起伏，从晨光走向星夜。
-
-[h2]简体中文[/h2]
-• 实时 WebGL2 3D 草原与花海、体积云、花瓣、星空、月相和雨雪。
-• 跟随所选地点的当地时间、太阳与月亮；联网天气每 15 分钟更新。
-• 默认高画质、自动飞行，手动场景交互默认关闭；两项可独立调整。
-• LOGO 默认右上，时间天气默认中下；可移动、隐藏，支持超宽屏。
-• Wallpaper Engine 右侧提供常用设置；鼠标移到右下角可打开完整世界设置，工具栏离开后 4 秒隐藏。
-• 帧率遵循 Wallpaper Engine 设置；提供渲染比例和四档画质。
-• 所有画面资源在本地，断网仍可欣赏动态天气。草原为想象风景，并非城市地理复刻；天气与天文效果经过艺术化处理。
-• 简体中文、日本語、English。当前版本没有壁纸音频；演示视频的配乐不包含在壁纸中。
-
-[h2]English[/h2]
-Give your desktop a living meadow shaped by time and weather. Watch clouds drift and grass sway, from morning light to a starry night.
-• Real-time WebGL2 3D meadows, volumetric clouds, petals, stars, moon phases, rain and snow.
-• Local time, sun and moon for your chosen city. Online weather refreshes every 15 minutes.
-• High quality and automatic flight by default. Manual scene interaction starts disabled; both controls are independent.
-• The logo starts at the top right and the clock/weather at the bottom centre. Move or hide them to suit your desktop.
-• Common options are in Wallpaper Engine. Hover at the bottom right for the full world settings; the toolbar hides after four seconds away.
-• Respects Wallpaper Engine's FPS setting, with render scale and four quality levels.
-• Visual assets are bundled locally. Dynamic weather continues offline. The meadow is an imaginary landscape, not a geographic recreation; weather and astronomy are artistic approximations.
-• English, 简体中文 and 日本語. This wallpaper has no audio; the demonstration video's music is not included.
-
-[url=https://www.youtube.com/watch?v=oxYg9Qka6ak]演示视频 / Demonstration[/url]
-[url=https://github.com/tadazly/hanagoyomi]源代码 / Source code[/url]
-天气 / Weather: Open-Meteo.com (CC BY 4.0). 空气质量 / Air quality: Open-Meteo / CAMS. Star data: d3-celestial (BSD). Code: MIT. Full notices are bundled with the wallpaper.`;
+export const workshopTitle = workshopLocalizations.english.title;
+export const workshopDescription = workshopLocalizations.english.description;
 
 const localization = { 'en-us': {}, 'zh-chs': {} };
 const label = (key, zh, en) => {
