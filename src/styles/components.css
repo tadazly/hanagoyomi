@@ -26,6 +26,12 @@ body[data-scene-interactive='false'] #view { cursor: default; }
 body[data-wallpaper='true'] #componentBounds { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
 body[data-wallpaper='true'] .toolbar { top: auto; bottom: 72px; z-index: 10; transition: opacity .25s ease; }
 body[data-wallpaper='true'] .panel { max-height: calc(100dvh - 248px); }
+.wallpaper-scroll-region { position: relative; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+.wallpaper-scroll-region .panel-body { flex: 1; min-height: 0; scrollbar-width: none; }
+.wallpaper-scroll-region .panel-body::-webkit-scrollbar { display: none; }
+.wallpaper-scrollbar { position: absolute; top: 8px; right: 5px; bottom: 8px; width: 14px; border-radius: 7px; background: rgba(84,97,73,.07); cursor: pointer; touch-action: none; user-select: none; }
+.wallpaper-scroll-thumb { position: absolute; top: 0; left: 3px; width: 8px; border-radius: 5px; background: rgba(84,97,73,.35); }
+.wallpaper-scrollbar:hover .wallpaper-scroll-thumb, .wallpaper-scrollbar:focus-visible .wallpaper-scroll-thumb { background: rgba(84,97,73,.6); }
 .wallpaper-language-field { flex-wrap: wrap; gap: 4px; }
 .wallpaper-language-options { flex-basis: 100%; margin: 5px 0 0; }
 .wallpaper-language-options button { min-width: 0; padding: 8px 3px; border: 0; border-radius: 5px; background: transparent; color: var(--ink-soft); font-size: 12px; overflow-wrap: anywhere; }

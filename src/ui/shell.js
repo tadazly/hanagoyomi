@@ -5,6 +5,7 @@ import { CITIES, locationName } from '../data/cities.js';
 import { airQualityPageUrl, weatherPageUrl } from '../world/weather.js';
 import { updateWeatherDetails } from './weather-details.js';
 import { initComponentSettings } from './component-settings.js';
+import { initWallpaperScrolling } from './wallpaper-scroll.js';
 import { getSavedLocation, onLocationChange } from '../world/location.js';
 import { getLanguage, getLocale, onLanguageChange, setLanguage, setMessage, t, translateDocument } from '../i18n/index.js';
 import { WALLPAPER_MODE, storageKey } from '../platform/environment.js';
@@ -167,6 +168,7 @@ export function showToast(key) {
 export function initShell() {
   initTimeControls();
   populateIcons();
+  if (WALLPAPER_MODE) initWallpaperScrolling();
   translateDocument();
   const components = initComponentSettings();
   revealWeatherSource = initWeatherSource();

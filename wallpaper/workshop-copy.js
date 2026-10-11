@@ -23,7 +23,7 @@ Visual assets are stored locally, so the scenery works offline. Live weather upd
 Weather: Open-Meteo (CC BY 4.0). Air quality: Open-Meteo / CAMS. Star data: d3-celestial (BSD). Code: MIT. Full notices are bundled with the wallpaper.`,
   },
   schinese: {
-    title: '花暦｜实时天气与昼夜花海 · Flower Meadow',
+    title: '花暦 Hanagoyomi｜实时天气与昼夜花海 · Flower Meadow',
     description: `把此刻，交给自然。
 
 让桌面住进一片随时间与天气变化的花海。看云经过、草浪起伏，从晨光走向星夜。
@@ -46,7 +46,7 @@ Weather: Open-Meteo (CC BY 4.0). Air quality: Open-Meteo / CAMS. Star data: d3-c
 天气：Open-Meteo（CC BY 4.0）；空气质量：Open-Meteo / CAMS；星表：d3-celestial（BSD）；代码：MIT。完整署名与许可随壁纸提供。`,
   },
   japanese: {
-    title: '花暦｜天気と時間で表情を変える花の草原 · Flower Meadow',
+    title: '花暦 Hanagoyomi｜天気と時間で表情を変える花の草原 · Flower Meadow',
     description: `このひとときを、自然に。
 
 時間と天気に合わせて表情を変える、花の草原をデスクトップに。流れる雲と風に揺れる草花を眺めながら、朝の光から星空の夜へ。
