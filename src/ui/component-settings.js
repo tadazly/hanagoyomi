@@ -97,6 +97,7 @@ export function initComponentSettings() {
   const requestLayout = () => { if (!queued) { queued = true; requestAnimationFrame(layout); } };
   const save = () => { try { localStorage.setItem(COMPONENTS_KEY, JSON.stringify(preferences)); } catch {} };
   const refresh = () => {
+    document.getElementById('hideHint').checked = !preferences.hint.visible;
     for (const name of COMPONENTS) {
       const preference = preferences[name], card = document.querySelector(`[data-component-settings="${name}"]`);
       elements[name].hidden = !visible(name);
@@ -137,6 +138,9 @@ export function initComponentSettings() {
       preferences[name].position = 'default'; save(); refresh();
     });
   }
+  document.getElementById('hideHint').addEventListener('change', event => {
+    preferences.hint.visible = !event.target.checked; save(); refresh();
+  });
   document.getElementById('resetComponents').addEventListener('click', () => {
     preferences = componentPreferences(); save(); refresh();
   });

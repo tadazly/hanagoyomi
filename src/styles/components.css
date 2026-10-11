@@ -39,9 +39,7 @@ body[data-wallpaper='true'] .panel { max-height: calc(100dvh - 248px); }
 body[data-wallpaper='true'] #restoreBtn { bottom: 72px; }
 body[data-wallpaper='true'] .restore-zone { height: 160px; }
 body[data-wallpaper='true'] .time-popover { z-index: 11; }
-body[data-wallpaper='true'] .toolbar[data-visible='false'] { opacity: 0; pointer-events: none; }
-#wallpaperToolbarZone { position: fixed; right: 0; bottom: 0; width: 260px; height: 160px; z-index: 9; }
-body[data-wallpaper='true'][data-immersive='true'] #wallpaperToolbarZone { display: none; }
+body[data-wallpaper='true'] #toolbarZone { z-index: 9; }
 body[data-wallpaper='true'] .ui-component[data-ui-column='right'] .brand { justify-content: flex-end; }
 @media (max-width: 700px) {
   #componentBounds { inset: calc(20px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px)); }

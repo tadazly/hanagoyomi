@@ -42,6 +42,9 @@ body[data-immersive='false'] .chrome { transition-property: opacity; }
 .brand h1 { font-family: var(--serif); font-weight: 400; font-size: 30px; letter-spacing: .22em; line-height: 1.1; margin: 0 0 4px; }
 .wordmark { font-family: Georgia, serif; font-size: 10px; letter-spacing: .35em; }
 .toolbar { position: fixed; top: calc(24px + env(safe-area-inset-top, 0px)); right: calc(32px + env(safe-area-inset-right, 0px)); display: flex; align-items: center; gap: 12px; }
+.toolbar[data-visible='false'] { opacity: 0; pointer-events: none; }
+#toolbarZone { position: fixed; right: 0; z-index: 5; touch-action: none; }
+body[data-immersive='true'] #toolbarZone { display: none; }
 .live-status { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 9px 10px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: inherit; text-shadow: inherit; font-size: 14px; white-space: nowrap; transition: background .15s, border-color .15s; }
 .live-status:hover, .live-status[aria-expanded='true'] { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .35); }
 .live-status-arrow svg { width: 14px; height: 14px; }
@@ -159,6 +162,10 @@ kbd { display: inline-block; min-width: 16px; font: 10px system-ui, sans-serif; 
 .help-controls dt { font-family: system-ui, sans-serif; font-size: 12px; }
 .help-controls dd { margin: 0; color: var(--ink-soft); }
 .help-dialog p.service-note { font-size: 11px; }
+.help-preference { margin: 18px 0; padding-top: 16px; border-top: 1px solid var(--track); }
+.help-preference label { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 13px; cursor: pointer; }
+.help-preference input { width: 16px; height: 16px; margin: 0; flex-shrink: 0; accent-color: var(--sun); }
+.help-preference .service-note { margin: 5px 0 0; color: var(--ink-soft); }
 .project-link { display: flex; align-items: center; justify-content: space-between; padding-top: 15px; border-top: 1px solid var(--track); font-size: 13px; text-decoration: none; }
 .project-link svg { width: 16px; height: 16px; }
 .noscript { position: fixed; inset: 25% 20%; color: #fff; }

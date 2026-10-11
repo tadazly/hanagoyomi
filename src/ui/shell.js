@@ -42,28 +42,74 @@ function initLanguageControls() {
   refresh();
 }
 
-function initWallpaperToolbar() {
-  if (!WALLPAPER_MODE) return;
+function initToolbarVisibility() {
   const toolbar = document.querySelector('.toolbar');
-  const zone = document.createElement('div'); zone.id = 'wallpaperToolbarZone';
+  const zone = document.createElement('div'); zone.id = 'toolbarZone';
+  zone.setAttribute('aria-hidden', 'true');
   document.body.append(zone);
-  let timer, hovered = false;
-  const held = () => hovered || !$('panel').hidden || !$('timePopover').hidden || $('helpDialog').open || Boolean(toolbar.querySelector(':focus-visible'));
+  let timer, wakeTouchPointer = null;
+  const hovered = new Set();
+  const held = () => hovered.size > 0 || !$('panel').hidden || !$('timePopover').hidden || $('helpDialog').open || Boolean(toolbar.querySelector(':focus-visible'));
+  const positionZone = () => {
+    const rect = toolbar.getBoundingClientRect();
+    const top = WALLPAPER_MODE ? Math.max(0, window.innerHeight - 160) : 0;
+    Object.assign(zone.style, {
+      left: `${Math.max(0, WALLPAPER_MODE ? window.innerWidth - 260 : rect.left - 16)}px`,
+      top: `${top}px`,
+      height: `${WALLPAPER_MODE ? window.innerHeight - top : rect.bottom + 16}px`,
+    });
+  };
   const hideLater = () => {
     clearTimeout(timer);
     if (!held()) timer = setTimeout(() => { if (!held()) toolbar.dataset.visible = 'false'; }, 4000);
   };
   const reveal = () => { toolbar.dataset.visible = 'true'; hideLater(); };
   for (const element of [zone, toolbar]) {
-    element.addEventListener('pointerenter', () => { hovered = true; reveal(); });
-    element.addEventListener('pointerleave', () => { hovered = false; hideLater(); });
-    element.addEventListener('pointerdown', reveal);
+    element.addEventListener('pointerenter', event => {
+      if (event.pointerType === 'touch') return;
+      hovered.add(element); reveal();
+    });
+    element.addEventListener('pointerleave', event => {
+      if (event.pointerType === 'touch') return;
+      hovered.delete(element); hideLater();
+    });
+    element.addEventListener('pointerdown', event => {
+      // 手机隐藏后的第一次触摸只唤出工具栏。
+      if (event.pointerType === 'touch' && event.target === zone) {
+        event.preventDefault();
+        zone.setPointerCapture(event.pointerId);
+        wakeTouchPointer = event.pointerId;
+      }
+      reveal();
+    });
   }
-  toolbar.addEventListener('focusin', reveal); toolbar.addEventListener('focusout', hideLater);
-  const changes = new MutationObserver(() => { if (held()) reveal(); else hideLater(); });
-  changes.observe(document.body, { attributes: true, attributeFilter: ['data-panel-open'] });
+  document.addEventListener('pointerdown', () => { wakeTouchPointer = null; }, true);
+  document.addEventListener('pointercancel', () => { wakeTouchPointer = null; }, true);
+  document.addEventListener('click', event => {
+    if (wakeTouchPointer === null) return;
+    const inToolbar = toolbar.contains(event.target) || event.target === zone;
+    const wakeClick = inToolbar && (event.pointerId === wakeTouchPointer || (event.pointerId === undefined && event.detail > 0));
+    wakeTouchPointer = null;
+    // 取消 pointerdown 仍可能产生 click，必须在按钮收到前拦住这次唤出点击。
+    if (wakeClick) { event.preventDefault(); event.stopImmediatePropagation(); }
+  }, true);
+  toolbar.addEventListener('focusin', reveal);
+  toolbar.addEventListener('focusout', () => queueMicrotask(hideLater));
+  const changes = new MutationObserver(records => {
+    if (document.body.dataset.immersive === 'true') {
+      hovered.clear(); clearTimeout(timer);
+      return;
+    }
+    if (records.some(record => record.attributeName === 'data-immersive') || held()) reveal();
+    else hideLater();
+  });
+  changes.observe(document.body, { attributes: true, attributeFilter: ['data-panel-open', 'data-immersive'] });
   changes.observe($('timePopover'), { attributes: true, attributeFilter: ['hidden'] });
   changes.observe($('helpDialog'), { attributes: true, attributeFilter: ['open'] });
+  new ResizeObserver(positionZone).observe(toolbar);
+  window.addEventListener('resize', positionZone);
+  document.addEventListener('fullscreenchange', positionZone);
+  positionZone();
   reveal();
 }
 
@@ -308,9 +354,10 @@ export function initShell() {
   if (WALLPAPER_MODE) {
     $('fullscreenBtn').hidden = true;
     document.querySelector('.github-button').hidden = true;
+    document.querySelector('.workshop-button').hidden = true;
     $('geoBtn').hidden = true;
-    initWallpaperToolbar();
   }
+  initToolbarVisibility();
   return { components, setPanel };
 }
 
