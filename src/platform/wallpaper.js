@@ -38,6 +38,7 @@ export function attachWallpaper(world, shell) {
       else if (key === 'logoposition') shell.components.set('logo', { position: value });
       else if (key === 'clockposition') shell.components.set('observation', { position: value });
       else if (key === 'settingspanel') shell.setPanel(Boolean(value));
+      else if (key === 'lowsaturation') change('lowSaturation', value);
       else if ({ interaction: 1, autoflight: 1, petals: 1, lensdrops: 1, constellations: 1 }[key]) {
         change({ interaction: 'interactionEnabled', autoflight: 'auto', petals: 'petals', lensdrops: 'lensDrops', constellations: 'constel' }[key], value);
       }

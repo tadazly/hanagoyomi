@@ -11,6 +11,7 @@ precision highp float;
 precision highp int;
 precision highp sampler2D;
 precision highp sampler3D;
+uniform float uLowSaturation;
 #define PI 3.14159265359
 float saturate(float x){ return clamp(x, 0.0, 1.0); }
 float remap(float v, float a, float b, float c, float d){ return c + (v - a) * (d - c) / (b - a); }
@@ -222,7 +223,7 @@ void main(){
       if (d > 0.002){
         float sigE = d * uDensity * SIGMA;
         float od = lightOD(p, fp) * uDensity * SIGMA;
-        float sun = 1.5 * (ph0 * exp(-od) + 0.65 * ph1 * exp(-od * 0.3) + 0.42 * ph2 * exp(-od * 0.09) + 0.27 * ph3 * exp(-od * 0.027));
+        float sun = mix(1.5, 1.35, uLowSaturation) * (ph0 * exp(-od) + mix(0.65, 0.59, uLowSaturation) * ph1 * exp(-od * 0.3) + mix(0.42, 0.34, uLowSaturation) * ph2 * exp(-od * 0.09) + mix(0.27, 0.20, uLowSaturation) * ph3 * exp(-od * 0.027));
         sun *= mix(1.0, 1.0 - exp(-sigE * 0.35), 0.45 * (1.0 - saturate(cosT)));
         vec3 amb = mix(uAmbBottom, uAmbTop, saturate(h01 * 1.25)) * mix(0.55, 1.0, saturate(h01 * 1.6));
         /* skylight reaching deep inside a cloud is occluded, so thin eroded edges stay brighter than the core */
@@ -280,7 +281,7 @@ vec3 aces(vec3 x){
 vec3 srgbOut(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
 vec3 toDisplay(vec3 c){
   c *= uExposure;
-  c *= vec3(0.96, 1.0, 1.05);
+  c *= mix(vec3(0.96, 1.0, 1.05), vec3(1.0), uLowSaturation);
   return srgbOut(aces(c)) + (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) - 0.5) / 255.0;
 }`;
 
@@ -360,16 +361,20 @@ float wxFogF(vec3 rel){
 }
 vec3 wxFog(vec3 c, vec3 rel){ return mix(c, uFogCol, wxFogF(rel)); }
 vec4 hash42(vec2 p){ vec4 p4 = fract(vec4(p.xyxy) * vec4(0.1031, 0.1030, 0.0973, 0.1099)); p4 += dot(p4, p4.wzxy + 33.33); return fract((p4.xxyz + p4.yzzw) * p4.zywx); }
-const vec3 G_BASE = vec3(0.05, 0.13, 0.02);
+vec3 grassBase(){ return mix(vec3(0.05, 0.13, 0.02), vec3(0.034, 0.075, 0.039), uLowSaturation); }
 vec3 grassTip(float p1, float p2){
-  vec3 tip = mix(vec3(0.32, 0.64, 0.08), vec3(0.50, 0.70, 0.10), smoothstep(0.15, 0.7, p1));
-  tip = mix(tip, vec3(0.10, 0.44, 0.13), smoothstep(0.1, 0.6, -p1) * 0.75);
+  vec3 tip = mix(mix(vec3(0.32, 0.64, 0.08), vec3(0.18, 0.29, 0.12), uLowSaturation), mix(vec3(0.50, 0.70, 0.10), vec3(0.27, 0.34, 0.16), uLowSaturation), smoothstep(0.15, 0.7, p1));
+  tip = mix(tip, mix(vec3(0.10, 0.44, 0.13), vec3(0.07, 0.20, 0.13), uLowSaturation), smoothstep(0.1, 0.6, -p1) * 0.75);
   return tip * (0.88 + 0.22 * p2);
 }
-vec3 grassAlbedo(float p1, float p2, float t){ return mix(G_BASE, grassTip(p1, p2), pow(saturate(t), 0.65)); }
-vec3 waveSheen(vec3 alb, float wave){ return mix(alb, alb * 1.4 + vec3(0.025, 0.05, 0.02), wave * 0.6 * uWindStr); }
+vec3 grassAlbedo(float p1, float p2, float t){ return mix(grassBase(), grassTip(p1, p2), pow(saturate(t), 0.65)); }
+vec3 waveSheen(vec3 alb, float wave){ return mix(alb, alb * mix(1.4, 1.16, uLowSaturation) + mix(vec3(0.025, 0.05, 0.02), vec3(0.012, 0.018, 0.01), uLowSaturation), wave * mix(0.6, 0.38, uLowSaturation) * uWindStr); }
 const vec3 PAL[5] = vec3[5](vec3(0.85, 0.05, 0.07), vec3(0.94, 0.92, 0.88), vec3(1.0, 0.66, 0.05), vec3(0.95, 0.36, 0.58), vec3(0.46, 0.26, 0.88));
-vec3 paletteAt(float k){ return PAL[int(clamp(floor(k * 5.0), 0.0, 4.0))]; }
+const vec3 SOFT_PAL[5] = vec3[5](vec3(0.50, 0.23, 0.29), vec3(0.84, 0.82, 0.75), vec3(0.80, 0.60, 0.24), vec3(0.65, 0.41, 0.46), vec3(0.39, 0.40, 0.55));
+vec3 paletteAt(float k){
+  if (uLowSaturation > 0.5) return k < 0.14 ? SOFT_PAL[0] : k < 0.60 ? SOFT_PAL[1] : k < 0.75 ? SOFT_PAL[2] : k < 0.92 ? SOFT_PAL[3] : SOFT_PAL[4];
+  return PAL[int(clamp(floor(k * 5.0), 0.0, 4.0))];
+}
 `;
 const SCENE_FS = SCENE + DISPLAY + `
 uniform vec3 uSunGround; uniform vec3 uSkyIrr; uniform float uFogKG;
@@ -379,9 +384,9 @@ vec3 litGrass(vec3 alb, vec3 n, vec3 V, float t, float sh, float ao){
   vec3 sun = uSunGround * sh;
   vec3 c = alb / PI * (sun * saturate(ndl * 0.6 + 0.4) * mix(0.45, 1.0, ao) + uSkyIrr * ao);
   float back = pow(saturate(dot(-V, uSunDir)), 3.0);
-  c += alb * vec3(1.2, 1.25, 0.45) * sun * (back * 1.5 + saturate(-ndl) * 0.25) * (0.25 + 0.75 * t) / PI;
+  c += alb * mix(vec3(1.2, 1.25, 0.45), vec3(0.85, 0.98, 0.70), uLowSaturation) * sun * (back * mix(1.5, 0.78, uLowSaturation) + saturate(-ndl) * mix(0.25, 0.18, uLowSaturation)) * (0.25 + 0.75 * t) / PI;
   float rim = pow(1.0 - abs(dot(n, V)), 3.0);
-  c += alb * vec3(1.1, 1.15, 0.6) * sun * rim * (0.08 + 0.35 * back) * t / PI;
+  c += alb * vec3(1.1, 1.15, 0.6) * sun * rim * (mix(0.08, 0.06, uLowSaturation) + mix(0.35, 0.18, uLowSaturation) * back) * t / PI;
   vec3 H = normalize(uSunDir + V);
   c += sun * pow(saturate(dot(n, H)), 28.0) * 0.05 * t;
   c += sun * pow(saturate(dot(n, H)), 90.0) * 0.4 * uWet * t;
@@ -427,6 +432,7 @@ const VPRE = `#version 300 es
 precision highp float;
 precision highp int;
 precision highp sampler2D;
+uniform float uLowSaturation;
 #define PI 3.14159265359
 float saturate(float x){ return clamp(x, 0.0, 1.0); }
 `;
@@ -463,7 +469,7 @@ void main(){
   vec3 tip = grassTip(p1, p2);
   /* seen at a grazing angle a meadow shows its tips; from above more of the darker stems */
   float graze = 1.0 - saturate(dot(V, n));
-  vec3 alb = mix(mix(G_BASE, tip, 0.45), tip * 0.78, graze * graze);
+  vec3 alb = mix(mix(grassBase(), tip, 0.45), tip * 0.78, graze * graze);
   /* blade-scale streaks and clumps, faded out once smaller than a pixel */
   float fp = dist * uPixAng;
   vec2 wd = uWindDirG; vec2 lw = vec2(dot(vW, wd), dot(vW, vec2(-wd.y, wd.x)));
@@ -627,7 +633,7 @@ void main(){
   if (v < 6){
     vec3 sideB = normalize(vec3(-root.z, 0.0, root.x) + 1e-4);
     p = mix(root, head, q.y) + sideB * q.x * 0.011;
-    vN = normalize(cross(sideB, head - root)); vAlb = vec3(0.06, 0.18, 0.03); vKind = 0.0; vUv = q; vGlowN = 0.0;
+    vN = normalize(cross(sideB, head - root)); vAlb = mix(vec3(0.06, 0.18, 0.03), vec3(0.055, 0.115, 0.055), uLowSaturation); vKind = 0.0; vUv = q; vGlowN = 0.0;
   } else if (v < 6 + 6 * NP){
     int k = (v - 6) / 6;
     float a = float(k) * 6.2831853 / float(NP) + h.x * 6.2831853;
@@ -637,7 +643,7 @@ void main(){
     float phi = mix(1.35, 0.22, op);
     vec3 axis = dir * cos(phi) + hn * sin(phi);
     p = head + dir * 0.006 * opc + axis * (q.y * PL) + hn * (q.y * q.y * PL * 0.4 * opc) + ex * q.x * PL * mix(0.5, 0.85, opc);
-    vN = normalize(mix(dir + hn * 0.2, hn - dir * q.y * 0.5, opc)); vAlb = mix(col * vec3(0.62, 0.75, 0.55), col, opc); vKind = 1.0; vUv = q; vGlowN = lit;
+    vN = normalize(mix(dir + hn * 0.2, hn - dir * q.y * 0.5 + ex * q.x * 0.25 * uLowSaturation, opc)); vAlb = mix(col * vec3(0.62, 0.75, 0.55), col, opc); vKind = 1.0; vUv = q; vGlowN = lit;
   } else {
     p = head + hn * 0.008 + (tx * q.x + ty * (q.y - 0.5)) * 0.04 * opc;
     vN = hn; vAlb = mix(vec3(0.78, 0.48, 0.02), vec3(0.12, 0.06, 0.02), step(0.5, fract(kind * 7.0))); vKind = 2.0; vUv = vec2(q.x, q.y - 0.5); vGlowN = 0.7 * lit;
@@ -687,7 +693,7 @@ void main(){
   vec2 q = corner(gl_VertexID);
   float L = mix(0.08, 0.12, h2.z) * uStreamScale;
   vec3 p = tr.xyz + ax * (q.y - 0.4) * L + ay * q.x * L * 0.8;
-  vUv = q; vN = cross(ax, ay); vRel = p; vKind = 1.0; vEmit = 0.35; vGlowN = 1.0;
+  vUv = q; vN = cross(ax, ay); vRel = p; vKind = 1.0; vEmit = mix(0.35, 0.12, uLowSaturation); vGlowN = 1.0;
   vAlb = paletteAt(fract(fk * 0.618 + 0.13)) * 1.05; vSh = 1.0;
   gl_Position = project(p);
 }`;
@@ -698,12 +704,19 @@ out vec4 o;
 void main(){
   float a = 1.0; vec3 alb = vAlb;
   if (vKind > 1.5){ float r = length(vUv); float aa = fwidth(r) * 1.3 + 1e-4; a = 1.0 - smoothstep(0.45 - aa, 0.45 + aa, r); }
-  else if (vKind > 0.5){ a = petalMask(vUv); alb *= mix(0.55, 1.12, smoothstep(0.0, 0.75, vUv.y)); }
+  else if (vKind > 0.5){
+    a = petalMask(vUv);
+    float shade = mix(0.55, 1.12, smoothstep(0.0, 0.75, vUv.y));
+    if (uLowSaturation > 0.5){
+      shade = mix(0.72, 1.02, smoothstep(0.0, 0.75, vUv.y));
+    }
+    alb *= shade;
+  }
   if (a < 0.02) discard;
   vec3 V = -normalize(vRel); vec3 n = normalize(vN); if (dot(n, V) < 0.0) n = -n;
   vec3 c = vKind < 0.5 ? litGrass(alb, n, V, 0.6, vSh, 0.7) : litPetal(alb, n, V, vSh);
-  vec3 ea = max(mix(vec3(dot(alb, vec3(0.2126, 0.7152, 0.0722))), alb, 1.45), 0.0);
-  c += alb * vEmit * dot(uSkyIrr, vec3(0.2126, 0.7152, 0.0722)) * 0.6 + ea * vGlowN * uNightGlow * 2.1;
+  vec3 ea = max(mix(vec3(dot(alb, vec3(0.2126, 0.7152, 0.0722))), alb, mix(1.45, 1.02, uLowSaturation)), 0.0);
+  c += alb * vEmit * dot(uSkyIrr, vec3(0.2126, 0.7152, 0.0722)) * 0.6 + ea * vGlowN * uNightGlow * mix(2.1, 0.85, uLowSaturation);
   o = vec4(toDisplay(applyFog(c, vRel)), a);
 }`;
 
@@ -919,19 +932,19 @@ void main(){
   }
   col += texture(uBloom, uv).rgb * uBloomI;
   col = col * (1.0 - 0.32 * dropShade) + glint * 0.5;
-  /* grading: lush saturation, cool shade, warm light, lifted blacks */
+  /* 两套配色都随太阳高度变化；低饱和方案以材质配色为主。 */
   float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
-  col = mix(vec3(l), col, uSat + (1.3 - uSat) * smoothstep(0.5, 0.85, l) * uNight);
+  col = mix(vec3(l), col, uSat + (1.3 - uSat) * smoothstep(0.5, 0.85, l) * uNight * (1.0 - uLowSaturation));
   col *= mix(uShTint, uHiTint, smoothstep(0.15, 0.85, l));
   col = col * 0.955 + uLift;
   /* night vision: rods take over, so colour drains toward a cool blue and the image gets grainier
      (Jensen et al. 2001 night sky model; Thompson, Shirley & Ferwerda 2002) */
   float ln = dot(col, vec3(0.2126, 0.7152, 0.0722));
   /* mesopic vision: rods drain colour from the dark, cones still see the lights in colour */
-  col = mix(col, ln * vec3(0.62, 0.78, 1.15), uNight * 0.55 * (1.0 - smoothstep(0.45, 0.8, ln)));
-  col += (ign(gl_FragCoord.xy + vec2(uFrameN * 5.588, uFrameN * 3.271)) - 0.5) * 0.03 * uNight;
+  col = mix(col, ln * mix(vec3(0.62, 0.78, 1.15), vec3(0.88, 0.96, 1.07), uLowSaturation), uNight * mix(0.55, 0.32, uLowSaturation) * (1.0 - smoothstep(0.45, 0.8, ln)));
+  col += (ign(gl_FragCoord.xy + vec2(uFrameN * 5.588, uFrameN * 3.271)) - 0.5) * mix(0.03, 0.008, uLowSaturation) * uNight;
   vec2 q = vUv - 0.5;
-  col *= 1.0 - 0.32 * dot(q * vec2(uRes.x / uRes.y, 1.0), q * vec2(uRes.x / uRes.y, 1.0)) * 0.9;
+  col *= 1.0 - mix(0.32, 0.12, uLowSaturation) * dot(q * vec2(uRes.x / uRes.y, 1.0), q * vec2(uRes.x / uRes.y, 1.0)) * 0.9;
   col += (ign(gl_FragCoord.xy + 17.0) - 0.5) / 255.0;
   o = vec4(col, 1.0);
 }`;
@@ -950,7 +963,7 @@ vec3 litV(vec3 alb, vec3 n, vec3 V, float t, float sh, float ao){
   float ndl = dot(n, uSunDir); vec3 sun = uSunGround * sh;
   vec3 c = alb / PI * (sun * saturate(ndl * 0.6 + 0.4) * mix(0.45, 1.0, ao) + uSkyIrr * ao);
   float back = pow(saturate(dot(-V, uSunDir)), 3.0);
-  c += alb * vec3(1.2, 1.25, 0.45) * sun * (back * 1.5 + saturate(-ndl) * 0.25) * (0.25 + 0.75 * t) / PI;
+  c += alb * mix(vec3(1.2, 1.25, 0.45), vec3(0.85, 0.98, 0.70), uLowSaturation) * sun * (back * mix(1.5, 0.78, uLowSaturation) + saturate(-ndl) * mix(0.25, 0.18, uLowSaturation)) * (0.25 + 0.75 * t) / PI;
   c += alb / PI * uFlashAmb * 0.7;
   return c;
 }
@@ -975,9 +988,9 @@ void main(){
   vec3 V = -normalize(p); vec3 N = normalize(mix(n, vec3(0.0, 1.0, 0.0), 0.5));
   float sh = cshadow(w * 0.001);
   vTipLit = litV(mix(waveSheen(grassTip(p1, p2), wave), SNOW_ALB, uSnowCov * 0.75), N, V, 1.0, sh, 1.0);
-  vBaseLit = litV(mix(mix(G_BASE, grassTip(p1, p2), 0.6), SNOW_ALB, uSnowCov * 0.9), N, V, 0.3, sh, mix(0.6, 0.9, uShellS));
+  vBaseLit = litV(mix(mix(grassBase(), grassTip(p1, p2), 0.6), SNOW_ALB, uSnowCov * 0.9), N, V, 0.3, sh, mix(0.6, 0.9, uShellS));
   vec3 gw = glowAt(w);
-  vTipLit += waveSheen(grassTip(p1, p2), wave) * gw * 0.7; vBaseLit += mix(G_BASE, grassTip(p1, p2), 0.35) * gw * 0.42;
+  vTipLit += waveSheen(grassTip(p1, p2), wave) * gw * 0.7; vBaseLit += mix(grassBase(), grassTip(p1, p2), 0.35) * gw * 0.42;
   float dist = length(p); vec3 rd = p / dist;
   vec3 hzF = textureLod(uSkyLut, skyUVv(normalize(vec3(rd.x, max(rd.y, 0.0) + 0.012, rd.z))), 0.0).rgb;
   float eF = exp(-dist * 0.001 * uFogKG), fw = wxFogF(p), aN = eF * (1.0 - fw);
@@ -1119,7 +1132,7 @@ void main(){
     float dens = (smoothstep(-0.15, 0.3, tn(w * (1.0 / 48.0) + vec2(0.83, 0.27))) * 0.85 + 0.05) * (1.0 - smoothstep(Rr * 0.75, Rr, length(rel)));
     if (h.z < dens){
       float kind = tn(w * (1.0 / 160.0) + vec2(0.05, 0.55)) * 0.55 + 0.5 + (h2.w - 0.5) * 0.3;
-      col = paletteAt(saturate(kind)) * mix(0.8, 1.1, h2.z); I = 1.4 * touchLit(w); R = 1.5;
+      col = paletteAt(saturate(kind)) * mix(0.8, 1.1, h2.z); I = mix(1.4, 0.48, uLowSaturation) * touchLit(w); R = mix(1.5, 0.62, uLowSaturation);
     }
   } else if (uMode == 1){
     vec4 h = hash42(vec2(id * 3.17 + 1.3, 7.7)), h2 = hash42(vec2(id * 1.91 + 9.1, 2.3));
@@ -1148,7 +1161,7 @@ void main(){
     float y = max(tr.y + uCamM.y - terrainH(uCamM.xz + tr.xz, 0.0), 0.0);
     col = paletteAt(fract(tr.w * 0.618 + 0.13)); I = 0.12 / (1.0 + y * y * 0.35); R = 1.4 + 0.3 * y;
   }
-  vC = max(mix(vec3(dot(col, vec3(0.2126, 0.7152, 0.0722))), col, 1.5), 0.0) * I * uGlowI;
+  vC = max(mix(vec3(dot(col, vec3(0.2126, 0.7152, 0.0722))), col, mix(1.5, 1.02, uLowSaturation)), 0.0) * I * uGlowI;
   vec2 q = cornerG(gl_VertexID); vQ = q;
   vec2 uv = (uCamM.xz + rel + q * R - uGlowP4.xy) / uGlowP4.z;
   gl_Position = I > 0.0 ? vec4(uv * 2.0, 0.0, 1.0) : vec4(2.0, 2.0, 2.0, 1.0);

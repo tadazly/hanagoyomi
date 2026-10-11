@@ -33,6 +33,7 @@ add('logoposition', 'combo', 'top-right', 'LOGO 位置', 'Logo position', { cond
 add('showclock', 'bool', true, '显示时间与天气', 'Show clock and weather');
 add('clockposition', 'combo', 'bottom-center', '时间天气位置', 'Clock and weather position', { condition: 'showclock.value == true', options: positions() });
 add('petals', 'bool', true, '花瓣', 'Petals');
+add('lowsaturation', 'bool', false, '低饱和度配色', 'Low-saturation colours');
 add('constellations', 'bool', false, '星座连线', 'Constellation lines');
 add('lensdrops', 'bool', true, '镜头雨滴', 'Lens rain drops');
 add('dof', 'slider', .6, '景深', 'Depth of field', { min: 0, max: 1, precision: 2, step: .05, fraction: true });

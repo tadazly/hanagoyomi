@@ -15,6 +15,7 @@ import { WALLPAPER_MODE, storageKey } from '../platform/environment.js';
 import { wallpaperSettings } from '../platform/wallpaper.js';
 import { createFrameGate } from '../platform/frame-gate.js';
 import { readWeatherCache, saveWeatherCache } from '../world/weather-cache.js';
+import { gradeAt } from './landscape-look.js';
 
 export function startWorld(onUpdate = () => {}) {
 
@@ -579,12 +580,12 @@ let simMs = Date.now();
 const S = {
   time: 0, speed: 1, wxSync: true, constel: false, flies: true, flowerGlow: false, bloom: true, streamDist: 'near', streamScale: false, infMem: false, bloomR: 4, wxMode: 'follow', wxType: 'cloudy', fogVisS: 1000, rainAmt: 0, snowAmt: 0, boltFreq: 0, puddle: 0, snowMax: 0, lensDrops: true, sunAz: 0, coverage: 0.58, density: 1.0, wind: 40, breeze: 0.65, petals: true,
   heightSlider: 0, dof: 0.6, sway: !reduceMotion, quality: WALLPAPER_MODE ? 'high' : coarse ? 'med' : 'high', god: !coarse, auto: WALLPAPER_MODE || !reduceMotion,
-  fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: !WALLPAPER_MODE,
+  fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: !WALLPAPER_MODE, lowSaturation: false,
   showWeather: true, showTemperature: true, showPrecipitation: false, showAirQuality: false, showClouds: false, showWind: false,
 };
 /* settings persist in this browser: everything the panel controls except the clock itself */
 const SETTINGS_KEY = storageKey('meadow.settings.v1');
-const PERSIST_KEYS = ['auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof',
+const PERSIST_KEYS = ['auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof', 'lowSaturation',
   'heightSlider', 'agl', 'speed', 'streamDist', 'wxMode', 'wxType', 'coverage', 'density', 'wind', 'breeze', 'fogVisS', 'rainAmt', 'snowAmt', 'boltFreq',
   'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind', 'interactionEnabled'];
 try {
@@ -662,25 +663,6 @@ const riseSetText = (ms) => sunEventsText(ms, LOC);
    time-of-day compensation curve instead of full physical adaptation, and grading is keyframed on sun altitude. */
 const AIRGLOW = 5e-7, GLOW = [0.55, 0.7, 1.0].map(v => v * AIRGLOW);
 const MOON_PHYS = 2.5e-6, MOON_ART = 6.0, NIGHT_KEY_MIN = 1.4, KEY_NIGHT = 0.36, KEY_TWILIGHT = 0.8;
-const GRADE_KEYS = [
-  [-14, 0.92, [0.82, 0.92, 1.15], [0.92, 0.98, 1.10], [0.015, 0.025, 0.05]],
-  [-6,  1.12, [0.85, 0.93, 1.15], [1.00, 0.97, 1.05], [0.02, 0.03, 0.055]],
-  [0,   1.20, [0.90, 0.92, 1.10], [1.15, 0.96, 0.80], [0.035, 0.025, 0.03]],
-  [6,   1.16, [0.92, 0.96, 1.08], [1.12, 1.00, 0.84], [0.035, 0.028, 0.025]],
-  [20,  1.08, [0.95, 1.00, 1.05], [1.05, 1.01, 0.92], [0.03, 0.03, 0.03]],
-];
-function gradeAt(altDeg){
-  const K = GRADE_KEYS;
-  if (altDeg <= K[0][0]) return {sat: K[0][1], sh: K[0][2], hi: K[0][3], lift: K[0][4]};
-  for (let i = 1; i < K.length; i++){
-    if (altDeg <= K[i][0]){
-      const t = (altDeg - K[i - 1][0]) / (K[i][0] - K[i - 1][0]), a = K[i - 1], b = K[i];
-      const mixv = (x, y) => x.map((v, j) => v + (y[j] - v) * t);
-      return {sat: a[1] + (b[1] - a[1]) * t, sh: mixv(a[2], b[2]), hi: mixv(a[3], b[3]), lift: mixv(a[4], b[4])};
-    }
-  }
-  const z = K[K.length - 1]; return {sat: z[1], sh: z[2], hi: z[3], lift: z[4]};
-}
 let light = null, lightKey = '', lastLightAt = 0, AST = astro(simMs), expo = NaN;
 function updateLighting(){
   AST = astro(simMs);
@@ -730,7 +712,7 @@ function updateLighting(){
   const overcast = nightF * smooth(0.2, 0.95, cov) * clamp(0.55 + 0.35 * densEff, 0.6, 1.2), dimN = 1 - 0.85 * Math.min(overcast, 1);
   light = {lightDir, lightCloud: pe(lightCloud), lightGround: pe(lightGround).map(v => v * dimN), lightCam: pe(lightCam), sunT, moonD,
     moonI: moonUp ? moonSky : 0, ms: pe(MS), ambTop: pe(ambTop), ambBottom: pe(ambBottom), skyIrr: pe(skyIrr).map(v => v * dimN), sunDisk: pe(sunDisk), moonDisk: pe(moonDisk),
-    exposure, pe: PE, night: nightF, glowF: Math.max(nightF, smooth(4, -5, AST.sunAlt / RAD)), fwd: sunWins ? 1 : (realMoon ? 0.8 : 0.3), ambOcc: 0.15 + 0.85 * nightF, cshAmt: 1, starCat: AIRGLOW * 2.4 * PE, starI: AIRGLOW * 14 * PE, grade: gradeAt(AST.sunAlt / RAD)};
+    exposure, pe: PE, night: nightF, glowF: Math.max(nightF, smooth(4, -5, AST.sunAlt / RAD)), fwd: sunWins ? 1 : (realMoon ? 0.8 : 0.3), ambOcc: 0.15 + 0.85 * nightF, cshAmt: 1, starCat: AIRGLOW * 2.4 * PE, starI: AIRGLOW * 14 * PE, grade: gradeAt(AST.sunAlt / RAD, S.lowSaturation)};
   return true;
 }
 
@@ -994,6 +976,12 @@ const heightCtl = bindRange('height', 'heightSlider', (v) => fmtAgl(aglFromSlide
 function syncHeightSlider(){ S.heightSlider = sliderFromAgl(S.agl); heightCtl.el.value = S.heightSlider; heightCtl.paint(); }
 const toggles = {auto: 'auto', god: 'god', petals: 'petals', sway: 'sway', constel: 'constel', flies: 'flies', flowerGlow: 'flowerGlow', bloom: 'bloom', streamScale: 'streamScale', infMem: 'infMem', lensDrops: 'lensDrops'};
 for (const [id, key] of Object.entries(toggles)){ const el = $(id); el.checked = S[key]; el.addEventListener('change', () => { if (key === 'auto') setAuto(el.checked); else S[key] = el.checked; }); }
+$('lowSaturation').checked = S.lowSaturation;
+$('lowSaturation').addEventListener('change', e => {
+  S.lowSaturation = e.target.checked;
+  lightKey = ''; needReset = true;
+  saveSettings();
+});
 function setInteractionEnabled(enabled){
   S.interactionEnabled = enabled;
   $('interactionEnabled').checked = enabled;
@@ -1364,6 +1352,7 @@ function frame(now){
   gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.depthMask(true);
 
   const setCloudCommon = (Pp) => {
+    set(Pp, 'uLowSaturation', S.lowSaturation ? 1 : 0);
     set(Pp, 'uCamPos', camK); set(Pp, 'uSunDir', sun); set(Pp, 'uLayer', LAYER[0], LAYER[1]);
     set(Pp, 'uCoverage', covEff); set(Pp, 'uDensity', densEff);
     set(Pp, 'uWind', -windOff[0], -windOff[1], -windOff[2]);
@@ -1494,6 +1483,7 @@ function frame(now){
   gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS); gl.depthMask(true);
 
   const setScene = (Pp) => {
+    set(Pp, 'uLowSaturation', S.lowSaturation ? 1 : 0);
     tex(Pp, 'uTerr', gl.TEXTURE_2D, terrTex); tex(Pp, 'uSkyLut', gl.TEXTURE_2D, skyTex); tex(Pp, 'uCShadow', gl.TEXTURE_2D, cshTex);
     set(Pp, 'uCamM', camM); set(Pp, 'uR', B.r); set(Pp, 'uU', B.u); set(Pp, 'uF', B.f);
     set(Pp, 'uTanS', tanX, tanY); set(Pp, 'uDepthAB', depthAB[0], depthAB[1]);
@@ -1749,11 +1739,12 @@ function frame(now){
     } else if (!S.lensDrops) LR.drops.length = 0;
     LR.lastYaw = cam.yaw;
     const Fi = P.final; use(Fi); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
+    set(Fi, 'uLowSaturation', S.lowSaturation ? 1 : 0);
     tex(Fi, 'uScene', gl.TEXTURE_2D, sceneTex); tex(Fi, 'uDepth', gl.TEXTURE_2D, depthTex);
     tex(Fi, 'uDof', gl.TEXTURE_2D, dofTex); tex(Fi, 'uBloom', gl.TEXTURE_2D, bloomOut);
     set(Fi, 'uSat', L.grade.sat); set(Fi, 'uShTint', L.grade.sh); set(Fi, 'uHiTint', L.grade.hi); set(Fi, 'uLift', L.grade.lift);
     set(Fi, 'uDrops', lensOn && LR.tex ? 1 : 0); set(Fi, 'uTimeD', simTime); if (LR.tex) tex(Fi, 'uLens', gl.TEXTURE_2D, LR.tex);
-    set(Fi, 'uDofOn', dofOn ? 1 : 0); set(Fi, 'uBloomI', 0.16 + 0.2 * L.glowF); set(Fi, 'uNight', L.night); set(Fi, 'uFrameN', frameNo % 997); set(Fi, 'uRes', W, H); setPost(Fi);
+    set(Fi, 'uDofOn', dofOn ? 1 : 0); set(Fi, 'uBloomI', S.lowSaturation ? 0.055 + 0.07 * L.glowF : 0.16 + 0.2 * L.glowF); set(Fi, 'uNight', L.night); set(Fi, 'uFrameN', frameNo % 997); set(Fi, 'uRes', W, H); setPost(Fi);
     draw();
   }
 

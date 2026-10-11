@@ -177,6 +177,7 @@ const entries = {
   'weather.incompleteError': ['Weather service returned incomplete data', '天气服务返回了不完整的数据', '気象データが不完全です'],
   'weather.invalidError': ['Weather data is outside the valid range', '天气数据超出有效范围', '気象データが有効な範囲外です'],
   'landscape.title': ['Meadow and flowers', '草原与花', '草原と花'],
+  'landscape.lowSaturation': ['Low-saturation colours', '低饱和度配色', '低彩度の配色'],
   'landscape.petals': ['Petal stream', '花瓣流', '花びらの流れ'],
   'landscape.fireflies': ['Fireflies at night', '萤火虫（夜间）', 'ホタル（夜間）'],
   'landscape.bloom': ['Flower opening animation', '花苞绽放动画', '開花アニメーション'],
