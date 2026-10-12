@@ -1,8 +1,13 @@
+import { ABOUT_PAGES } from '../content/seo.js';
+
 // 每条文案依次为英语、简体中文、日语；界面通过稳定的 key 引用。
 const entries = {
   'app.title': ['花暦 · Hanagoyomi', '花暦 · Hanagoyomi', '花暦 · Hanagoyomi'],
-  'app.description': ['A changing natural world of clouds, meadows and petals, following real places, local time and weather.', '花暦 Hanagoyomi：跟随真实地点、当地时间与天气，在云、草原和花瓣之间，走进一个不断变化的自然世界。', '実際の場所、現地の時刻と天気に合わせて移ろう、雲と草原と花びらの自然世界。'],
-  'app.socialDescription': ['Give this moment to nature. A natural world flowing with real time and weather.', '把此刻，交给自然。一个随真实时间与天气流动的自然世界。', 'このひとときを、自然に。実際の時刻と天気に合わせて移ろう自然世界。'],
+  'app.pageTitle': ['en', 'zh', 'ja'].map(language => ABOUT_PAGES[language].title),
+  'app.description': ['en', 'zh', 'ja'].map(language => ABOUT_PAGES[language].homeDescription),
+  'app.imageAlt': ['en', 'zh', 'ja'].map(language => ABOUT_PAGES[language].imageAlt),
+  'about.open': ['About Hanagoyomi', '关于花暦', '花暦について'],
+  'app.socialDescription': ['en', 'zh', 'ja'].map(language => ABOUT_PAGES[language].homeDescription),
   'app.canvas': ['Live meadow, flowers and volumetric clouds; move the mouse to steer in auto flight, double-click left to dash, double-click right to turn, triple-click right to pause or resume', '实时渲染的草原、花和体积云；自动飞行时移动鼠标操纵，左键双击冲刺，右键双击掉头，右键三击暂停或继续', '草原、花、立体的な雲をリアルタイム描画。自動飛行中はマウスで操縦。左ダブルクリックでダッシュ、右ダブルクリックで方向転換、右トリプルクリックで停止・再開'],
   'toolbar.label': ['World tools', '世界工具', '世界のツール'],
   'workshop.open': ['View Hanagoyomi on Steam Workshop', '在 Steam 创意工坊查看花暦', 'Steam ワークショップで花暦を見る'],
@@ -216,9 +221,9 @@ const entries = {
   'help.hideHint': ["Don't show again", '不再显示', '今後は表示しない'],
   'help.restoreHint': ['You can show the controls hint again in World settings → Components.', '可在「世界设置 → 组件」中重新开启操作提示。', '「世界の設定 → 表示」で操作ヒントを再び表示できます。'],
   'help.title': ['Roam Hanagoyomi', '漫游花暦', '花暦を散策'],
-  'help.about': ['The sky follows the observation location’s real time. Weather updates every 15 minutes. The meadow is a procedurally generated imaginary landscape.', '天空跟随观测地点的真实时间，天气每 15 分钟更新。草原是一片程序生成的想象之地。', '空は観測地点の実際の時刻に合わせて変わり、天気は 15 分ごとに更新されます。草原はプログラムで生成された想像の風景です。'],
+  'help.about': ['en', 'zh', 'ja'].map(language => ABOUT_PAGES[language].homeIntro),
   'help.mouseMove': ['Move the mouse (auto flight)', '移动鼠标（自动飞行时）', 'マウスを動かす（自動飛行中）'],
-  'help.mouseSteer': ['Steer left / right, climb / dive; centre to neutral', '左右转向，上下升降；画面中心回中', '左右に旋回、上下に上昇・下降。画面中央で中立'],
+  'help.mouseSteer': ['Adjust view & flight', '调整镜头与飞行方向', '視点と進路を調整'],
   'help.mouseDash': ['Double-click left', '双击左键', '左ダブルクリック'],
   'help.mouseTurn': ['Double-click right', '双击右键', '右ダブルクリック'],
   'help.turn': ['Turn around', '掉头', '方向転換'],

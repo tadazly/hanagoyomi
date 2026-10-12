@@ -1,5 +1,6 @@
 import { MESSAGES } from './messages.js';
-import { storageKey } from '../platform/environment.js';
+import { storageKey, WALLPAPER_MODE } from '../platform/environment.js';
+import { aboutPath, SITE_URL } from '../content/seo.js';
 
 export const LANGUAGE_KEY = storageKey('hanagoyomi.language.v1');
 export const LOCALES = { en: 'en-US', zh: 'zh-CN', ja: 'ja-JP' };
@@ -69,6 +70,10 @@ export function translateDocument(root = globalThis.document) {
   }
   const select = root.getElementById('languageSelect');
   if (select) select.value = getLanguagePreference();
+  root.querySelectorAll('[data-about-link]').forEach(link => {
+    // 壁纸包没有静态介绍页，链接始终打开线上页面。
+    link.setAttribute('href', `${WALLPAPER_MODE ? SITE_URL : ''}${aboutPath(currentLanguage)}`);
+  });
 }
 
 export function onLanguageChange(listener) {

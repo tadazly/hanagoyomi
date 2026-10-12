@@ -6,7 +6,7 @@
 
 1. 使用 Node.js 22.12+，运行 `npm ci` 和 `npm run dev`。
 2. 阅读 [技术参考](docs/TECHNICAL.md) 与 [设计说明](docs/DESIGN.md)。
-3. 运行 `npm test` 和 `npm run build`。
+3. 运行 `npm test`、`npm run build`、`npm run check:seo` 和 `npm run build:wallpaper`。
 4. 在真实浏览器中检查首屏、控制台、相关交互和移动布局。涉及渲染的改动需提供实际截图，注明观测时间、天气模式与画质。
 5. 提交 PR，说明用户可见变化、验证证据和未验证环境。
 

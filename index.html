@@ -4,22 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#65745b">
-  <meta name="description" content="A changing natural world of clouds, meadows and petals, following real places, local time and weather." data-i18n-content="app.description">
+  <meta name="description" content="Hanagoyomi is a free interactive nature experience with flower meadows, volumetric clouds and starry skies, following local time and live weather from day to night." data-i18n-content="app.description">
   <meta property="og:title" content="花暦 · Hanagoyomi" data-i18n-content="app.title">
-  <meta property="og:description" content="Give this moment to nature. A natural world flowing with real time and weather." data-i18n-content="app.socialDescription">
+  <meta property="og:description" content="Hanagoyomi is a free interactive nature experience with flower meadows, volumetric clouds and starry skies, following local time and live weather from day to night." data-i18n-content="app.socialDescription">
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="花暦 · Hanagoyomi">
   <meta property="og:url" content="https://hanagoyomi.luyilabs.com/">
   <meta property="og:image" content="https://hanagoyomi.luyilabs.com/social-preview.jpg">
+  <meta property="og:image:width" content="1586">
+  <meta property="og:image:height" content="992">
+  <meta property="og:image:alt" content="Hanagoyomi’s meadow, flowers and clouds under the evening sky" data-i18n-content="app.imageAlt">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="花暦 · Hanagoyomi" data-i18n-content="app.title">
+  <meta name="twitter:description" content="Hanagoyomi is a free interactive nature experience with flower meadows, volumetric clouds and starry skies, following local time and live weather from day to night." data-i18n-content="app.socialDescription">
+  <meta name="twitter:image" content="https://hanagoyomi.luyilabs.com/social-preview.jpg">
+  <meta name="twitter:image:alt" content="Hanagoyomi’s meadow, flowers and clouds under the evening sky" data-i18n-content="app.imageAlt">
   <link rel="canonical" href="https://hanagoyomi.luyilabs.com/">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <title data-i18n="app.title">花暦 · Hanagoyomi</title>
+  <title data-i18n="app.pageTitle">Hanagoyomi — Flower Meadows, Live Weather and Starry Skies</title>
 </head>
 <body>
   <canvas id="view" tabindex="-1" aria-label="Live meadow, flowers and volumetric clouds; move the mouse to steer in auto flight, double-click left to dash, double-click right to turn, triple-click right to pause or resume" data-i18n-aria-label="app.canvas"></canvas>
   <div id="componentBounds" aria-hidden="true"></div>
   <header class="masthead chrome ui-component" data-ui-component="logo">
-    <div class="brand"><span data-icon="flower" class="brand-mark" aria-hidden="true"></span><div><h1 translate="no">花暦</h1><span class="wordmark">HANAGOYOMI</span></div></div>
+    <div class="brand"><span data-icon="flower" class="brand-mark" aria-hidden="true"></span><div><h1 translate="no">花暦</h1><a class="wordmark about-link" href="/about/" data-about-link aria-label="About Hanagoyomi" data-i18n-aria-label="about.open">HANAGOYOMI</a></div></div>
   </header>
   <nav class="toolbar chrome" aria-label="World tools" data-i18n-aria-label="toolbar.label">
     <button class="live-status" id="liveStatus" type="button" aria-expanded="false" aria-haspopup="dialog" aria-controls="timePopover" title="Time settings" data-i18n-title="time.settings"><i aria-hidden="true"></i><span id="liveLabel" data-i18n="time.live">Following now</span><span class="live-status-arrow" data-icon="chevron" aria-hidden="true"></span></button>
@@ -191,14 +199,19 @@
   <div class="toast glass" id="toast" role="status" hidden></div>
   <dialog id="helpDialog" class="help-dialog glass" aria-labelledby="helpTitle">
     <div class="panel-heading"><h2 id="helpTitle" data-i18n="help.title">Roam Hanagoyomi</h2><button class="plain-icon" id="helpClose" aria-label="Close controls" data-i18n-aria-label="help.close"><span data-icon="close"></span></button></div>
-    <p data-i18n="help.about">The sky follows the observation location’s real time. Weather updates every 15 minutes. The meadow is a procedurally generated imaginary landscape.</p>
-    <dl class="help-controls"><dt data-i18n="help.mouseMove">Move the mouse (auto flight)</dt><dd data-i18n="help.mouseSteer">Steer left / right, climb / dive; centre to neutral</dd><dt data-i18n="help.mouseDash">Double-click left</dt><dd data-i18n="hint.dash">Dash</dd><dt data-i18n="help.mouseTurn">Double-click right</dt><dd data-i18n="help.turn">Turn around</dd><dt data-i18n="help.mousePause">Triple-click right</dt><dd data-i18n="help.pauseFlight">Pause / Resume flight</dd><dt data-i18n="help.drag">Drag left (flight paused)</dt><dd data-i18n="help.look">Look around</dd><dt data-i18n="help.moveKeys">W A S D / Arrow keys</dt><dd data-i18n="help.move">Move in any direction</dd><dt>Q / E</dt><dd data-i18n="help.vertical">Descend / Ascend</dd><dt data-i18n="help.boostKeys">Shift / Space</dt><dd data-i18n="help.boost">Accelerate / Dash</dd><dt data-i18n="help.scroll">Scroll wheel</dt><dd data-i18n="help.fov">Adjust field of view</dd><dt>F / H / Esc</dt><dd data-i18n="help.modes">Fullscreen / Immersive / Return</dd></dl>
+    <div class="help-body">
+    <p data-i18n="help.about">Explore flower-filled meadows beneath volumetric clouds, watch daylight give way to sunset, and look up at the stars after dark. The sky follows the observation location’s local time and live weather, with weather updates every 15 minutes. The meadow is a procedurally generated imaginary landscape.</p>
+    <p><a href="/about/" data-about-link data-i18n="about.open">About Hanagoyomi</a></p>
+    <dl class="help-controls"><dt data-i18n="help.mouseMove">Move the mouse (auto flight)</dt><dd data-i18n="help.mouseSteer">Adjust view &amp; flight</dd><dt data-i18n="help.mouseDash">Double-click left</dt><dd data-i18n="hint.dash">Dash</dd><dt data-i18n="help.mouseTurn">Double-click right</dt><dd data-i18n="help.turn">Turn around</dd><dt data-i18n="help.mousePause">Triple-click right</dt><dd data-i18n="help.pauseFlight">Pause / Resume flight</dd><dt data-i18n="help.drag">Drag left (flight paused)</dt><dd data-i18n="help.look">Look around</dd><dt data-i18n="help.moveKeys">W A S D / Arrow keys</dt><dd data-i18n="help.move">Move in any direction</dd><dt>Q / E</dt><dd data-i18n="help.vertical">Descend / Ascend</dd><dt data-i18n="help.boostKeys">Shift / Space</dt><dd data-i18n="help.boost">Accelerate / Dash</dd><dt data-i18n="help.scroll">Scroll wheel</dt><dd data-i18n="help.fov">Adjust field of view</dd><dt>F / H / Esc</dt><dd data-i18n="help.modes">Fullscreen / Immersive / Return</dd></dl>
     <p class="touch-help" data-i18n="help.touch">Touch: swipe with one finger to steer the petals. Double-tap with one finger to dash, two to turn around, or three to pause or resume flight.</p>
     <p class="service-note" data-i18n="help.privacy">Location and settings stay in this browser. When you use geolocation, coordinates are sent to Open-Meteo to request weather.</p>
+    </div>
+    <div class="help-footer">
     <div class="help-preference"><label><input id="hideHint" type="checkbox"><span data-i18n="help.hideHint">Don't show again</span></label><p class="service-note" data-i18n="help.restoreHint">You can show the controls hint again in World settings → Components.</p></div>
     <a class="project-link" href="https://github.com/tadazly/hanagoyomi" target="_blank" rel="noopener noreferrer"><span data-i18n="github.explore">Explore Hanagoyomi on GitHub</span><span data-icon="arrow-up-right"></span></a>
+    </div>
   </dialog>
-  <noscript><p class="noscript" data-i18n="error.javascript">Hanagoyomi needs JavaScript to render its live natural scene. Enable JavaScript in your browser.</p></noscript>
+  <noscript><style>.chrome,.loader,.error,#view{display:none}.noscript{position:relative;inset:auto;max-width:720px;margin:12vh auto;padding:24px;color:#fff}html,body{overflow:auto}</style><div class="noscript"><h2>花暦 · Hanagoyomi</h2><p>A free, open-source nature experience with flower-filled meadows, volumetric clouds and starry skies. Day and night follow local time, while the scene responds to live weather. Enable JavaScript and WebGL2 to explore.</p><p><a href="/about/" lang="en">About Hanagoyomi</a> · <a href="/zh/about/" lang="zh-Hans">关于花暦</a> · <a href="/ja/about/" lang="ja">花暦について</a></p></div></noscript>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
