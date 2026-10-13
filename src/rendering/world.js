@@ -16,6 +16,7 @@ import { wallpaperSettings } from '../platform/wallpaper.js';
 import { createFrameGate } from '../platform/frame-gate.js';
 import { readWeatherCache, saveWeatherCache } from '../world/weather-cache.js';
 import { gradeAt } from './landscape-look.js';
+import { weatherFogDensity } from './weather-fog.js';
 
 export function startWorld(onUpdate = () => {}) {
 
@@ -309,7 +310,7 @@ function updateWeather(dt){
   if (WP.snow > 0.05 && WXS.snowCov < WP.snowCov) WXS.snowCov = Math.min(WP.snowCov, WXS.snowCov + dts / 45 * (0.3 + WP.snow));
   else if (WP.snow <= 0.05) WXS.snowCov = Math.max(0, WXS.snowCov - dts / (sunUp ? 500 : 1500));
   const precip = WP.rain + WP.snow;
-  WXS.fogDens = WP.vis < 29000 ? 3.912 / WP.vis : 0;
+  WXS.fogDens = weatherFogDensity(WP.vis);
   WXS.fogH = precip < 0.08 ? (WP.vis < 1000 ? 55 : 120) : 260;
   WXS.fog = clamp(1 - WP.vis / 3000, 0, 1);
   covEff = WP.cov; densEff = WP.dens;
@@ -1333,7 +1334,8 @@ function frame(now){
   const flashAmb = [0.85, 0.9, 1.0].map(v => v * flash * 9 * (1 - 0.5 * Math.min(1, fogDens * 400)));
   const fogColR = L.skyIrr.map((v, i) => v / Math.PI * 1.15 + flashAmb[i] / Math.PI * 0.6), fogLum = lum(fogColR);
   const fogCol = fogColR.map(v => fogLum + (v - fogLum) * 0.4);
-  const fogW = [fogDens, WXS.fogH, Math.max(aglReal, 0.5), 0];
+  const fogAlt = Math.max(aglReal, 0.5);
+  const fogW = [fogDens, WXS.fogH, fogAlt, Math.exp(-fogAlt / WXS.fogH)];
   const flashTop = [bolt.x - camM[0], LAYER[0] * 1000 + 300 - camM[1], bolt.z - camM[2]], ftl = Math.hypot(...flashTop) || 1;
   const tanY = Math.tan(view.fov * Math.PI / 360), tanX = tanY * aspect;
   /* focus pulls to the petal stream: it is what the shot is about */

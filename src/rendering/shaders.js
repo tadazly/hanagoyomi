@@ -1,4 +1,5 @@
 import { TERRAIN_GLSL } from './terrain.js';
+import { WEATHER_FOG_GLSL } from './weather-fog.js';
 const VS_FULL = `#version 300 es
 out vec2 vUv;
 void main(){ vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)); vUv = p; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
@@ -286,7 +287,7 @@ vec3 toDisplay(vec3 c){
 }`;
 
 /* ---------- scene helpers (vertex + fragment) ---------- */
-const SCENE = TERRAIN_GLSL + `
+const SCENE = TERRAIN_GLSL + WEATHER_FOG_GLSL + `
 uniform vec3 uCamM;
 uniform vec3 uR, uU, uF; uniform vec2 uTanS; uniform vec2 uDepthAB;
 uniform float uTime; uniform vec2 uWindDirG; uniform float uWindStr;
@@ -330,7 +331,7 @@ float bloomOpen(vec2 w){
   return 1.0 + 2.70158 * y * y * y + 1.70158 * y * y;   /* easeOutBack: 0 -> 1 with a soft overshoot */
 }
 /* weather: wetness/puddles, lightning fill light, exponential height fog */
-uniform float uWet, uRainNow, uSnowCov; uniform vec3 uFlashAmb; uniform vec4 uFogW; uniform vec3 uFogCol;
+uniform float uWet, uRainNow, uSnowCov; uniform vec3 uFlashAmb;
 uniform sampler2D uPud; uniform vec3 uPudP; uniform float uPudTh;
 const vec3 SNOW_ALB = vec3(0.86, 0.89, 0.93);
 /* where rain pools (cf. Lagarde 2012): the dips of the terrain's own small octaves, a regional wet/dry pattern,
@@ -353,13 +354,6 @@ float puddleMask(vec2 w){
   float th = puddleTh();
   return smoothstep(th, th + 0.14, puddleM(w)) * (1.0 - uSnowCov);
 }
-float wxFogF(vec3 rel){
-  if (uFogW.x <= 0.0) return 0.0;
-  float d = length(rel), k = 1.0 / uFogW.y, dy = rel.y;
-  float hf = exp(-k * uFogW.z) * (abs(dy * k) > 1e-3 ? (1.0 - exp(-k * dy)) / (k * dy) : 1.0);
-  return 1.0 - exp(-uFogW.x * d * hf);
-}
-vec3 wxFog(vec3 c, vec3 rel){ return mix(c, uFogCol, wxFogF(rel)); }
 vec4 hash42(vec2 p){ vec4 p4 = fract(vec4(p.xyxy) * vec4(0.1031, 0.1030, 0.0973, 0.1099)); p4 += dot(p4, p4.wzxy + 33.33); return fract((p4.xxyz + p4.yzzw) * p4.zywx); }
 vec3 grassBase(){ return mix(vec3(0.05, 0.13, 0.02), vec3(0.034, 0.075, 0.039), uLowSaturation); }
 vec3 grassTip(float p1, float p2){
@@ -405,7 +399,7 @@ vec3 applyFog(vec3 c, vec3 rel){
   float d = length(rel); vec3 rd = rel / d;
   vec3 haze = skyLookup(normalize(vec3(rd.x, max(rd.y, 0.0) + 0.012, rd.z)));
   float e = exp(-d * 0.001 * uFogKG);
-  return wxFog(c * e + haze * (1.0 - e), rel);
+  return wxFog(c * e + haze * (1.0 - e), rel, haze);
 }
 /* raindrop rings on puddles: expanding ripples in two jittered cell layers */
 vec2 rippleN(vec2 w, float t){
@@ -720,12 +714,12 @@ void main(){
   o = vec4(toDisplay(applyFog(c, vRel)), a);
 }`;
 
-const SKYPASS_FS = HEAD + COMMON + DISPLAY + `
+const SKYPASS_FS = HEAD + COMMON + DISPLAY + WEATHER_FOG_GLSL + `
 uniform sampler2D uCloud; uniform vec2 uCloudSize;
 uniform vec3 uRight, uUp, uFwd; uniform vec2 uTan;
 uniform vec3 uSunTrue, uMoonDir, uSunDisk, uMoonDisk;
 uniform vec3 uPole, uSouthEq, uWestEq; uniform float uSidereal, uStarI, uPixAngS, uTimeS;
-uniform vec4 uFogW; uniform vec3 uFogCol, uFlashSky, uFlashDir;
+uniform vec3 uFlashSky, uFlashDir;
 out vec4 o;
 vec4 catmullRom(sampler2D tex, vec2 uv, vec2 size){
   vec2 sp = uv * size; vec2 t1 = floor(sp - 0.5) + 0.5; vec2 fr = sp - t1;
@@ -790,10 +784,11 @@ vec3 moonDiskCol(vec3 rd){
 }
 void main(){
   vec3 rd = normalize(uFwd + (vUv.x * 2.0 - 1.0) * uTan.x * uRight + (vUv.y * 2.0 - 1.0) * uTan.y * uUp);
-  vec3 col;
-  if (rd.y < 0.0) col = skyLookup(normalize(vec3(rd.x, 0.012, rd.z)));
-  else {
-    col = skyLookup(rd) + starField(rd) + moonDiskCol(rd);
+  vec2 skyCoord = skyUV(rd.y < 0.0 ? normalize(vec3(rd.x, 0.012, rd.z)) : rd);
+  vec3 baseSky = textureLod(uSkyLut, skyCoord, 0.0).rgb;
+  vec3 col = baseSky;
+  if (rd.y >= 0.0){
+    col = baseSky + starField(rd) + moonDiskCol(rd);
     float cs = dot(rd, uSunTrue), r = 0.0095, cr = cos(r);
     if (cs > cr - 2e-5){
       float x = saturate(acos(min(cs, 1.0)) / r);
@@ -803,7 +798,23 @@ void main(){
   vec4 cl = catmullRom(uCloud, vUv, uCloudSize);
   col = col * saturate(cl.a) + max(cl.rgb, vec3(0.0));
   col += uFlashSky * (0.35 + 0.65 * exp((dot(rd, uFlashDir) - 1.0) * 6.0));
-  if (uFogW.x > 0.0){ float k = 1.0 / uFogW.y; col = mix(col, uFogCol, 1.0 - exp(-uFogW.x * exp(-k * uFogW.z) / (k * max(rd.y, 0.002)))); }
+  if (uFogW.x > 0.0){
+    // Dense fog is fully diffuse; its directional sample would be discarded.
+    vec3 haze = uFogCol;
+    if (uFogW.x < 0.0013){
+      // Below the horizon this is exactly the existing sky direction. Above
+      // it, only elevation changes: reuse azimuth rather than another atan.
+      haze = baseSky;
+      if (rd.y >= 0.0){
+        float el = asin(clamp(normalize(vec3(rd.x, rd.y + 0.012, rd.z)).y, -1.0, 1.0));
+        vec2 hazeCoord = vec2(skyCoord.x, 0.5 + 0.5 * sign(el) * sqrt(abs(el) / (PI * 0.5)));
+        haze = textureLod(uSkyLut, hazeCoord, 0.0).rgb;
+      }
+    }
+    // Match the terrain's 60 km extent instead of an infinite horizontal ray.
+    // The finite integral stays continuous on both sides of the horizon.
+    col = wxFog(col, rd * 60000.0, haze);
+  }
   o = vec4(toDisplay(col), 1.0);
 }`;
 const GOD_FS = HEAD + `
@@ -994,7 +1005,7 @@ void main(){
   float dist = length(p); vec3 rd = p / dist;
   vec3 hzF = textureLod(uSkyLut, skyUVv(normalize(vec3(rd.x, max(rd.y, 0.0) + 0.012, rd.z))), 0.0).rgb;
   float eF = exp(-dist * 0.001 * uFogKG), fw = wxFogF(p), aN = eF * (1.0 - fw);
-  vFog = vec4((hzF * (1.0 - eF) * (1.0 - fw) + uFogCol * fw) / max(1.0 - aN, 1e-4), aN);
+  vFog = vec4((hzF * (1.0 - eF) * (1.0 - fw) + wxFogRadiance(hzF) * fw) / max(1.0 - aN, 1e-4), aN);
   vOff = uWindDirG * uWindStr * (0.1 + 1.25 * wave) * 0.45 * uShellS * uShellS;
   vRel = p; vW = w;
   gl_Position = project(p);
