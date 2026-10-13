@@ -20,9 +20,9 @@
 
 </div>
 
-<a href="https://hanagoyomi.luyilabs.com/"><img src="docs/images/hanagoyomi-desktop.jpg" alt="花暦实际运行截图：暮色下的草原与世界设置面板" width="100%"></a>
+<a href="https://hanagoyomi.luyilabs.com/"><img src="docs/images/hanagoyomi-desktop-zh-CN.jpg" alt="花暦实际运行截图：暮色下的草原与世界设置面板" width="100%"></a>
 
-> 上图为浏览器中的实际 WebGL2 渲染。草原与花海由程序生成，天空随所选地点的天文位置和当前天气变化；地形并非该城市的地理复刻。
+> 截图为中文界面下的实际 WebGL2 渲染，通过应用内的时间与天气设置展示暮色、白昼和夜晚。草原与花海由程序生成，地形并非所选城市的地理复刻。
 
 ## 一片会变化的自然
 
@@ -37,15 +37,15 @@
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/hanagoyomi-day.jpg" alt="白昼草原实际截图" width="100%"></td>
-    <td width="50%"><img src="docs/images/hanagoyomi-night.jpg" alt="夜间星空实际截图" width="100%"></td>
+    <td width="50%"><img src="docs/images/hanagoyomi-day-zh-CN.jpg" alt="白昼草原实际截图" width="100%"></td>
+    <td width="50%"><img src="docs/images/hanagoyomi-night-zh-CN.jpg" alt="夜间星空实际截图" width="100%"></td>
   </tr>
   <tr><td align="center">白昼 · 风与花瓣</td><td align="center">夜晚 · 星光与萤火虫</td></tr>
 </table>
 
 <details>
 <summary>触屏上的花暦</summary>
-<p align="center"><img src="docs/images/hanagoyomi-mobile.jpg" alt="393 像素宽移动视口下的花暦实际界面" width="280"></p>
+<p align="center"><img src="docs/images/hanagoyomi-mobile-zh-CN.jpg" alt="393 像素宽移动视口下的花暦实际界面" width="280"></p>
 初次访问时，移动端默认收起设置，点右上角调节按钮展开底部面板。此图为浏览器移动视口仿真。
 </details>
 

@@ -22,7 +22,7 @@ Step into a changing natural world of clouds, meadows and petals, following real
 
 <a href="https://hanagoyomi.luyilabs.com/"><img src="docs/images/hanagoyomi-desktop.jpg" alt="Actual WebGL2 rendering of the meadow at dusk with the world settings panel" width="100%"></a>
 
-> The image shows the actual browser rendering. The meadow and flowers are procedural; the sky follows the selected location's astronomical position and current weather. The terrain does not reproduce that city's geography. Screenshots may show the Chinese interface; English and Japanese are also available.
+> These screenshots show actual WebGL2 rendering with the English interface, using the app's time and weather controls to demonstrate dusk, day and night. The meadow and flowers are procedural; the terrain does not reproduce the selected city's geography.
 
 ## A world that changes
 
