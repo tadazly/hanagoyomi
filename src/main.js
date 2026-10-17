@@ -13,8 +13,8 @@ initI18n();
 const shell = initShell();
 try {
   world = startWorld(updateObservation);
-  attachWallpaper(world, shell);
   initGallery(world, shell);
+  attachWallpaper(world, shell);
 } catch (error) {
   console.error('Hanagoyomi 初始化失败', error);
   setMessage(document.getElementById('errorText'), 'error.initialization');

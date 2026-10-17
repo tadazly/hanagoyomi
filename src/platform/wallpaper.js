@@ -18,6 +18,7 @@ export function attachWallpaper(world, shell) {
 export function connectWallpaperHost(world, shell, { host, document, storage }) {
   const snapshot = createHostPropertySnapshot(storage, HOST_PROPERTIES_KEY);
   let firstProperties = true;
+  let sceneImportLink;
   let vignetteNeedsBaseline = world.hasRestoredSettings && snapshot.get('vignette') === undefined;
   const resizeScale = value => {
     const scale = Math.max(.5, Math.min(1, value));
@@ -36,14 +37,23 @@ export function connectWallpaperHost(world, shell, { host, document, storage }) 
     if (element) { element.checked = true; element.dispatchEvent(new Event('change', { bubbles: true })); }
   };
   const properties = incoming => {
+    // 原生输入只传递待预览链接，不属于已应用的世界设置或宿主快照。
+    const { sceneimportlink, ...settings } = incoming;
+    if (typeof sceneimportlink?.value === 'string' && sceneimportlink.value !== sceneImportLink) {
+      sceneImportLink = sceneimportlink.value;
+      const link = sceneImportLink;
+      // 首发可在画廊初始化前到达；本轮同步初始化结束后再交给 UI 校验和确认。
+      queueMicrotask(() => document.dispatchEvent?.(new CustomEvent('wallpaperscenelink', { detail: { link } })));
+    }
+    if (!Object.keys(settings).length) return;
     // 升级前已有世界设置、却没有新版宿主快照时，无法判断启动值是否是旧默认。
     // 首次仅恢复运行参数并建立比较基线，优先保护用户已保存的世界。
     const migrating = firstProperties && world.hasRestoredSettings && !snapshot.restored;
     const changes = migrating
-      ? snapshot.changed({ renderscale: incoming.renderscale })
-      : snapshot.changed(incoming, firstProperties && !world.hasRestoredSettings);
+      ? snapshot.changed({ renderscale: settings.renderscale })
+      : snapshot.changed(settings, firstProperties && !world.hasRestoredSettings);
     // 旧宿主快照没有新增的暗角属性；首次仅记录默认值，不能覆盖本机已保存的关闭状态。
-    if (vignetteNeedsBaseline && typeof incoming.vignette?.value === 'boolean') {
+    if (vignetteNeedsBaseline && typeof settings.vignette?.value === 'boolean') {
       delete changes.vignette; vignetteNeedsBaseline = false;
     }
     firstProperties = false;
@@ -83,7 +93,7 @@ export function connectWallpaperHost(world, shell, { host, document, storage }) 
       document.querySelector(`#wxTypes [data-wx="${preset}"]`)?.click();
     }
     world.save();
-    snapshot.remember(incoming);
+    snapshot.remember(settings);
   };
   const general = values => {
     if (Number.isFinite(values.fps) && values.fps >= 0) wallpaperSettings.fps = Math.min(240, values.fps);

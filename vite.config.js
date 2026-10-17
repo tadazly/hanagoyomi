@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { ABOUT_PAGES, renderAboutPage, renderSitemap, websiteSchema } from './src/content/seo.js';
 const version = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
 
 export default defineConfig({
+  resolve: { alias: { '#scene-qr': fileURLToPath(new URL('./src/platform/scene-qr.js', import.meta.url)) } },
   plugins: [{
     name: 'hanagoyomi-release-metadata',
     generateBundle() {

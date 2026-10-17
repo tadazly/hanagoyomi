@@ -105,6 +105,8 @@ Run `npm run build:wallpaper` and import `dist-wallpaper/index.html` into Wallpa
 
 Open [`?wallpaper=1`](https://hanagoyomi.luyilabs.com/?wallpaper=1) to preview the same wallpaper experience in a browser or add that URL to Plash on Mac. Enable Plash’s Browsing Mode to change settings. Preferences are saved in the current host and restored on reload.
 
+To import a shared scene in Wallpaper Engine, select Hanagoyomi in its main window and paste the full link into the native **Import scene link** property (`sceneimportlink`). Return to the desktop and click **Preview**. A pasted link stays pending until confirmed; it never applies or saves a collection item automatically. Browsers and Plash can open the share URL directly, retaining `?wallpaper=1` for the wallpaper layout. Local world and interface preferences remain separate in each host.
+
 ## Interface language
 
 The interface supports Simplified Chinese, Japanese and English. On first load, language selection follows this order:

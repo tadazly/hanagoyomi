@@ -261,7 +261,8 @@ WXS.from = Object.assign({}, WP); WXS.to = Object.assign({}, WP);
 let covEff = WP.cov, densEff = WP.dens, wxClock = 0;   /* weather runs on its own clock: real time, sped up by the time-lapse, never paused */
 function wxSetTarget(type, params, blendSec){ WXS.type = type; WXS.from = Object.assign({}, WP); WXS.to = params; WXS.t0 = wxClock; WXS.prog = 0; WXS.dur = Math.max(0.5, blendSec) * 1000; lightKey = ''; }
 function wxCold(){
-  const m = new Date(simMs + cityOffset(simMs)).getUTCMonth() + 1, al = Math.abs(LOC.lat), north = LOC.lat >= 0;
+  const location = renderLocation();
+  const m = new Date(simMs + cityOffset(simMs)).getUTCMonth() + 1, al = Math.abs(location.lat), north = location.lat >= 0;
   const winter = north ? (m === 12 || m <= 2) : (m >= 6 && m <= 8), shoulder = north ? (m === 11 || m === 3) : (m === 5 || m === 9);
   return al > 25 && (winter || (shoulder && al > 40));
 }
@@ -681,18 +682,21 @@ cam.y = groundH(S.x, S.z) + S.agl;
 /* ---------- location and the city's own clock ---------- */
 const RAD = Math.PI / 180;
 let LOC = getSavedLocation() || {name: '东京', lat: 35.6762, lon: 139.6503, tz: 'Asia/Tokyo'};
-const cityOffset = (ms) => timezoneOffset(LOC.tz, ms);
-const cityHours = (ms) => zonedHours(LOC.tz, ms);
-const cityDayStart = (ms) => zonedDayStart(LOC.tz, ms);
+let sceneSkyLocation = null;
+const renderLocation = () => sceneSkyLocation || LOC;
+const skyLocation = () => { const { lat, lon, tz } = renderLocation(); return { lat, lon, tz }; };
+const cityOffset = (ms) => timezoneOffset(renderLocation().tz, ms);
+const cityHours = (ms) => zonedHours(renderLocation().tz, ms);
+const cityDayStart = (ms) => zonedDayStart(renderLocation().tz, ms);
 S.time = cityHours(simMs);
 
 /* ---------- sun and moon from latitude, longitude and UTC (low-precision almanac, as in SunCalc / Astronomical Almanac) ---------- */
-const astro = (ms) => getAstronomy(ms, LOC, S.sunAz);
+const astro = (ms) => getAstronomy(ms, renderLocation(), S.sunAz);
 const azElDir = (az, el) => {
   const a = az + S.sunAz * RAD;
   return [Math.cos(el) * Math.sin(a), Math.sin(el), Math.cos(el) * Math.cos(a)];
 };
-const riseSetText = (ms) => sunEventsText(ms, LOC);
+const riseSetText = (ms) => sunEventsText(ms, renderLocation());
 
 /* ---------- lighting: physically based where it matters, art-directed where games always are ----------
    Night is lit by an over-bright moon (or a soft night key light when the moon is down), exposure follows a
@@ -702,7 +706,7 @@ const MOON_PHYS = 2.5e-6, MOON_ART = 6.0, NIGHT_KEY_MIN = 1.4, KEY_NIGHT = 0.36,
 let light = null, lightKey = '', lastLightAt = 0, AST = astro(simMs), expo = NaN;
 function updateLighting(){
   AST = astro(simMs);
-  if (light && SPEEDS[S.speed | 0] > 1 && performance.now() - lastLightAt < 40) return false;
+  if (light && lightKey && SPEEDS[S.speed | 0] > 1 && performance.now() - lastLightAt < 40) return false;
   const sunT = AST.sun, moonD = AST.moon;
   const key = sunT.map(v => v.toFixed(3)).join(',') + moonD.map(v => v.toFixed(3)).join(',') + '|' + covEff.toFixed(2) + '|' + densEff.toFixed(2) + '|' + Math.round(cam.y / 50);
   if (key === lightKey) return false;
@@ -925,13 +929,13 @@ function bindRange(id, key, fmt, onChange){
   const control = { el, paint, key }; rangeControls.push(control); return control;
 }
 const publishTimeControls = () => updateTimeControls({
-  hours: S.time, speedIndex: sceneFreeze.time ? 0 : S.speed, loc: LOC, sun: getSunEvents(simMs, LOC), phase: phaseIndex(astro(simMs).phase),
+  hours: S.time, speedIndex: sceneFreeze.time ? 0 : S.speed, loc: renderLocation(), sun: getSunEvents(simMs, renderLocation()), phase: phaseIndex(astro(simMs).phase),
 });
 bindTimeActions({
   time(value) {
     sceneFreeze.time = false;
     S.time = value; followNow = false;
-    simMs = localTimeToUTC(LOC.tz, simMs, S.time); expo = NaN;
+    simMs = localTimeToUTC(renderLocation().tz, simMs, S.time); expo = NaN;
     publishTimeControls();
   },
   speed(value) {
@@ -940,10 +944,12 @@ bindTimeActions({
     publishTimeControls();
   },
   sync() {
+    if (preview) cancelPreview();
+    sceneSkyLocation = null;
     sceneFreeze.time = false;
     simMs = Date.now(); S.time = cityHours(simMs);
-    followNow = true; expo = NaN; S.speed = 1;
-    publishTimeControls();
+    followNow = true; expo = NaN; S.speed = 1; lightKey = ''; skyKey = '';
+    publishTimeControls(); saveSettings();
   },
 });
 publishTimeControls();
@@ -1022,6 +1028,12 @@ const heightCtl = bindRange('height', 'heightSlider', (v) => fmtAgl(aglFromSlide
   const na = aglFromSlider(S.heightSlider);
   if (Math.abs(na - S.agl) > 300) needReset = true;
   S.agl = na;
+  if (preview || (!S.interactionEnabled && !S.auto)) {
+    // 禁用的是手动操纵；明确设置仍需同步真实相机并使固定视角缓存失效。
+    cam.y = groundH(S.x, S.z) + na;
+    cam.focus = clamp(focusDistance([S.x, cam.y, S.z], basis(cam.yaw, cam.pitch, cam.roll).f), 1.5, 600);
+    frozenView = null; lastView = null;
+  }
 });
 function syncHeightSlider(){ S.heightSlider = sliderFromAgl(S.agl); heightCtl.el.value = S.heightSlider; heightCtl.paint(); }
 const toggles = {auto: 'auto', god: 'god', petals: 'petals', sway: 'sway', constel: 'constel', flies: 'flies', flowerGlow: 'flowerGlow', bloom: 'bloom', streamScale: 'streamScale', infMem: 'infMem', lensDrops: 'lensDrops', vignette: 'vignette'};
@@ -1088,9 +1100,11 @@ function renderLoc(){
 }
 function setLocation(loc){
   if (preview) cancelPreview();
+  sceneSkyLocation = null;
   LOC = loc; lightKey = ''; expo = NaN; WXS.followOK = false; WXS.live = null; WXS.airQuality = null; WXS.src = '';
+  S.time = cityHours(simMs); skyKey = '';
   saveLocation(LOC);
-  renderLoc(); syncWeather();
+  renderLoc(); publishTimeControls(); syncWeather(); saveSettings();
 }
 function cityChip(c){
   const b = document.createElement('button');
@@ -1175,7 +1189,7 @@ async function syncWeather(){
     applyObservedWeather(c);
     if (WALLPAPER_MODE) { try { saveWeatherCache(localStorage, loc, c); } catch {} }
   } catch (e) {
-    if (request === weatherRequest && loc === LOC && S.wxMode === 'follow') {
+    if (request === weatherRequest && loc === LOC && S.wxMode === 'follow' && !preview && !sceneFreeze.weather) {
       const cached = WALLPAPER_MODE ? cachedWeather(loc) : null;
       if (cached) { applyObservedWeather(cached); return; }
       WXS.followOK = false; WXS.live = null;
@@ -1195,7 +1209,7 @@ document.addEventListener('visibilitychange', () => {
 renderLoc();
 setWxMode(S.wxMode);
 refreshWx();
-const renderClock = () => setMessage($('clock'), 'rendering.clock', { city: locationName(LOC), time: fmtTime(S.time), phase: phaseName(AST.phase) });
+const renderClock = () => setMessage($('clock'), 'rendering.clock', { city: locationName(LOC), time: fmtTime(zonedHours(LOC.tz, simMs)), phase: phaseName(AST.phase) });
 onLanguageChange(() => { renderLoc(); renderSearch(); wxStatus(); renderClock(); });
 
 /* ================================================================== */
@@ -1350,7 +1364,8 @@ function frame(now){
   const { clockElapsed, visualDt: dt, weatherDt } = sceneFrameTiming(elapsedMs, sceneFreeze); last = now;
   if (!noiseReady){ genStep(14); return; }
   resize(false);
-  simTime += dt;
+  // 极端但有效的导入相位也必须能继续运行和保存；正常运行数十年才会触及环绕。
+  simTime = (simTime + dt) % 1e9;
 
   const groundNow = updateCamera(dt);
   const cameraActive = !preview && (S.interactionEnabled || S.auto);
@@ -1365,7 +1380,9 @@ function frame(now){
   const aglReal = camM[1] - groundNow;
 
   const wv = WP.wind / 1000;
-  windOff[0] += Math.cos(WIND_ANGLE) * wv * dt; windOff[2] += Math.sin(WIND_ANGLE) * wv * dt; windOff[1] += 0.0025 * dt;
+  windOff[0] += Math.cos(WIND_ANGLE) * wv * dt; windOff[2] += Math.sin(WIND_ANGLE) * wv * dt; windOff[1] = simTime * 0.0025;
+  if (Math.abs(windOff[0]) > 1e9) windOff[0] %= 1e9;
+  if (Math.abs(windOff[2]) > 1e9) windOff[2] %= 1e9;
   const windDir = [Math.cos(WIND_ANGLE), Math.sin(WIND_ANGLE)];
 
   if (!sceneFreeze.time) simMs = advanceClock(simMs, clockElapsed, SPEEDS[S.speed | 0], followNow);
@@ -1658,14 +1675,14 @@ function frame(now){
     set(Sk, 'uFogW', fogW[0], fogW[1], fogW[2], fogW[3]); set(Sk, 'uFogCol', fogCol); set(Sk, 'uFlashSky', [0.8, 0.85, 1.0].map(v => v * flash * 1.4)); set(Sk, 'uFlashDir', flashTop.map(v => v / ftl));
     set(Sk, 'uSunTrue', L.sunT); set(Sk, 'uMoonDir', L.moonD); set(Sk, 'uMoonDisk', L.moonDisk);
     const off = S.sunAz * Math.PI / 180, dirAE = (az, el) => [Math.cos(el) * Math.sin(az + off), Math.sin(el), Math.cos(el) * Math.cos(az + off)];
-    const LATR = LOC.lat * RAD; set(Sk, 'uPole', dirAE(0, LATR)); set(Sk, 'uSouthEq', dirAE(Math.PI, Math.PI / 2 - LATR)); set(Sk, 'uWestEq', dirAE(Math.PI * 1.5, 0));
+    const LATR = renderLocation().lat * RAD; set(Sk, 'uPole', dirAE(0, LATR)); set(Sk, 'uSouthEq', dirAE(Math.PI, Math.PI / 2 - LATR)); set(Sk, 'uWestEq', dirAE(Math.PI * 1.5, 0));
     set(Sk, 'uSidereal', AST.lst); set(Sk, 'uStarI', L.starI); set(Sk, 'uPixAngS', 2 * tanY / H); set(Sk, 'uTimeS', simTime);
     draw();
     gl.depthMask(true);
   }
   /* real stars, planets and optional constellation lines, added over the sky only (depth test at the far plane) */
   if (L.starCat > 2e-4){
-    const off = S.sunAz * RAD, LATR = LOC.lat * RAD, dae = (az, el) => [Math.cos(el) * Math.sin(az + off), Math.sin(el), Math.cos(el) * Math.cos(az + off)];
+    const off = S.sunAz * RAD, LATR = renderLocation().lat * RAD, dae = (az, el) => [Math.cos(el) * Math.sin(az + off), Math.sin(el), Math.cos(el) * Math.cos(az + off)];
     const Pv = dae(0, LATR), Sv = dae(Math.PI, Math.PI / 2 - LATR), Wv = dae(Math.PI * 1.5, 0), cl = Math.cos(AST.lst), sl = Math.sin(AST.lst);
     eqMat.set([cl * Sv[0] + sl * Wv[0], cl * Sv[1] + sl * Wv[1], cl * Sv[2] + sl * Wv[2], sl * Sv[0] - cl * Wv[0], sl * Sv[1] - cl * Wv[1], sl * Sv[2] - cl * Wv[2], Pv[0], Pv[1], Pv[2]]);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR); gl.depthFunc(gl.LEQUAL); gl.depthMask(false);
@@ -1814,10 +1831,10 @@ function frame(now){
     renderClock();
     $('locSun').textContent = riseSetText(simMs);
     const live = S.wxMode === 'follow' && WXS.followOK ? WXS.live : null;
-    const timeState = { hours: S.time, speedIndex: sceneFreeze.time ? 0 : S.speed, loc: LOC, sun: getSunEvents(simMs, LOC), phase: phaseIndex(AST.phase) };
+    const timeState = { hours: S.time, speedIndex: sceneFreeze.time ? 0 : S.speed, loc: renderLocation(), sun: getSunEvents(simMs, renderLocation()), phase: phaseIndex(AST.phase) };
     updateTimeControls(timeState);
     onUpdate({
-      loc: LOC, ms: simMs, live, followNow: followNow && !sceneFreeze.time, speed: sceneFreeze.time ? 0 : SPEEDS[S.speed | 0],
+      loc: LOC, sceneLocation: skyLocation(), ms: simMs, live, followNow: followNow && !sceneFreeze.time, speed: sceneFreeze.time ? 0 : SPEEDS[S.speed | 0],
       airQuality: live ? WXS.airQuality : null, temperatureUnit: S.temperatureUnit,
       weatherDisplay: { show: S.showWeather, temperature: S.showTemperature, precipitation: S.showPrecipitation, airQuality: S.showAirQuality, clouds: S.showClouds, wind: S.showWind },
       simulatedWeather: S.wxMode !== 'follow' || Boolean(WXS.src && !live),
@@ -1843,8 +1860,10 @@ function frame(now){
 function captureScene() {
   const settings = Object.fromEntries(Object.keys(SCENE_SETTINGS).map(key => [key, S[key]]));
   const value = validateScene({ version: 1, settings,
-    camera: { x: S.x, z: S.z, y: cam.y, agl: S.agl, yaw: cam.yaw, pitch: cam.pitch, roll: cam.roll, fov: S.fovY },
-    environment: { time: { ms: simMs, followNow, speedIndex: S.speed }, weather: { type: WXS.type, current: { ...WP }, wet: WXS.wet, snowCover: WXS.snowCov } },
+    camera: { x: S.x, z: S.z, y: cam.y, agl: S.agl, yaw: cam.yaw, pitch: cam.pitch, roll: cam.roll, fov: S.fovY, focus: cam.focus },
+    environment: { time: { ms: simMs, followNow, speedIndex: S.speed }, skyLocation: skyLocation(),
+      motion: { time: simTime, windAngle: WIND_ANGLE, windOffset: [windOff[0], windOff[2]] },
+      weather: { type: WXS.type, current: { ...WP }, wet: WXS.wet, snowCover: WXS.snowCov } },
     freeze: { ...sceneFreeze },
   });
   if (!value) throw new Error('当前世界包含无效状态');
@@ -1870,14 +1889,21 @@ function applySceneWeather(weather) {
 }
 function loadScene(scene) {
   rejectThumbnail(new Error('场景已切换'));
+  sceneSkyLocation = scene.environment.skyLocation ? { ...scene.environment.skyLocation } : null;
   Object.assign(S, scene.settings);
   Object.assign(S, { x: scene.camera.x, z: scene.camera.z, agl: scene.camera.agl, fovY: scene.camera.fov });
   Object.assign(cam, { y: scene.camera.y ?? groundH(S.x, S.z) + S.agl, yaw: scene.camera.yaw, pitch: scene.camera.pitch,
     yawT: scene.camera.yaw, pitchT: scene.camera.pitch, roll: scene.camera.roll, fov: scene.camera.fov, vx: 0, vz: 0 });
+  cam.focus = scene.camera.focus ?? clamp(focusDistance([S.x, cam.y, S.z], basis(cam.yaw, cam.pitch, cam.roll).f), 1.5, 600);
   simMs = scene.environment.time.ms; followNow = scene.environment.time.followNow; S.speed = scene.environment.time.speedIndex; S.time = cityHours(simMs);
+  const motion = scene.environment.motion;
+  if (motion) {
+    simTime = motion.time; WIND_ANGLE = motion.windAngle;
+    windOff[0] = motion.windOffset[0]; windOff[1] = simTime * 0.0025; windOff[2] = motion.windOffset[1];
+  }
   sceneFreeze = { ...scene.freeze };
   applySceneWeather(scene.environment.weather);
-  // 时间相位不归零；只清除依赖旧构图的屏幕空间历史和输入惯性。
+  // 作品可恢复运动相位；旧作品保留当前相位，自然动画继续运行。
   keys.clear(); mouseFlight.reset(); frozenView = null; lastView = null;
   prev = null; needReset = true; lightKey = ''; skyKey = ''; expo = NaN;
   trailHist.length = 0; LR.drops.length = 0; streamG = NaN; bolt.t = 99;
@@ -1923,10 +1949,13 @@ function cancelPreview() {
 function commitPreview() {
   if (!preview) return false;
   // 先写入成功再清除还原点；存储失败时仍可继续预览和还原。
-  const previous = preview; preview = null;
-  const o = Object.fromEntries(PERSIST_KEYS.filter(key => S[key] !== undefined).map(key => [key, S[key]]));
-  o.world = captureScene();
-  try { const serialized = JSON.stringify(o); localStorage.setItem(SETTINGS_KEY, serialized); settingsSnap = serialized; }
+  const previous = preview;
+  try {
+    const o = Object.fromEntries(PERSIST_KEYS.filter(key => S[key] !== undefined).map(key => [key, S[key]]));
+    o.world = captureScene();
+    const serialized = JSON.stringify(o); localStorage.setItem(SETTINGS_KEY, serialized); settingsSnap = serialized;
+    preview = null;
+  }
   catch (error) { preview = previous; document.dispatchEvent(new CustomEvent('worldsettingssaved', { detail: { saved: false } })); throw new Error('无法保存当前世界', { cause: error }); }
   frozenView = null; syncSceneControls();
   document.dispatchEvent(new CustomEvent('worldsettingssaved', { detail: { saved: true } }));

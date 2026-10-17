@@ -113,3 +113,58 @@ test('精选午后与黄昏使用当前城市当地时刻，捕获收藏不重�
     assert.equal(saved.environment.time.ms, meadow.environment.time.ms);
   }
 });
+
+test('作品天空锚点独立保存受验证的经纬度和时区，不保存真实城市名称', () => {
+  const skyLocation = { lat: 35.6762, lon: 139.6503, tz: 'Asia/Tokyo', name: '私人城市名', apiKey: 'private' };
+  const scene = validateScene({ version: 1, environment: { skyLocation } });
+  assert.deepEqual(scene.environment.skyLocation, { lat: 35.6762, lon: 139.6503, tz: 'Asia/Tokyo' });
+  assert.deepEqual(validateScene(JSON.parse(JSON.stringify(scene))), scene);
+  assert.equal(validateScene({ version: 1 }).environment.skyLocation, undefined);
+  for (const invalid of [null, [], {}, { lat: 91, lon: 0, tz: 'UTC' }, { lat: 0, lon: -181, tz: 'UTC' },
+    { lat: NaN, lon: 0, tz: 'UTC' }, { lat: 0, lon: Infinity, tz: 'UTC' },
+    { lat: 0, lon: 0, tz: 'invalid/timezone' }, { lat: 0, lon: 0, tz: 'a'.repeat(65) },
+    { lat: 0, lon: 0, tz: { toString: () => 'UTC' } }, { lat: 0, lon: 0, tz: 'UTC\n' }]) {
+    assert.equal(validateScene({ version: 1, environment: { skyLocation: invalid } }), null);
+  }
+});
+
+test('localHour 以作品天空锚点解析，接收者城市不会重新解释作品时刻', () => {
+  const input = structuredClone(GALLERY_SCENES[0].scene);
+  input.environment.skyLocation = { lat: 35.6762, lon: 139.6503, tz: 'Asia/Tokyo' };
+  const now = Date.parse('2026-10-18T06:00:00Z');
+  const tokyo = resolveSceneTime(input, 'Asia/Tokyo', now), newYork = resolveSceneTime(input, 'America/New_York', now);
+  assert.deepEqual(tokyo, newYork);
+  assert.equal(zonedHours('Asia/Tokyo', tokyo.environment.time.ms), 15);
+  assert.equal(input.environment.time.localHour, 15);
+});
+
+test('自然运动相位可选且完整保存精度，不改变独立视觉时钟语义', () => {
+  const motion = { time: 123456.789012345, windAngle: -7.123456789012345, windOffset: [-1234.56789012345, 9876.54321098765], unknown: '不保存' };
+  const scene = validateScene({ version: 1, environment: { motion } });
+  assert.deepEqual(scene.environment.motion, { time: motion.time, windAngle: motion.windAngle, windOffset: motion.windOffset });
+  assert.deepEqual(validateScene(JSON.parse(JSON.stringify(scene))), scene);
+  assert.equal(validateScene({ version: 1 }).environment.motion, undefined);
+  assert.equal(sceneFrameTiming(20, { time: true, weather: true }).visualDt, .02);
+});
+
+test('作品景深焦距可选且有界，旧作品不继承伪造默认焦距', () => {
+  const focus = 123.456789012345;
+  const scene = validateScene({ version: 1, camera: { focus } });
+  assert.equal(scene.camera.focus, focus);
+  assert.deepEqual(validateScene(JSON.parse(JSON.stringify(scene))), scene);
+  assert.equal(validateScene({ version: 1 }).camera.focus, undefined);
+  for (const value of [null, NaN, Infinity, '40', 1, 601]) assert.equal(validateScene({ version: 1, camera: { focus: value } }), null);
+});
+
+test('运动相位拒绝损坏结构、缺字段、非数值及超限值，容纳多年运行', () => {
+  const valid = { time: 1e9, windAngle: -1000, windOffset: [-1e9, 1e9] };
+  assert.deepEqual(validateScene({ version: 1, environment: { motion: valid } }).environment.motion, valid);
+  const original = { time: 100, windAngle: .6, windOffset: [1, 2] };
+  for (const invalid of [null, [], {}, { ...original, time: -1 }, { ...original, time: -1e-10 }, { ...original, time: 1e9 + 10 },
+    { ...original, time: NaN }, { ...original, time: '100' }, { ...original, windAngle: Infinity },
+    { ...original, windAngle: 1001 }, { ...original, windOffset: [1] }, { ...original, windOffset: [1, 2, 3] },
+    { ...original, windOffset: [NaN, 0] }, { ...original, windOffset: new Array(2) }, { ...original, windOffset: [1e9 + 10, 0] },
+    { ...original, windOffset: { 0: 1, 1: 2, length: 2 } }]) {
+    assert.equal(validateScene({ version: 1, environment: { motion: invalid } }), null);
+  }
+});

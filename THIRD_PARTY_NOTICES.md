@@ -33,6 +33,78 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 太阳与月亮的基础坐标计算参考 [SunCalc](https://github.com/mourner/suncalc) 的轻量公式及天文年历方法。SunCalc 使用 MIT License，Copyright (c) 2011–2015 Vladimir Agafonkin；[原始许可](https://github.com/mourner/suncalc/blob/master/LICENSE)。本项目保留来源署名。
 
+## 场景链接无损压缩 — fflate
+
+v2 场景分享链接使用 [fflate 0.8.3](https://github.com/101arrowz/fflate)，仅通过命名导入的 `deflateSync` 与 `inflateSync` 进行同步无损压缩和解压。以下保留分发包 `fflate/LICENSE` 原文：
+
+```
+MIT License
+
+Copyright (c) 2026 Arjun Barrett
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## 场景分享二维码 — qrcode / dijkstrajs
+
+场景分享二维码使用 [qrcode 1.5.4](https://github.com/soldair/node-qrcode)，其浏览器运行时依赖 [dijkstrajs 1.0.3](https://github.com/tcort/dijkstrajs)。网站与独立壁纸包均保留以下分发包中的许可声明。
+
+### qrcode 1.5.4
+
+以下保留 `qrcode/LICENSE` 原文：
+
+```
+The MIT License (MIT)
+
+Copyright (c) 2012 Ryan Day
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+### dijkstrajs 1.0.3
+
+以下保留 `dijkstrajs/LICENSE.md` 原文：
+
+```
+Dijkstra path-finding functions. Adapted from the Dijkstar Python project.
+
+Copyright (C) 2008
+  Wyatt Baldwin <self@wyattbaldwin.com>
+  All rights reserved
+
+Licensed under the MIT license.
+
+  http://www.opensource.org/licenses/mit-license.php
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
 ## 字体与图标
 
 当前版本使用设备已有的系统字体，不分发 Barlow 或从 Google Fonts 加载字体。五瓣花标志和其余界面图标为项目内 SVG，随项目 MIT License 分发；GitHub 和 Steam 品牌标识仍属于其权利人。

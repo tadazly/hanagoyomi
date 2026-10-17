@@ -49,3 +49,15 @@ test('壁纸默认高画质、关闭交互、自动飞行和避让图标布局',
     if (property.type === 'combo') assert.ok(property.options.some(option => option.value === property.value));
   }
 });
+
+test('场景链接使用空默认原生文本输入，三语说明要求桌面画廊确认', () => {
+  const property = project.general.properties.sceneimportlink;
+  assert.equal(property.type, 'textinput');
+  assert.equal(property.value, '');
+  for (const language of ['zh-chs', 'en-us', 'ja-jp']) {
+    assert.ok(project.general.localization[language][property.text]);
+  }
+  assert.match(project.general.localization['zh-chs'][property.text], /画廊预览/);
+  assert.match(project.general.localization['en-us'][property.text], /preview/);
+  assert.match(project.general.localization['ja-jp'][property.text], /プレビュー/);
+});

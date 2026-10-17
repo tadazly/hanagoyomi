@@ -1,11 +1,13 @@
 import { defineConfig, mergeConfig } from 'vite';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import base from './vite.config.js';
 import { project, workshopTitle, workshopDescription } from './wallpaper/project.js';
 import { workshopLocalizations } from './wallpaper/workshop-copy.js';
 
 export default mergeConfig(base, defineConfig({
   base: './',
+  resolve: { alias: { '#scene-qr': fileURLToPath(new URL('./src/platform/wallpaper-qr.js', import.meta.url)) } },
   plugins: [{
     name: 'hanagoyomi-wallpaper-engine',
     transformIndexHtml: {

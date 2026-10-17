@@ -5,10 +5,8 @@ import { onLanguageChange, t } from '../i18n/index.js';
 const template = `
   <label class="ctl"><span data-i18n="time.local">Local time</span><output data-time-output="time"></output><input aria-label="Local time" data-i18n-aria-label="time.local" type="range" data-time-field="time" min="0" max="23.99" step="0.01"></label>
   <button class="btn outline" data-time-action="sync" type="button"><span data-i18n="time.sync">Follow now</span></button>
-  <details class="advanced"><summary><span data-i18n="settings.timeAdvanced">Advanced time</span><span data-icon="chevron"></span></summary><div class="settings-detail-body">
-    <label class="ctl"><span data-i18n="time.speed">Time speed</span><output data-time-output="speed"></output><input aria-label="Time speed" data-i18n-aria-label="time.speed" type="range" data-time-field="speed" min="0" step="1"></label>
-    <div class="solar-row"><span><span data-icon="sunrise"></span><span data-time-sun="rise">Sunrise --</span></span><span><span data-icon="sunset"></span><span data-time-sun="set">Sunset --</span></span></div>
-  </div></details>
+  <label class="ctl"><span data-i18n="time.speed">Time speed</span><output data-time-output="speed"></output><input aria-label="Time speed" data-i18n-aria-label="time.speed" type="range" data-time-field="speed" min="0" step="1"></label>
+  <div class="solar-row"><span><span data-icon="sunrise"></span><span data-time-sun="rise">Sunrise --</span></span><span><span data-icon="sunset"></span><span data-time-sun="set">Sunset --</span></span></div>
 `;
 const instances = [];
 let actions = {}, snapshot, activeRange = null;

@@ -20,6 +20,8 @@ const add = (key, type, value, zh, en, extra = {}) => {
 };
 const option = (value, zh, en = zh) => ({ value, label: label(`option_${String(value).replace(/\W/g, '')}`, zh, en) });
 add('about', 'text', '', '常用选项在这里；完整设置请将鼠标移到桌面右下角。<br>位置影响时间与天气，草原是想象风景。', 'Common options are here. Hover at the bottom right of your desktop for full settings.<br>The location controls time and weather; the meadow is imaginary.');
+add('sceneimportlink', 'textinput', '', '导入场景链接（粘贴后返回桌面画廊预览）', 'Import scene link (paste, then preview in the desktop gallery)');
+localization['ja-jp'][properties.sceneimportlink.text] = 'シーンの共有リンク（貼り付け後、デスクトップのギャラリーでプレビュー）';
 add('quality', 'combo', 'high', '画质', 'Quality', { options: [option('low','低','Low'),option('med','中','Medium'),option('high','高（默认）','High (default)'),option('ultra','极高','Ultra')] });
 add('renderscale', 'slider', 1, '渲染比例', 'Render scale', { min: .5, max: 1, step: .05, precision: 2, fraction: true });
 add('interaction', 'bool', false, '场景交互', 'Manual scene interaction');

@@ -138,3 +138,67 @@ test('升级时新增暗角属性延迟到达，也先建立基线而不覆盖�
   host.properties.vignette = { value: false }; host.listener.properties({ vignette: host.properties.vignette });
   assert.deepEqual(changes, [false]);
 });
+
+test('原生分享链接首发延后通知画廊，只恢复待导入文本，不改世界或存储', async () => {
+  for (const restored of [false, true]) {
+    const storage = storageFixture(), calls = [], document = new EventTarget();
+    const host = { properties: { sceneimportlink: { value: 'https://example.test/#scene=shared' } }, general: {}, paused: false };
+    connectWallpaperHost({ hasRestoredSettings: restored, save() { calls.push('save'); },
+      isPreviewing: () => true, cancelPreview() { calls.push('cancel'); } }, {}, { host, document, storage });
+    // 监听器在连接之后、同步初始化结束前安装，也不能漏掉缓存的首发链接。
+    const links = []; document.addEventListener('wallpaperscenelink', event => links.push(event.detail.link));
+    document.addEventListener('worldpanelopen', () => calls.push('close'));
+    assert.deepEqual(links, []);
+    await Promise.resolve();
+    assert.deepEqual(links, ['https://example.test/#scene=shared']);
+    assert.deepEqual(calls, []);
+    assert.equal(storage.values.size, 0);
+  }
+});
+
+test('原生分享输入逐字和无效文本只通知 UI，同串去重，清空后可重贴', async () => {
+  const storage = storageFixture(), document = new EventTarget(), links = [], calls = [];
+  document.addEventListener('wallpaperscenelink', event => links.push(event.detail.link));
+  document.addEventListener('worldpanelopen', () => calls.push('close'));
+  const host = { properties: {}, general: {}, paused: false };
+  connectWallpaperHost({ save() { calls.push('save'); }, isPreviewing: () => true,
+    cancelPreview() { calls.push('cancel'); } }, {}, { host, document, storage });
+  for (const value of ['h', 'ht', '不是有效链接', '不是有效链接', '', '不是有效链接']) {
+    host.listener.properties({ sceneimportlink: { value } });
+  }
+  for (const property of [{}, { value: null }, { value: true }]) host.listener.properties({ sceneimportlink: property });
+  await Promise.resolve();
+  assert.deepEqual(links, ['h', 'ht', '不是有效链接', '', '不是有效链接']);
+  assert.deepEqual(calls, []);
+  assert.equal(storage.values.size, 0);
+});
+
+test('分享链接不消耗首次世界初始化，也不进入已应用宿主属性快照', async () => {
+  const storage = storageFixture(), calls = [], document = new EventTarget();
+  createHostPropertySnapshot(storage, HOST_PROPERTIES_KEY).remember({ city: { value: 'Tokyo' } });
+  const host = { properties: { sceneimportlink: { value: 'pending' } }, general: {}, paused: false };
+  connectWallpaperHost({ hasRestoredSettings: false, save() { calls.push('save'); },
+    setCity: value => calls.push(value) }, {}, { host, document, storage });
+  assert.deepEqual(calls, []);
+  host.properties.city = { value: 'Tokyo' }; host.listener.properties({ city: host.properties.city });
+  await Promise.resolve();
+  assert.deepEqual(calls, ['Tokyo', 'save']);
+  assert.deepEqual(JSON.parse(storage.getItem(HOST_PROPERTIES_KEY)).values, { city: 'Tokyo' });
+});
+
+test('同批链接与真实原生设置彼此独立，真实修改仍先取消预览再应用', async () => {
+  const storage = storageFixture(), calls = [], document = new EventTarget();
+  createHostPropertySnapshot(storage, HOST_PROPERTIES_KEY).remember({ city: { value: 'Tokyo' } });
+  let previewing = true;
+  const host = { properties: {}, general: {}, paused: false };
+  document.addEventListener('worldpanelopen', () => calls.push('close'));
+  document.addEventListener('wallpaperscenelink', event => calls.push(`pending:${event.detail.link}`));
+  connectWallpaperHost({ hasRestoredSettings: true, isPreviewing: () => previewing,
+    cancelPreview() { previewing = false; calls.push('cancel'); }, save() { calls.push('save'); },
+    setCity(value) { assert.equal(previewing, false); calls.push(value); } }, {}, { host, document, storage });
+  host.listener.properties({ sceneimportlink: { value: 'invalid-but-pending' }, city: { value: 'Shanghai' } });
+  assert.deepEqual(calls, ['close', 'cancel', 'Shanghai', 'save']);
+  await Promise.resolve();
+  assert.deepEqual(calls, ['close', 'cancel', 'Shanghai', 'save', 'pending:invalid-but-pending']);
+  assert.deepEqual(JSON.parse(storage.getItem(HOST_PROPERTIES_KEY)).values, { city: 'Shanghai' });
+});
