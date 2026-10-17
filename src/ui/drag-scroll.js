@@ -1,8 +1,14 @@
 const DEFAULT_IGNORE = 'input,textarea,select,a,[contenteditable="true"],.ctl,.search-field,[data-no-drag-scroll]';
+const bindings = new WeakMap();
+
+export function cancelDragScroll(viewport) {
+  bindings.get(viewport)?.cancel();
+}
 
 // 鼠标拖动内容；触屏仍由浏览器按 pan-x / pan-y 原生滚动。
 export function bindDragScroll({ viewport, axis = 'y', eventTarget = globalThis.window, onScroll = () => {}, ignoreSelector = DEFAULT_IGNORE }) {
   if (!viewport || !eventTarget) throw new TypeError('拖动滚动需要 viewport 与 eventTarget');
+  if (bindings.has(viewport)) return bindings.get(viewport);
   const horizontal = axis === 'x', positionKey = horizontal ? 'scrollLeft' : 'scrollTop';
   const extentKey = horizontal ? 'scrollWidth' : 'scrollHeight', clientKey = horizontal ? 'clientWidth' : 'clientHeight';
   const coordinate = event => Number(horizontal ? event.clientX : event.clientY) || 0;
@@ -145,12 +151,15 @@ export function bindDragScroll({ viewport, axis = 'y', eventTarget = globalThis.
     if (event.target !== viewport && !viewport.contains?.(event.target)) return;
     suppression = null; event.preventDefault(); event.stopImmediatePropagation();
   }, true);
-  return {
+  const binding = {
     cancel,
     destroy() {
       if (destroyed) return;
       cancel(); destroyed = true; cleanups.splice(0).forEach(remove => remove());
       viewport.style.touchAction = previousTouchAction;
+      bindings.delete(viewport);
     },
   };
+  bindings.set(viewport, binding);
+  return binding;
 }

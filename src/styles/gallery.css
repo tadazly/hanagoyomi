@@ -28,7 +28,8 @@
 .gallery-selected { display: none; position: absolute; right: 7px; top: 7px; align-items: center; justify-content: center; width: 23px; height: 23px; border-radius: 50%; background: #65745b; color: #fff; box-shadow: 0 1px 4px #0002; }
 .gallery-selected svg { width: 16px; height: 16px; }
 .gallery-scene[aria-pressed='true'] .gallery-selected { display: flex; }
-.gallery-scene-title { margin: 6px 2px 0; padding-right: 22px; font: 500 17px/1.45 var(--serif); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gallery-scene-title { margin: 6px 2px 0; font: 500 17px/1.45 var(--serif); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gallery-tile:has(.gallery-remove) .gallery-scene-title { padding-right: 22px; }
 .gallery-scene-description { margin: 0 2px; font: 11px/1.5 var(--gallery-ui); color: #73766b; }
 .gallery-picture-fallback { display: grid; place-items: center; background: #d9dfd1; }
 .gallery-picture-fallback::before { content: ''; width: 30px; height: 21px; border: 1px solid #87947c; border-radius: 4px; }
@@ -94,6 +95,7 @@ body[data-wallpaper='true'] .gallery-sheet { bottom: calc(132px + env(safe-area-
 @media (max-width: 400px) and (orientation: portrait) {
  :lang(en) .gallery-capture { width: 44px; padding: 8px; }
  :lang(en) .gallery-capture span { display: none; }
+ :lang(en) .gallery-scene-title { font-size: 15px; }
 }
 @media (max-height: 650px) and (orientation: portrait) {
  .gallery-picture { aspect-ratio: 2.2; }
@@ -132,3 +134,12 @@ body[data-wallpaper='true'] .gallery-sheet { bottom: calc(132px + env(safe-area-
  body[data-wallpaper='true'] .gallery-sheet { max-height: calc(100dvh - 148px); }
 }
 @media (prefers-reduced-motion: reduce) { .gallery-picture img { transition: none; } }
+@media (max-height: 420px) and (orientation: landscape) {
+ .gallery-sheet { width: min(1080px,calc(100% - 24px)); }
+ .gallery-picture { height: 44px; aspect-ratio: auto; }
+ .gallery-scene-description { display: none; }
+ body[data-wallpaper='true'] .gallery-sheet { bottom: calc(124px + env(safe-area-inset-bottom,0px)); max-height: calc(100dvh - 136px); }
+}
+@media (max-width: 700px) and (max-height: 420px) and (orientation: landscape) {
+ body[data-wallpaper='true'] .gallery-sheet { bottom: calc(117px + env(safe-area-inset-bottom,0px)); max-height: calc(100dvh - 129px); }
+}

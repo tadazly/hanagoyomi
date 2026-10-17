@@ -6,6 +6,7 @@ import { airQualityPageUrl, weatherPageUrl } from '../world/weather.js';
 import { updateWeatherDetails } from './weather-details.js';
 import { initComponentSettings } from './component-settings.js';
 import { initWallpaperScrolling } from './wallpaper-scroll.js';
+import { bindDragScroll, cancelDragScroll } from './drag-scroll.js';
 import { getSavedLocation, onLocationChange } from '../world/location.js';
 import { getLanguage, getLocale, onLanguageChange, setLanguage, setMessage, t, translateDocument } from '../i18n/index.js';
 import { WALLPAPER_MODE, storageKey } from '../platform/environment.js';
@@ -238,6 +239,39 @@ export function bindTimePopoverPosition({ popover, trigger, wallpaper = WALLPAPE
   return position;
 }
 
+export function bindShellContentScrolling({ document: doc = globalThis.document, eventTarget = globalThis.window, wallpaper = WALLPAPER_MODE, mutationObserver = globalThis.MutationObserver } = {}) {
+  const surfaces = [
+    { name: 'panel', viewport: doc.getElementById('panelBody'), container: doc.getElementById('panel') },
+    { name: 'help', viewport: doc.querySelector('.help-body'), container: doc.getElementById('helpDialog') },
+    { name: 'time', viewport: doc.getElementById('quickTimeControls'), container: doc.getElementById('timePopover') },
+  ];
+  // WE 初始化器已绑定相同 viewport；网站只补内容手势，保留原生滚轮和滚动条。
+  const nativeBindings = wallpaper ? [] : surfaces.map(({ viewport }) => bindDragScroll({ viewport, axis: 'y', eventTarget }));
+  const cancel = name => surfaces.filter(surface => !name || surface.name === name).forEach(({ viewport }) => cancelDragScroll(viewport));
+  const cancelAll = () => cancel();
+  const closeHandlers = surfaces.map(({ name, container }) => {
+    const close = () => cancel(name); container.addEventListener('close', close);
+    return () => container.removeEventListener('close', close);
+  });
+  doc.addEventListener('worldpanelopen', cancelAll);
+  doc.addEventListener('galleryopen', cancelAll);
+  let observer;
+  if (!wallpaper && mutationObserver) {
+    observer = new mutationObserver(() => {
+      for (const { name, container } of surfaces) if (container.hidden || container.inert || !container.getClientRects().length) cancel(name);
+    });
+    for (const { container } of surfaces) observer.observe(container, { attributes: true, attributeFilter: ['hidden', 'open', 'inert'] });
+  }
+  return {
+    cancel,
+    destroy() {
+      cancelAll(); nativeBindings.forEach(binding => binding.destroy()); observer?.disconnect();
+      closeHandlers.forEach(remove => remove());
+      doc.removeEventListener('worldpanelopen', cancelAll); doc.removeEventListener('galleryopen', cancelAll);
+    },
+  };
+}
+
 export function initShell() {
   initTimeControls();
   populateIcons();
@@ -246,6 +280,7 @@ export function initShell() {
     initWallpaperScrolling({ viewport: document.querySelector('.help-body'), container: $('helpDialog') });
     initWallpaperScrolling({ viewport: $('quickTimeControls'), container: $('timePopover') });
   }
+  const contentScrolling = bindShellContentScrolling();
   translateDocument();
   const components = initComponentSettings();
   // 壁纸 LOGO 的位置控件由组件模块克隆，移动已有节点以保留绑定与存储合同。
@@ -262,6 +297,7 @@ export function initShell() {
   const timePopover = $('timePopover'), timeTrigger = $('liveStatus');
   const positionTimePopover = bindTimePopoverPosition({ popover: timePopover, trigger: timeTrigger });
   const setTimePopover = (open, restoreFocus = false) => {
+    contentScrolling.cancel('time');
     timePopover.hidden = !open;
     timeTrigger.setAttribute('aria-expanded', String(open));
     if (open) {
@@ -291,6 +327,7 @@ export function initShell() {
     positionTimePopover();
   });
   const setPanel = (open, restoreFocus = false) => {
+    contentScrolling.cancel('panel');
     if (open) {
       setTimePopover(false);
       document.dispatchEvent(new CustomEvent('worldpanelopen', { detail: { panel: 'world' } }));
@@ -312,6 +349,7 @@ export function initShell() {
     $('panelSaveStatus').dataset.saved = String(saved);
   });
   const selectTab = (name, focus = false) => {
+    contentScrolling.cancel('panel');
     document.querySelectorAll('[data-tab]').forEach(btn => {
       const selected = btn.dataset.tab === name;
       btn.setAttribute('aria-selected', String(selected));
@@ -365,6 +403,7 @@ export function initShell() {
   document.addEventListener('worldscenechange', refreshHeightPresets);
   refreshHeightPresets();
   const setImmersive = (active) => {
+    if (active) contentScrolling.cancel();
     if (active) setTimePopover(false);
     document.body.dataset.immersive = String(active);
     document.querySelectorAll('.chrome').forEach(el => { el.inert = active; });

@@ -57,6 +57,8 @@ export function initGallery(world, shell) {
   const $ = selector => sheet.querySelector(selector);
   const refreshSwipe = bindGallerySwipe({ viewport: $('.gallery-content'), track: $('.gallery-scrollbar'), thumb: $('.gallery-scroll-thumb') });
   let collection = 'curated', selected = null, pendingDelete = null, feedbackTimer, saving = false;
+  let renderedCollection = null;
+  const cards = new Map();
   const items = () => collection === 'curated' ? GALLERY_SCENES : store.read();
   const freezes = () => ({ freezeTime: $('#galleryFreezeTime').checked, freezeWeather: $('#galleryFreezeWeather').checked });
   const feedback = key => {
@@ -72,55 +74,103 @@ export function initGallery(world, shell) {
     $('.gallery-freeze').inert = !preview;
     $('#galleryFreezeTime').disabled = !preview; $('#galleryFreezeWeather').disabled = !preview;
   };
-  const render = ({ resetScroll = false } = {}) => {
-    const all = items(), left = resetScroll ? 0 : $('.gallery-content').scrollLeft;
-    $('.gallery-empty').hidden = all.length > 0;
-    $('#galleryList').hidden = !all.length;
-    $('#galleryList').setAttribute('aria-labelledby', collection === 'curated' ? 'galleryCurated' : 'gallerySaved');
-    $('#galleryList').replaceChildren();
-    for (const item of all) {
-      const tile = document.createElement('article'); tile.className = 'gallery-tile';
-      const button = document.createElement('button'); button.type = 'button'; button.className = 'gallery-scene';
-      button.dataset.scene = item.id; button.setAttribute('aria-pressed', String(selected?.id === item.id && world.isPreviewing()));
-      const picture = document.createElement('div'); picture.className = 'gallery-picture';
-      const thumbnail = item.thumbnail;
-      if (thumbnail && (collection === 'curated' || /^data:image\/jpeg;base64,/.test(thumbnail))) {
-        const image = document.createElement('img');
-        image.src = collection === 'curated' ? new URL(`${import.meta.env.BASE_URL}${thumbnail}`, location.href).href : thumbnail;
-        image.alt = ''; image.width = 480; image.height = 270; image.decoding = 'async';
-        image.addEventListener('error', () => { image.hidden = true; picture.classList.add('gallery-picture-fallback'); });
-        picture.append(image);
-      } else picture.classList.add('gallery-picture-fallback');
-      const check = document.createElement('span'); check.className = 'gallery-selected'; check.innerHTML = icon('check'); picture.append(check);
-      const title = document.createElement('span'); title.className = 'gallery-scene-title'; title.textContent = textFor(item.title);
-      const description = document.createElement('span'); description.className = 'gallery-scene-description';
-      description.textContent = textFor(item.description) || g('local');
-      button.append(picture, title, description);
-      button.addEventListener('click', () => {
-        try { world.previewScene(item.scene, freezes()); selected = item; pendingDelete = null; render(); }
-        catch (error) { console.error('Gallery preview', error); feedback('error'); }
+  const focusCard = (id, remove = false) => {
+    if (sheet.hidden) return;
+    const card = cards.get(id), target = remove && card?.remove ? card.remove : card?.button;
+    const fallback = $('.gallery-capture').disabled ? $('.gallery-close') : $('.gallery-capture');
+    (target || fallback).focus({ preventScroll: true });
+  };
+  const createCard = item => {
+    const tile = document.createElement('article'); tile.className = 'gallery-tile';
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'gallery-scene'; button.dataset.scene = item.id;
+    const picture = document.createElement('div'); picture.className = 'gallery-picture';
+    const check = document.createElement('span'); check.className = 'gallery-selected'; check.innerHTML = icon('check'); picture.append(check);
+    const title = document.createElement('span'); title.className = 'gallery-scene-title';
+    const description = document.createElement('span'); description.className = 'gallery-scene-description';
+    button.append(picture, title, description); tile.append(button);
+    const card = { item, tile, button, picture, title, description, image: null, imageSource: null, confirming: null };
+    button.addEventListener('click', () => {
+      try {
+        world.previewScene(card.item.scene, freezes()); selected = card.item; pendingDelete = null; render();
+        focusCard(card.item.id);
+      } catch (error) { console.error('Gallery preview', error); feedback('error'); }
+    });
+    if (collection === 'saved') {
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'gallery-remove'; remove.dataset.noDragScroll = '';
+      card.remove = remove; tile.append(remove);
+      remove.addEventListener('click', () => {
+        const id = card.item.id;
+        if (pendingDelete !== id) { pendingDelete = id; render(); focusCard(id, true); return; }
+        try {
+          const index = items().findIndex(entry => entry.id === id);
+          store.remove(id); pendingDelete = null; render();
+          const remaining = items(), next = remaining[Math.min(Math.max(0, index), remaining.length - 1)];
+          focusCard(next?.id, true);
+        } catch { feedback('captureError'); }
       });
-      tile.append(button);
-      if (collection === 'saved') {
-        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'gallery-remove';
-        remove.dataset.noDragScroll = '';
-        remove.innerHTML = pendingDelete === item.id ? '<span></span>' : icon('trash');
-        remove.title = g(pendingDelete === item.id ? 'confirmRemove' : 'remove');
-        remove.setAttribute('aria-label', `${remove.title} · ${textFor(item.title)}`);
-        if (pendingDelete === item.id) remove.querySelector('span').textContent = g('confirmRemove');
-        remove.addEventListener('click', () => {
-          if (pendingDelete !== item.id) { pendingDelete = item.id; render(); return; }
-          try { store.remove(item.id); pendingDelete = null; render(); } catch { feedback('captureError'); }
+    }
+    return card;
+  };
+  const updateCard = (card, item, previewing) => {
+    card.item = item;
+    const name = textFor(item.title), summary = textFor(item.description) || g('local');
+    card.button.setAttribute('aria-pressed', String(selected?.id === item.id && previewing));
+    card.button.title = name;
+    card.button.setAttribute('aria-label', `${name} · ${summary}`);
+    if (card.title.textContent !== name) card.title.textContent = name;
+    if (card.description.textContent !== summary) card.description.textContent = summary;
+    const thumbnail = item.thumbnail;
+    const source = thumbnail && (collection === 'curated' || /^data:image\/jpeg;base64,/.test(thumbnail))
+      ? collection === 'curated' ? new URL(`${import.meta.env.BASE_URL}${thumbnail}`, location.href).href : thumbnail : '';
+    if (card.imageSource !== source) {
+      card.image?.remove(); card.image = null; card.imageSource = source;
+      card.picture.classList.toggle('gallery-picture-fallback', !source);
+      if (source) {
+        const image = document.createElement('img'); image.src = source;
+        image.alt = ''; image.width = 480; image.height = 270; image.decoding = 'async';
+        image.addEventListener('error', () => {
+          if (card.image !== image) return;
+          image.hidden = true; card.picture.classList.add('gallery-picture-fallback');
         });
-        tile.append(remove);
+        card.image = image; card.picture.prepend(image);
       }
-      $('#galleryList').append(tile);
+    }
+    if (card.remove) {
+      const confirming = pendingDelete === item.id;
+      card.remove.title = g(confirming ? 'confirmRemove' : 'remove');
+      card.remove.setAttribute('aria-label', `${card.remove.title} · ${name}`);
+      if (card.confirming !== confirming) {
+        card.remove.innerHTML = confirming ? '<span></span>' : icon('trash'); card.confirming = confirming;
+      }
+      if (confirming) card.remove.querySelector('span').textContent = g('confirmRemove');
+    }
+  };
+  const render = ({ resetScroll = false } = {}) => {
+    const all = items(), content = $('.gallery-content'), list = $('#galleryList'), left = resetScroll ? 0 : content.scrollLeft;
+    const active = document.activeElement, focused = [...cards.values()].find(card => card.tile.contains(active));
+    const focusedCollection = renderedCollection, focusedControl = focused?.remove === active ? 'remove' : 'button';
+    if (renderedCollection !== collection) { list.replaceChildren(); cards.clear(); renderedCollection = collection; }
+    $('.gallery-empty').hidden = all.length > 0;
+    list.hidden = !all.length;
+    list.setAttribute('aria-labelledby', collection === 'curated' ? 'galleryCurated' : 'gallerySaved');
+    const wanted = new Set(all.map(item => item.id)), previewing = world.isPreviewing();
+    for (const [id, card] of cards) if (!wanted.has(id)) { card.tile.remove(); cards.delete(id); }
+    let next = list.firstElementChild;
+    for (const item of all) {
+      let card = cards.get(item.id);
+      if (!card) { card = createCard(item); cards.set(item.id, card); }
+      updateCard(card, item, previewing);
+      if (card.tile !== next) list.insertBefore(card.tile, next);
+      next = card.tile.nextElementSibling;
     }
     sheet.querySelectorAll('[data-collection]').forEach(tab => {
       const active = tab.dataset.collection === collection;
       tab.setAttribute('aria-selected', String(active)); tab.tabIndex = active ? 0 : -1;
     });
-    $('.gallery-content').scrollLeft = left;
+    if (!sheet.hidden && focused && focusedCollection === collection && document.activeElement !== active) {
+      cards.get(focused.item.id)?.[focusedControl]?.focus({ preventScroll: true });
+    }
+    content.scrollLeft = left;
     requestAnimationFrame(refreshSwipe);
     refreshFooter();
   };
@@ -140,7 +190,19 @@ export function initGallery(world, shell) {
   };
   trigger.addEventListener('click', () => sheet.hidden ? open() : close());
   $('.gallery-close').addEventListener('click', () => close());
-  $('.gallery-restore').addEventListener('click', () => { world.cancelPreview(); selected = null; render(); });
+  $('.gallery-restore').addEventListener('click', () => {
+    const previousId = selected?.id;
+    world.cancelPreview(); selected = null; render();
+    // 还原会禁用当前按钮；将焦点留在可继续浏览的可见作品上，不改变展架位置。
+    const viewport = $('.gallery-content').getBoundingClientRect();
+    const visible = card => {
+      const bounds = card.button.getBoundingClientRect(), center = (bounds.left + bounds.right) / 2;
+      return center >= viewport.left && center <= viewport.right;
+    };
+    const previous = cards.get(previousId);
+    const next = previous && visible(previous) ? previous : [...cards.values()].find(visible);
+    focusCard(next?.item.id);
+  });
   $('.gallery-apply').addEventListener('click', () => {
     try { world.commitPreview(); close(false); }
     catch { feedback('applyError'); }
@@ -163,7 +225,7 @@ export function initGallery(world, shell) {
       const title = g('moment', { time: new Date().toLocaleString(getLocale(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) });
       entry = store.add(world.captureScene(), title);
       feedback('captured');
-      if (collection === 'saved') render({ resetScroll: true });
+      if (collection === 'saved') render();
       try {
         const blob = await world.captureThumbnail();
         const thumbnail = typeof blob === 'string' ? blob : await new Promise((resolve, reject) => {
