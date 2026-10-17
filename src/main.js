@@ -4,13 +4,17 @@ import { startWorld } from './rendering/world.js';
 import { initI18n, setMessage } from './i18n/index.js';
 import { WALLPAPER_MODE } from './platform/environment.js';
 import { attachWallpaper } from './platform/wallpaper.js';
+import { initGallery } from './ui/gallery.js';
+
+export let world;
 
 if (WALLPAPER_MODE) document.body.dataset.wallpaper = 'true';
 initI18n();
 const shell = initShell();
 try {
-  const world = startWorld(updateObservation);
+  world = startWorld(updateObservation);
   attachWallpaper(world, shell);
+  initGallery(world, shell);
 } catch (error) {
   console.error('Hanagoyomi 初始化失败', error);
   setMessage(document.getElementById('errorText'), 'error.initialization');

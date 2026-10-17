@@ -17,6 +17,12 @@ import { createFrameGate } from '../platform/frame-gate.js';
 import { readWeatherCache, saveWeatherCache } from '../world/weather-cache.js';
 import { gradeAt } from './landscape-look.js';
 import { weatherFogDensity } from './weather-fog.js';
+import { SCENE_SETTINGS, WEATHER_SETTINGS, validateScene, resolveSceneTime, sceneFrameTiming, renderSize } from '../world/scene-state.js';
+
+// 显示偏好独立于作品协议；旧记录缺少新开关时默认开启，显式关闭须保留。
+export function displayPreferences(saved) {
+  return { vignette: typeof saved?.vignette === 'boolean' ? saved.vignette : true };
+}
 
 export function startWorld(onUpdate = () => {}) {
 
@@ -41,7 +47,9 @@ const coarse = matchMedia('(pointer: coarse)').matches;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let contextLost = false;
 canvas.addEventListener('webglcontextlost', (event) => {
+  try { saveSettings(); } catch { /* 即使状态已损坏，也保留恢复入口。 */ }
   event.preventDefault(); contextLost = true;
+  rejectThumbnail(new Error('WebGL context lost'));
   fail('error.contextLost');
 });
 canvas.addEventListener('webglcontextrestored', () => {
@@ -578,35 +586,62 @@ const QUALITY = {
 const TILE = 32, LAYER_WIDTH = [1.0, 2.4, 6.0];
 /* simulated clock: starts at the browser's local time and runs at a chosen multiple of real time */
 let simMs = Date.now();
+let worldReady = false, hasRestoredSettings = false, restoredScene = null, preview = null;
+let sceneFreeze = { time: false, weather: false }, thumbnailJob = null;
 const S = {
   time: 0, speed: 1, wxSync: true, constel: false, flies: true, flowerGlow: false, bloom: true, streamDist: 'near', streamScale: false, infMem: false, bloomR: 4, wxMode: 'follow', wxType: 'cloudy', fogVisS: 1000, rainAmt: 0, snowAmt: 0, boltFreq: 0, puddle: 0, snowMax: 0, lensDrops: true, sunAz: 0, coverage: 0.58, density: 1.0, wind: 40, breeze: 0.65, petals: true,
   heightSlider: 0, dof: 0.6, sway: !reduceMotion, quality: WALLPAPER_MODE ? 'high' : coarse ? 'med' : 'high', god: !coarse, auto: WALLPAPER_MODE || !reduceMotion,
   fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: !WALLPAPER_MODE, lowSaturation: false,
+  ...displayPreferences(),
   showWeather: true, showTemperature: true, showPrecipitation: false, showAirQuality: false, showClouds: false, showWind: false,
 };
-/* settings persist in this browser: everything the panel controls except the clock itself */
+/* 本机偏好与完整世界分开保存，未应用的预览始终写回原世界。 */
 const SETTINGS_KEY = storageKey('meadow.settings.v1');
-const PERSIST_KEYS = ['auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof', 'lowSaturation',
+const PERSIST_KEYS = ['auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof', 'lowSaturation', 'vignette',
   'heightSlider', 'agl', 'speed', 'streamDist', 'wxMode', 'wxType', 'coverage', 'density', 'wind', 'breeze', 'fogVisS', 'rainAmt', 'snowAmt', 'boltFreq',
   'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind', 'interactionEnabled'];
 try {
   const sv = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
-  if (sv && typeof sv === 'object'){
-    for (const k of PERSIST_KEYS) if (k in sv && (S[k] === undefined || typeof sv[k] === typeof S[k])) S[k] = sv[k];
+  if (sv && typeof sv === 'object' && !Array.isArray(sv)){
+    Object.assign(S, displayPreferences(sv));
+    for (const k of PERSIST_KEYS) {
+      if (!Object.hasOwn(sv, k)) continue;
+      const value = sv[k];
+      if (Object.hasOwn(SCENE_SETTINGS, k)) {
+        if (!validateScene({ version: 1, settings: { [k]: value } })) continue;
+      } else if (k === 'qualityUser') {
+        if (!Object.hasOwn(QUALITY, value)) continue;
+      } else if (typeof value !== typeof S[k] || (typeof value === 'number' && !Number.isFinite(value))) continue;
+      if (k === 'agl' && (value < 1.2 || value > 6501.2)) continue;
+      if (k === 'heightSlider' && (value < 0 || value > 1000)) continue;
+      if (k === 'speed' && (!Number.isInteger(value) || value < 0 || value >= SPEEDS.length)) continue;
+      S[k] = value; hasRestoredSettings = true;
+    }
     if (!['near', 'mid', 'far'].includes(S.streamDist)) S.streamDist = 'near';
     if (!['follow', 'dynamic', 'manual', 'off'].includes(S.wxMode)) S.wxMode = 'follow';
     if (!WX_TYPES[S.wxType]) S.wxType = 'cloudy';
     if (!['celsius', 'fahrenheit'].includes(S.temperatureUnit)) S.temperatureUnit = 'celsius';
+    restoredScene = validateScene(sv.world);
+    hasRestoredSettings ||= Boolean(restoredScene);
+    if (restoredScene) Object.assign(S, restoredScene.settings);
   }
 } catch (e) {}
 S.speed = Number.isInteger(S.speed) && S.speed >= 0 && S.speed < SPEEDS.length ? S.speed : 1;
 let followNow = S.speed === 1;
 let settingsSnap = '';
 function saveSettings(){
+  if (!worldReady) return;
   const o = {};
-  for (const k of PERSIST_KEYS) if (S[k] !== undefined) o[k] = S[k];
+  const original = preview?.original;
+  for (const k of PERSIST_KEYS) if (S[k] !== undefined) o[k] = original && k in original.settings ? original.settings[k] : S[k];
+  if (original) { o.speed = original.environment.time.speedIndex; o.agl = original.camera.agl; o.heightSlider = sliderFromAgl(original.camera.agl); }
+  o.world = original || captureScene();
   const j = JSON.stringify(o);
-  if (j !== settingsSnap){ settingsSnap = j; try { localStorage.setItem(SETTINGS_KEY, j); } catch (e) {} }
+  if (j !== settingsSnap){
+    let saved = false;
+    try { localStorage.setItem(SETTINGS_KEY, j); settingsSnap = j; saved = true; } catch {}
+    document.dispatchEvent(new CustomEvent('worldsettingssaved', { detail: { saved } }));
+  }
 }
 setInterval(saveSettings, 1500);
 window.addEventListener('pagehide', saveSettings);
@@ -638,7 +673,7 @@ let lastView = null, frozenView = null;
   }
   S.x = best.x; S.z = best.z; cam.yaw = cam.yawT = best.yaw;
   /* turn the world so the afternoon sun (azimuth ~230°) sits ahead and to the left of the starting view */
-  S.sunAz = (((best.yaw * 180 / Math.PI - 38 - 230) % 360) + 360) % 360;
+  if (!hasRestoredSettings) S.sunAz = (((best.yaw * 180 / Math.PI - 38 - 230) % 360) + 360) % 360;
 })();
 S.heightSlider = sliderFromAgl(S.agl);
 cam.y = groundH(S.x, S.z) + S.agl;
@@ -721,6 +756,10 @@ function updateLighting(){
 /*  Render targets / geometry                                          */
 /* ================================================================== */
 let W = 0, H = 0, CW = 0, CH = 0, HW = 0, HH = 0, cssW = 0, cssH = 0;
+const viewportLimit = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+const textureLimit = gl.getParameter(gl.MAX_TEXTURE_SIZE), renderbufferLimit = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
+const targetLimits = { maxWidth: Math.min(textureLimit, renderbufferLimit, viewportLimit[0]), maxHeight: Math.min(textureLimit, renderbufferLimit, viewportLimit[1]) };
+let targetSignature = '';
 let cloudColor, cloudDepth, cloudFBO, hist = [], histFBO = [], histIdx = 0, needReset = true;
 let msFBO, resFBO, sceneTex, depthTex, dofPrepTex, dofPrepFBO, dofTex, dofFBO;
 let bloomD = [], bloomDF = [], bloomU = [], bloomUF = [], bloomSz = [];
@@ -750,18 +789,19 @@ function freeTargets(){
   hist = []; histFBO = []; bloomD = []; bloomDF = []; bloomU = []; bloomUF = []; bloomSz = [];
 }
 function resize(force){
+  if (contextLost) return;
   const q = QUALITY[S.quality];
-  let dpr = Math.min(window.devicePixelRatio || 1, q.dpr) * (WALLPAPER_MODE ? wallpaperSettings.renderScale : 1);
+  const dpr = Math.min(window.devicePixelRatio || 1, q.dpr) * (WALLPAPER_MODE ? wallpaperSettings.renderScale : 1);
   cssW = canvas.clientWidth; cssH = canvas.clientHeight;
-  if (WALLPAPER_MODE) dpr = Math.min(dpr, Math.sqrt(3840 * 2160 / Math.max(1, cssW * cssH)));
-  const w = Math.max(1, Math.floor(cssW * dpr)), h = Math.max(1, Math.floor(cssH * dpr));
-  if (!force && w === W && h === H) return;
+  const { width: w, height: h } = renderSize(cssW, cssH, { dpr, ...targetLimits, maxPixels: WALLPAPER_MODE ? 3840 * 2160 : Infinity });
+  const cloudSize = renderSize(cssW, cssH, { dpr: q.cloud, ...targetLimits, maxPixels: 1.15e6 });
+  const cw = Math.max(16, cloudSize.width), ch = Math.max(16, cloudSize.height);
+  const signature = [w, h, cw, ch, S.quality].join('|');
+  if (signature === targetSignature) return;
   W = w; H = h; canvas.width = W; canvas.height = H;
   HW = Math.max(8, Math.ceil(W / 2)); HH = Math.max(8, Math.ceil(H / 2));
-  let cw = cssW * q.cloud, ch = cssH * q.cloud;
-  const cap = 1.15e6, px = cw * ch;
-  if (px > cap){ const s = Math.sqrt(cap / px); cw *= s; ch *= s; }
-  CW = Math.max(16, Math.round(cw)); CH = Math.max(16, Math.round(ch));
+  CW = cw; CH = ch;
+  targetSignature = '';
   freeTargets();
   const RGBA16F = [gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT];
   cloudColor = T2(CW, CH, ...RGBA16F, gl.LINEAR);
@@ -778,10 +818,12 @@ function resize(force){
   gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbC);
   gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rbD);
   gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error('MSAA framebuffer incomplete');
   sceneTex = T2(W, H, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR);
   depthTex = T2(W, H, gl.DEPTH_COMPONENT24, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, gl.NEAREST);
   resFBO = FB([sceneTex]);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTex, 0);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error('Scene depth framebuffer incomplete');
   dofPrepTex = T2(HW, HH, ...RGBA16F, gl.LINEAR); dofPrepFBO = FB([dofPrepTex]);
   dofTex = T2(HW, HH, ...RGBA16F, gl.LINEAR); dofFBO = FB([dofTex]);
   let bw = HW, bh = HH;
@@ -792,6 +834,7 @@ function resize(force){
     bw = Math.max(1, Math.ceil(bw / 2)); bh = Math.max(1, Math.ceil(bh / 2));
   }
   buildTerrain(q.terr[0], q.terr[1]);
+  targetSignature = signature;
   needReset = true;
   setMessage($('res'), 'rendering.resolution', { clouds: CW + '×' + CH, view: W + '×' + H });
 }
@@ -867,33 +910,37 @@ const endPointer = (e) => {
   }
 };
 canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
-canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (S.interactionEnabled) S.fovY = clamp(S.fovY * Math.exp(e.deltaY * 0.0012), 28, 95); }, {passive: false});
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (S.interactionEnabled) { S.fovY = clamp(S.fovY * Math.exp(e.deltaY * 0.0012), 28, 95); saveSettings(); } }, {passive: false});
 
 /* ================================================================== */
 /*  UI                                                                 */
 /* ================================================================== */
+const rangeControls = [];
 function bindRange(id, key, fmt, onChange){
   const el = $(id), out = document.querySelector(`output[for="${id}"]`);
   const paint = (displayValue) => { const v = displayValue ?? parseFloat(el.value); out.textContent = fmt(v); el.style.setProperty('--fill', ((v - el.min) / (el.max - el.min) * 100) + '%'); };
   el.value = S[key]; paint(S[key]);
   el.addEventListener('input', () => { S[key] = parseFloat(el.value); paint(); onChange && onChange(); });
   onLanguageChange(() => paint(S[key]));
-  return {el, paint};
+  const control = { el, paint, key }; rangeControls.push(control); return control;
 }
 const publishTimeControls = () => updateTimeControls({
-  hours: S.time, speedIndex: S.speed, loc: LOC, sun: getSunEvents(simMs, LOC), phase: phaseIndex(astro(simMs).phase),
+  hours: S.time, speedIndex: sceneFreeze.time ? 0 : S.speed, loc: LOC, sun: getSunEvents(simMs, LOC), phase: phaseIndex(astro(simMs).phase),
 });
 bindTimeActions({
   time(value) {
+    sceneFreeze.time = false;
     S.time = value; followNow = false;
     simMs = localTimeToUTC(LOC.tz, simMs, S.time); expo = NaN;
     publishTimeControls();
   },
   speed(value) {
+    sceneFreeze.time = false;
     S.speed = value; followNow = false;
     publishTimeControls();
   },
   sync() {
+    sceneFreeze.time = false;
     simMs = Date.now(); S.time = cityHours(simMs);
     followNow = true; expo = NaN; S.speed = 1;
     publishTimeControls();
@@ -903,7 +950,7 @@ publishTimeControls();
 bindRange('sunAz', 'sunAz', (v) => Math.round(v) + '°');
 bindRange('bloomR', 'bloomR', (v) => t('landscape.radiusValue', { value: Number(v).toFixed(1) }));
 const wxCtl = {};
-const wxBind = (id, key, fmt) => { wxCtl[key] = bindRange(id, key, fmt, () => { if (S.wxMode === 'manual') wxSetTarget(S.wxType, manualParams(), 2); }); };
+const wxBind = (id, key, fmt) => { wxCtl[key] = bindRange(id, key, fmt, () => { sceneFreeze.weather = false; if (S.wxMode === 'manual') wxSetTarget(S.wxType, manualParams(), 2); }); };
 wxBind('coverage', 'coverage', (v) => Math.round(v * 100) + '%');
 wxBind('density', 'density', (v) => v.toFixed(2));
 wxBind('wind', 'wind', (v) => Math.round(v) + ' m/s');
@@ -920,6 +967,7 @@ for (const k of Object.keys(WX_TYPES)){
   const b = document.createElement('button');
   b.type = 'button'; b.className = 'chip'; setMessage(b, `weather.${k}`); b.dataset.wx = k;
   b.addEventListener('click', () => {
+    sceneFreeze.weather = false;
     const pp = wxPreset(k);
     S.wxType = k; S.coverage = pp.cov; S.density = pp.dens; S.wind = pp.wind; S.breeze = pp.breeze; S.fogVisS = sliderFromVis(pp.vis);
     S.rainAmt = pp.rain; S.snowAmt = pp.snow; S.boltFreq = pp.bolt; S.puddle = pp.wet; S.snowMax = pp.snowCov;
@@ -928,6 +976,7 @@ for (const k of Object.keys(WX_TYPES)){
   $('wxTypes').appendChild(b);
 }
 function setWxMode(mode){
+  sceneFreeze.weather = false;
   S.wxMode = mode;
   document.querySelectorAll('input[name="wxMode"]').forEach(r => { r.checked = r.value === mode; });
   $('wxManual').hidden = mode !== 'manual';
@@ -975,7 +1024,7 @@ const heightCtl = bindRange('height', 'heightSlider', (v) => fmtAgl(aglFromSlide
   S.agl = na;
 });
 function syncHeightSlider(){ S.heightSlider = sliderFromAgl(S.agl); heightCtl.el.value = S.heightSlider; heightCtl.paint(); }
-const toggles = {auto: 'auto', god: 'god', petals: 'petals', sway: 'sway', constel: 'constel', flies: 'flies', flowerGlow: 'flowerGlow', bloom: 'bloom', streamScale: 'streamScale', infMem: 'infMem', lensDrops: 'lensDrops'};
+const toggles = {auto: 'auto', god: 'god', petals: 'petals', sway: 'sway', constel: 'constel', flies: 'flies', flowerGlow: 'flowerGlow', bloom: 'bloom', streamScale: 'streamScale', infMem: 'infMem', lensDrops: 'lensDrops', vignette: 'vignette'};
 for (const [id, key] of Object.entries(toggles)){ const el = $(id); el.checked = S[key]; el.addEventListener('change', () => { if (key === 'auto') setAuto(el.checked); else S[key] = el.checked; }); }
 $('lowSaturation').checked = S.lowSaturation;
 $('lowSaturation').addEventListener('change', e => {
@@ -1038,6 +1087,7 @@ function renderLoc(){
   });
 }
 function setLocation(loc){
+  if (preview) cancelPreview();
   LOC = loc; lightKey = ''; expo = NaN; WXS.followOK = false; WXS.live = null; WXS.airQuality = null; WXS.src = '';
   saveLocation(LOC);
   renderLoc(); syncWeather();
@@ -1110,7 +1160,7 @@ async function syncAirQuality(loc, request){
   }
 }
 async function syncWeather(){
-  if (S.wxMode !== 'follow') return;
+  if (S.wxMode !== 'follow' || preview || sceneFreeze.weather) return;
   const loc = LOC, request = ++weatherRequest;
   if (WALLPAPER_MODE && !WXS.live) {
     const cached = cachedWeather(loc);
@@ -1121,7 +1171,7 @@ async function syncWeather(){
   const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
   try {
     const c = await fetchWeather(loc, { signal: controller.signal });
-    if (request !== weatherRequest || loc !== LOC || S.wxMode !== 'follow') return;
+    if (request !== weatherRequest || loc !== LOC || S.wxMode !== 'follow' || preview || sceneFreeze.weather) return;
     applyObservedWeather(c);
     if (WALLPAPER_MODE) { try { saveWeatherCache(localStorage, loc, c); } catch {} }
   } catch (e) {
@@ -1153,6 +1203,7 @@ onLanguageChange(() => { renderLoc(); renderSearch(); wxStatus(); renderClock();
 /* ================================================================== */
 let autoT = 0;
 function updateCamera(dt){
+  if (preview) return groundH(S.x, S.z);
   if (!S.interactionEnabled && !S.auto) return groundH(S.x, S.z);
   autoT += dt;
   let mf = 0, mr = 0, mu = 0;
@@ -1296,13 +1347,13 @@ const depthAB = [(FARP + NEAR) / (FARP - NEAR), -2 * FARP * NEAR / (FARP - NEAR)
 function frame(now){
   if (contextLost) return;
   const elapsedMs = Math.max(0, now - last);
-  const dt = Math.min(0.1, elapsedMs / 1000); last = now;
+  const { clockElapsed, visualDt: dt, weatherDt } = sceneFrameTiming(elapsedMs, sceneFreeze); last = now;
   if (!noiseReady){ genStep(14); return; }
   resize(false);
   simTime += dt;
 
   const groundNow = updateCamera(dt);
-  const cameraActive = S.interactionEnabled || S.auto;
+  const cameraActive = !preview && (S.interactionEnabled || S.auto);
   const sw = S.sway && cameraActive ? 1 : 0;
   const view = cameraActive ? {
     yaw: cam.yaw + sw * (0.004 * Math.sin(simTime * 0.53) + 0.003 * Math.sin(simTime * 1.31)),
@@ -1317,9 +1368,9 @@ function frame(now){
   windOff[0] += Math.cos(WIND_ANGLE) * wv * dt; windOff[2] += Math.sin(WIND_ANGLE) * wv * dt; windOff[1] += 0.0025 * dt;
   const windDir = [Math.cos(WIND_ANGLE), Math.sin(WIND_ANGLE)];
 
-  simMs = advanceClock(simMs, elapsedMs, SPEEDS[S.speed | 0], followNow);
+  if (!sceneFreeze.time) simMs = advanceClock(simMs, clockElapsed, SPEEDS[S.speed | 0], followNow);
   S.time = cityHours(simMs);
-  updateWeather(dt);
+  if (!sceneFreeze.weather) updateWeather(weatherDt);
   const lightChanged = updateLighting();
   const L = light, sun = L.lightDir, q = QUALITY[S.quality];
   expo = !isFinite(expo) ? L.exposure : Math.exp(Math.log(expo) + (Math.log(L.exposure) - Math.log(expo)) * (1 - Math.exp(-dt * 2.5)));
@@ -1742,6 +1793,7 @@ function frame(now){
     LR.lastYaw = cam.yaw;
     const Fi = P.final; use(Fi); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
     set(Fi, 'uLowSaturation', S.lowSaturation ? 1 : 0);
+    set(Fi, 'uVignette', S.vignette ? 1 : 0);
     tex(Fi, 'uScene', gl.TEXTURE_2D, sceneTex); tex(Fi, 'uDepth', gl.TEXTURE_2D, depthTex);
     tex(Fi, 'uDof', gl.TEXTURE_2D, dofTex); tex(Fi, 'uBloom', gl.TEXTURE_2D, bloomOut);
     set(Fi, 'uSat', L.grade.sat); set(Fi, 'uShTint', L.grade.sh); set(Fi, 'uHiTint', L.grade.hi); set(Fi, 'uLift', L.grade.lift);
@@ -1751,6 +1803,7 @@ function frame(now){
   }
 
   histIdx = 1 - histIdx; frameNo++;
+  finishThumbnail();
 
   /* stats + adaptive quality */
   statAcc += elapsedMs / 1000; statFrames++; statT += elapsedMs / 1000;
@@ -1761,10 +1814,10 @@ function frame(now){
     renderClock();
     $('locSun').textContent = riseSetText(simMs);
     const live = S.wxMode === 'follow' && WXS.followOK ? WXS.live : null;
-    const timeState = { hours: S.time, speedIndex: S.speed, loc: LOC, sun: getSunEvents(simMs, LOC), phase: phaseIndex(AST.phase) };
+    const timeState = { hours: S.time, speedIndex: sceneFreeze.time ? 0 : S.speed, loc: LOC, sun: getSunEvents(simMs, LOC), phase: phaseIndex(AST.phase) };
     updateTimeControls(timeState);
     onUpdate({
-      loc: LOC, ms: simMs, live, followNow, speed: SPEEDS[S.speed | 0],
+      loc: LOC, ms: simMs, live, followNow: followNow && !sceneFreeze.time, speed: sceneFreeze.time ? 0 : SPEEDS[S.speed | 0],
       airQuality: live ? WXS.airQuality : null, temperatureUnit: S.temperatureUnit,
       weatherDisplay: { show: S.showWeather, temperature: S.showTemperature, precipitation: S.showPrecipitation, airQuality: S.showAirQuality, clouds: S.showClouds, wind: S.showWind },
       simulatedWeather: S.wxMode !== 'follow' || Boolean(WXS.src && !live),
@@ -1787,6 +1840,129 @@ function frame(now){
   }
 }
 
+function captureScene() {
+  const settings = Object.fromEntries(Object.keys(SCENE_SETTINGS).map(key => [key, S[key]]));
+  const value = validateScene({ version: 1, settings,
+    camera: { x: S.x, z: S.z, y: cam.y, agl: S.agl, yaw: cam.yaw, pitch: cam.pitch, roll: cam.roll, fov: S.fovY },
+    environment: { time: { ms: simMs, followNow, speedIndex: S.speed }, weather: { type: WXS.type, current: { ...WP }, wet: WXS.wet, snowCover: WXS.snowCov } },
+    freeze: { ...sceneFreeze },
+  });
+  if (!value) throw new Error('当前世界包含无效状态');
+  return value;
+}
+function syncSceneControls() {
+  S.heightSlider = sliderFromAgl(S.agl);
+  for (const { el, paint, key } of rangeControls) { el.value = S[key]; paint(S[key]); }
+  for (const [id, key] of Object.entries(toggles)) $(id).checked = S[key];
+  $('lowSaturation').checked = S.lowSaturation;
+  for (const [name, key] of [['sdist', 'streamDist'], ['wxMode', 'wxMode']]) document.querySelectorAll(`input[name="${name}"]`).forEach(r => { r.checked = r.value === S[key]; });
+  $('wxManual').hidden = S.wxMode !== 'manual'; markWxChips(); publishTimeControls(); wxStatus();
+  document.dispatchEvent(new CustomEvent('worldscenechange', { detail: { previewing: Boolean(preview), freeze: { ...sceneFreeze } } }));
+}
+function applySceneWeather(weather) {
+  Object.assign(WP, weather.current);
+  Object.assign(WXS, { type: weather.type, from: { ...WP }, to: { ...WP }, prog: 1, dur: 1000,
+    until: wxClock + 8 * 60000, t0: wxClock, wet: weather.wet, snowCov: weather.snowCover,
+    rain: WP.rain, snow: WP.snow, storm: Math.min(1, WP.bolt / 1.2), fogDens: weatherFogDensity(WP.vis),
+    fogH: WP.rain + WP.snow < .08 ? WP.vis < 1000 ? 55 : 120 : 260, fog: clamp(1 - WP.vis / 3000, 0, 1),
+    followOK: false, live: null, airQuality: null, src: '', });
+  covEff = WP.cov; densEff = WP.dens;
+}
+function loadScene(scene) {
+  rejectThumbnail(new Error('场景已切换'));
+  Object.assign(S, scene.settings);
+  Object.assign(S, { x: scene.camera.x, z: scene.camera.z, agl: scene.camera.agl, fovY: scene.camera.fov });
+  Object.assign(cam, { y: scene.camera.y ?? groundH(S.x, S.z) + S.agl, yaw: scene.camera.yaw, pitch: scene.camera.pitch,
+    yawT: scene.camera.yaw, pitchT: scene.camera.pitch, roll: scene.camera.roll, fov: scene.camera.fov, vx: 0, vz: 0 });
+  simMs = scene.environment.time.ms; followNow = scene.environment.time.followNow; S.speed = scene.environment.time.speedIndex; S.time = cityHours(simMs);
+  sceneFreeze = { ...scene.freeze };
+  applySceneWeather(scene.environment.weather);
+  // 时间相位不归零；只清除依赖旧构图的屏幕空间历史和输入惯性。
+  keys.clear(); mouseFlight.reset(); frozenView = null; lastView = null;
+  prev = null; needReset = true; lightKey = ''; skyKey = ''; expo = NaN;
+  trailHist.length = 0; LR.drops.length = 0; streamG = NaN; bolt.t = 99;
+  last = performance.now(); syncSceneControls();
+}
+function previewScene(input, { freezeTime = true, freezeWeather = true } = {}) {
+  const scene = resolveSceneTime(input, LOC.tz);
+  if (!scene) throw new TypeError('无效的风景');
+  if (!preview) preview = { original: captureScene(), weather: structuredClone(WXS), startedAt: performance.now() };
+  preview.selected = scene;
+  const composed = structuredClone(scene);
+  composed.freeze = { time: Boolean(freezeTime), weather: Boolean(freezeWeather) };
+  if (!freezeTime) composed.environment.time = { ...scene.environment.time, followNow: false, speedIndex: Math.max(1, scene.environment.time.speedIndex) };
+  if (!freezeWeather) {
+    composed.settings.wxMode = 'dynamic';
+  }
+  weatherRequest++; loadScene(composed);
+  return captureScene();
+}
+function setPreviewFreeze({ freezeTime = sceneFreeze.time, freezeWeather = sceneFreeze.weather } = {}) {
+  if (!preview) return false;
+  if (sceneFreeze.time !== Boolean(freezeTime)) {
+    const time = freezeTime ? preview.selected.environment.time : { ms: simMs, followNow: false, speedIndex: Math.max(1, S.speed) };
+    simMs = time.ms; followNow = time.followNow; S.speed = time.speedIndex; S.time = cityHours(simMs);
+  }
+  if (sceneFreeze.weather !== Boolean(freezeWeather)) {
+    const source = freezeWeather ? preview.selected : captureScene();
+    for (const key of WEATHER_SETTINGS) S[key] = source.settings[key];
+    applySceneWeather(source.environment.weather);
+    if (!freezeWeather) S.wxMode = 'dynamic';
+  }
+  sceneFreeze = { time: Boolean(freezeTime), weather: Boolean(freezeWeather) };
+  lightKey = ''; skyKey = ''; weatherRequest++; syncSceneControls(); return true;
+}
+function cancelPreview() {
+  if (!preview) return false;
+  const original = preview.original, weather = preview.weather;
+  preview = null; weatherRequest++; loadScene(original); Object.assign(WXS, weather);
+  saveSettings();
+  if (S.wxMode === 'follow' && !sceneFreeze.weather) void syncWeather();
+  return true;
+}
+function commitPreview() {
+  if (!preview) return false;
+  // 先写入成功再清除还原点；存储失败时仍可继续预览和还原。
+  const previous = preview; preview = null;
+  const o = Object.fromEntries(PERSIST_KEYS.filter(key => S[key] !== undefined).map(key => [key, S[key]]));
+  o.world = captureScene();
+  try { const serialized = JSON.stringify(o); localStorage.setItem(SETTINGS_KEY, serialized); settingsSnap = serialized; }
+  catch (error) { preview = previous; document.dispatchEvent(new CustomEvent('worldsettingssaved', { detail: { saved: false } })); throw new Error('无法保存当前世界', { cause: error }); }
+  frozenView = null; syncSceneControls();
+  document.dispatchEvent(new CustomEvent('worldsettingssaved', { detail: { saved: true } }));
+  return true;
+}
+function rejectThumbnail(error) {
+  if (!thumbnailJob) return;
+  const job = thumbnailJob; thumbnailJob = null; clearTimeout(job.timer); job.reject(error);
+}
+function captureThumbnail() {
+  if (thumbnailJob) return Promise.reject(new Error('正在生成封面'));
+  if (contextLost || !animationFrame || document.hidden || (WALLPAPER_MODE && wallpaperSettings.paused)) return Promise.reject(new Error('当前画面已暂停'));
+  return new Promise((resolve, reject) => {
+    const job = { resolve, reject, stage: 'waiting' };
+    job.timer = setTimeout(() => { if (thumbnailJob === job) rejectThumbnail(new Error('生成封面超时')); }, 5000);
+    thumbnailJob = job;
+  });
+}
+function finishThumbnail() {
+  const job = thumbnailJob;
+  if (!job || job.stage !== 'waiting') return;
+  job.stage = 'encoding';
+  try {
+    const output = document.createElement('canvas'); output.width = 480; output.height = 270;
+    const ctx = output.getContext('2d');
+    if (!ctx) throw new Error('无法生成封面');
+    const ratio = Math.max(480 / canvas.width, 270 / canvas.height), width = canvas.width * ratio, height = canvas.height * ratio;
+    ctx.drawImage(canvas, (480 - width) / 2, (270 - height) / 2, width, height);
+    output.toBlob(blob => {
+      if (thumbnailJob !== job) return;
+      if (!blob) { rejectThumbnail(new Error('封面编码失败')); return; }
+      clearTimeout(job.timer); thumbnailJob = null; job.resolve(blob);
+    }, 'image/jpeg', .86);
+  } catch (error) { rejectThumbnail(error); }
+}
+
 function tick(now) {
   animationFrame = 0;
   if (contextLost || (WALLPAPER_MODE && wallpaperSettings.paused)) return;
@@ -1794,15 +1970,31 @@ function tick(now) {
   if (WALLPAPER_MODE && (document.hidden || !frameGate.ready(now, wallpaperSettings.fps))) return;
   try { frame(now); }
   catch (error) {
+    rejectThumbnail(error);
     cancelAnimationFrame(animationFrame); animationFrame = 0;
     console.error('Hanagoyomi 渲染中断', error);
     fail('error.rendering');
   }
 }
+if (restoredScene) loadScene(restoredScene);
+worldReady = true;
+for (const eventName of ['input', 'change']) document.addEventListener(eventName, event => {
+  if (event.target.closest('#panel, #timePopover')) saveSettings();
+});
+document.addEventListener('click', event => {
+  if (event.target.closest('#panel, #timePopover')) queueMicrotask(saveSettings);
+});
+canvas.addEventListener('pointerup', saveSettings);
+window.addEventListener('keyup', saveSettings);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { saveSettings(); rejectThumbnail(new Error('当前画面已暂停')); }
+});
 resize(true);
 animationFrame = requestAnimationFrame(tick);
 
 return {
+  hasRestoredSettings, captureScene, previewScene, setPreviewFreeze, cancelPreview, commitPreview, captureThumbnail,
+  isPreviewing: () => Boolean(preview),
   save: saveSettings,
   resize: () => resize(true),
   setCity(name) {
@@ -1814,7 +2006,7 @@ return {
     if (city) setLocation(cityLoc(city));
   },
   setPaused(paused) {
-    if (paused) { cancelAnimationFrame(animationFrame); animationFrame = 0; saveSettings(); return; }
+    if (paused) { cancelAnimationFrame(animationFrame); animationFrame = 0; saveSettings(); rejectThumbnail(new Error('当前画面已暂停')); return; }
     last = performance.now(); frameGate.reset(); prev = null; needReset = true; skyKey = '';
     statAcc = statFrames = statT = perfFrames = perfAcc = 0;
     keys.clear(); mouseFlight.reset();

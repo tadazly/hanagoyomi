@@ -910,7 +910,7 @@ void main(){
 }`;
 const FINAL_FS = HEAD + POSTCOMMON + `
 uniform sampler2D uScene, uDepth, uDof, uBloom;
-uniform float uDofOn, uBloomI, uNight, uFrameN, uSat, uDrops, uTimeD;
+uniform float uDofOn, uBloomI, uNight, uFrameN, uSat, uDrops, uTimeD, uVignette;
 uniform sampler2D uLens; uniform vec2 uRes; uniform vec3 uShTint, uHiTint, uLift;
 out vec4 o;
 float ign(vec2 p){ return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
@@ -955,7 +955,7 @@ void main(){
   col = mix(col, ln * mix(vec3(0.62, 0.78, 1.15), vec3(0.88, 0.96, 1.07), uLowSaturation), uNight * mix(0.55, 0.32, uLowSaturation) * (1.0 - smoothstep(0.45, 0.8, ln)));
   col += (ign(gl_FragCoord.xy + vec2(uFrameN * 5.588, uFrameN * 3.271)) - 0.5) * mix(0.03, 0.008, uLowSaturation) * uNight;
   vec2 q = vUv - 0.5;
-  col *= 1.0 - mix(0.32, 0.12, uLowSaturation) * dot(q * vec2(uRes.x / uRes.y, 1.0), q * vec2(uRes.x / uRes.y, 1.0)) * 0.9;
+  col *= 1.0 - 0.32 * uVignette * dot(q * vec2(uRes.x / uRes.y, 1.0), q * vec2(uRes.x / uRes.y, 1.0)) * 0.9;
   col += (ign(gl_FragCoord.xy + 17.0) - 0.5) / 255.0;
   o = vec4(col, 1.0);
 }`;

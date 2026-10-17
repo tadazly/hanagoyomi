@@ -10,15 +10,15 @@
   --track: rgba(69, 80, 58, .14);
   --thumb: #fff;
   --serif: 'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, serif;
-  --ui: 'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, serif;
+  --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans', 'Microsoft YaHei', sans-serif;
   font-family: var(--ui);
   font-synthesis: none;
   color: var(--ink);
   background: #52645a;
   -webkit-font-smoothing: antialiased;
 }
-:root:lang(ja) { --serif: 'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', serif; --ui: var(--serif); }
-:root:lang(en) { --serif: Georgia, 'Times New Roman', 'Yu Mincho', serif; --ui: Georgia, 'Times New Roman', serif; }
+:root:lang(ja) { --serif: 'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', serif; }
+:root:lang(en) { --serif: Georgia, 'Times New Roman', 'Yu Mincho', serif; }
 *, *::before, *::after { box-sizing: border-box; }
 html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 button, input, select { font: inherit; }
@@ -217,3 +217,87 @@ kbd { display: inline-block; min-width: 16px; font: 10px system-ui, sans-serif; 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
 }
+
+/* 与画廊共用暖白、鼠尾草绿和衬线标题，控件使用清晰的系统字体。 */
+.panel { width: 380px; max-width: calc(100vw - 24px); border-radius: 20px; background: rgba(245, 242, 237, .96); font-size: 13px; }
+.panel-heading { gap: 10px; padding: 14px 20px 8px; flex-shrink: 0; }
+.panel-heading h2 { font-size: 24px; letter-spacing: .035em; }
+.panel-heading .plain-icon { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; }
+.panel-status { margin-left: auto; color: var(--ink-soft); font-size: 11px; white-space: nowrap; }
+.panel-status[data-saved='false'] { color: #8b5d42; }
+.panel-body { min-height: 0; flex: 1; padding: 16px 20px 10px; }
+.panel-body h2 { font-family: var(--serif); font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.panel-body h2::after { content: ''; flex: 1; height: 1px; background: var(--track); }
+.panel-footer { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 20px 12px; border-top: 1px solid var(--track); }
+.panel-footer p { margin: 0; color: var(--ink-soft); font-size: 11px; line-height: 1.6; }
+.panel-footer .btn { width: auto; min-width: 96px; min-height: 44px; margin: 0; padding-inline: 14px; flex-shrink: 0; font-size: 12px; border-radius: 10px; }
+.panel :is(.tabs button, .chip, .seg label, .btn, .component-default, .advanced summary) { min-height: 44px; }
+.panel :is(input[type='range'], .switch) { min-height: 44px; }
+.panel .switch { margin-block: 0; font-size: 13px; }
+.panel .tabs { margin: 0 20px; }
+.panel .tabs button { font-size: 13px; padding: 10px 0; }
+.panel .ctl { grid-template-columns: minmax(80px, auto) minmax(60px, 1fr) max-content; gap: 12px; margin: 4px 0; align-items: center; }
+.panel .ctl > span { grid-column: 1; font-size: 13px; max-width: 110px; }
+.panel .ctl > output { grid-column: 3; grid-row: 1; font-size: 13px; min-width: 36px; text-align: right; }
+.panel .ctl > input { grid-column: 2; grid-row: 1; }
+.panel .btn, .panel .chip, .panel .ctl-label { font-size: 13px; }
+.panel .advanced summary { min-height: 44px; padding: 11px 0; font-size: 13px; }
+.panel .settings-helper { color: var(--ink-soft); font-size: 11px; line-height: 1.6; margin: 2px 0 10px; }
+.panel .settings-detail-body { padding: 6px 0 10px; }
+.panel .settings-detail-body .advanced { margin-top: 8px; }
+.panel .language-field { margin: 0 0 12px; font-size: 13px; }
+.panel .component-intro { font-size: 11px; margin-bottom: 10px; }
+.panel .component-card { padding-bottom: 10px; margin-bottom: 10px; }
+.panel .loc-now { font-size: 20px; margin: 10px 0; }
+.panel .loc-sub { font-size: 11px; }
+.location-block { position: relative; }
+.location-summary { display: flex; align-items: center; gap: 14px; min-height: 44px; padding-right: 108px; }
+.location-summary > span { color: var(--ink-soft); font-size: 13px; }
+.location-summary strong { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.location-picker > summary { position: absolute; top: 0; right: 0; min-height: 44px; display: grid; place-items: center; padding: 8px 12px; border: 1px solid rgba(90,105,77,.6); border-radius: 9px; cursor: pointer; font-size: 12px; list-style: none; }
+.location-picker > summary::-webkit-details-marker { display: none; }
+.location-picker[open] > summary { background: var(--track); }
+.location-picker .settings-detail-body { padding-top: 10px; }
+.panel .seg { gap: 0; padding: 0; border: 1px solid rgba(69, 80, 58, .25); background: transparent; border-radius: 10px; overflow: hidden; }
+.panel .seg label { display: flex; align-items: center; }
+.panel .seg span { width: 100%; min-height: 44px; display: grid; place-items: center; padding: 7px 3px; border-radius: 0; font-size: 13px; }
+.panel .seg label + label { border-left: 1px solid var(--track); }
+.panel .seg input:checked + span { background: var(--sun); color: #fff; box-shadow: none; }
+.wallpaper-language-field { display: block; }
+.wallpaper-language-options { margin-top: 9px; }
+.wallpaper-language-options button { min-height: 44px; padding: 9px 3px; border-radius: 0; font-size: 12px; }
+.wallpaper-language-options button + button { border-left: 1px solid var(--track); }
+.wallpaper-language-options button[aria-pressed='true'] { color: #fff; background: var(--sun); box-shadow: none; }
+.height-presets button { min-height: 44px; border: 0; border-radius: 0; background: transparent; font-size: 13px; color: var(--ink-soft); }
+.height-presets button + button { border-left: 1px solid var(--track); }
+.height-presets button[aria-pressed='true'] { background: var(--sun); color: #fff; }
+.wallpaper-scroll-controls { position: absolute; inset: 4px 2px 4px auto; width: 44px; display: grid; grid-template-rows: 44px minmax(0, 1fr) 44px; justify-items: center; }
+.wallpaper-scroll-controls .wallpaper-scrollbar { position: relative; inset: auto; width: 14px; height: 100%; }
+.wallpaper-scroll-arrow { display: grid; place-items: center; border: 0; border-radius: 10px; width: 44px; height: 44px; font: 21px/1 system-ui, sans-serif; color: var(--ink-soft); background: transparent; }
+.wallpaper-scroll-arrow:hover:not(:disabled) { background: var(--track); }
+.wallpaper-scroll-arrow:disabled { opacity: .25; cursor: default; }
+.wallpaper-scroll-region .panel-body { padding-right: 48px; }
+.wallpaper-scroll-region .help-body { min-height: 0; flex: 1; padding-right: 44px; scrollbar-width: none; }
+.wallpaper-scroll-region .help-body::-webkit-scrollbar { display: none; }
+.wallpaper-scroll-region .time-popover-body { min-height: 0; flex: 1; padding-right: 44px; scrollbar-width: none; }
+.wallpaper-scroll-region .time-popover-body::-webkit-scrollbar { display: none; }
+body[data-wallpaper='true'] .panel { top: 104px; max-height: calc(100dvh - 232px); }
+body[data-wallpaper='true'] .help-controls, body[data-wallpaper='true'] .touch-help { display: none; }
+@media (max-width: 700px) {
+  .panel { width: calc(100vw - 24px); max-width: 380px; left: auto; right: 12px; }
+  .panel-heading { padding-inline: 20px; }
+  .panel-heading h2 { font-size: 24px; }
+  .panel-footer { padding: 10px 20px 12px; gap: 12px; }
+  .panel-footer .btn { min-width: 80px; }
+  body[data-wallpaper='true'] .panel { top: auto; bottom: 126px; max-height: calc(100dvh - 154px); }
+}
+@media (max-height: 600px) and (min-width: 701px) {
+  body[data-wallpaper='true'] .panel { top: 16px; max-height: calc(100dvh - 124px); }
+  .panel-heading { padding-top: 14px; padding-bottom: 8px; }
+}
+
+/* 展示文字不产生选区；输入仍保留编辑，滚动内容可直接拖动。 */
+.chrome { -webkit-user-select: none; user-select: none; }
+.chrome :is(input[type='search'], input[type='text'], textarea, [contenteditable='true']) { -webkit-user-select: text; user-select: text; cursor: text; }
+body[data-wallpaper='true'] :is(.panel-body, .help-body, .time-popover-body) { cursor: grab; }
+body[data-wallpaper='true'] :is(.panel-body, .help-body, .time-popover-body).is-dragging { cursor: grabbing; }

@@ -13,10 +13,10 @@ function element(values = {}) {
   }, values);
 }
 function fixture() {
-  const region = element(), eventTarget = element(), thumb = element();
+  const region = element(), eventTarget = element(), thumb = element(), upButton = element(), downButton = element(), controls = element();
   const viewport = element({ scrollTop: 0, clientHeight: 200, scrollHeight: 1000, parentElement: region });
   const track = element({ clientHeight: 200 });
-  const refresh = bindWallpaperScroll({ viewport, track, thumb, eventTarget });
+  const refresh = bindWallpaperScroll({ viewport, track, thumb, upButton, downButton, controls, eventTarget });
   refresh();
   const emit = (target, type, data = {}) => {
     const event = { target, button: 0, deltaMode: 0, defaultPrevented: false, stopped: false,
@@ -24,7 +24,7 @@ function fixture() {
     for (const handler of target.listeners.get(type) || []) handler(event);
     return event;
   };
-  return { region, eventTarget, thumb, viewport, track, refresh, emit };
+  return { region, eventTarget, thumb, viewport, track, upButton, downButton, controls, refresh, emit };
 }
 
 test('页面收到的滚轮直接滚动内容，像素、行、页单位均生效且不会重复触发原生滚动', () => {
@@ -118,4 +118,36 @@ test('滚动条支持键盘翻页和首尾定位，事件不传播到场景操�
   assert.equal(f.viewport.scrollTop, 800);
   f.emit(f.track, 'keydown', { key: 'Home' });
   assert.equal(f.viewport.scrollTop, 0);
+});
+
+test('上下按钮在无滚轮与键盘时可翻阅设置，并在首尾正确禁用', () => {
+  const f = fixture();
+  assert.equal(f.upButton.disabled, true);
+  assert.equal(f.downButton.disabled, false);
+  f.emit(f.downButton, 'click');
+  assert.equal(f.viewport.scrollTop, 120);
+  assert.equal(f.upButton.disabled, false);
+  for (let i = 0; i < 8; i++) f.emit(f.downButton, 'click');
+  assert.equal(f.viewport.scrollTop, 800);
+  assert.equal(f.downButton.disabled, true);
+  f.emit(f.upButton, 'click');
+  assert.equal(f.viewport.scrollTop, 680);
+  f.viewport.scrollHeight = 100; f.refresh();
+  assert.equal(f.controls.hidden, true);
+});
+
+test('滚动布局稳定后不再写入 hidden，避免容器 MutationObserver 无限自触发', () => {
+  const f = fixture();
+  let hidden = f.controls.hidden, mutations = 0, pending = false;
+  Object.defineProperty(f.controls, 'hidden', {
+    get: () => hidden,
+    set(value) { hidden = value; mutations++; pending = true; },
+  });
+  f.viewport.scrollHeight = 100;
+  f.refresh();
+  // 浏览器会为重复写同值的 reflected boolean attribute 继续派发变更。
+  for (let i = 0; pending && i < 10; i++) { pending = false; f.refresh(); }
+  assert.equal(pending, false);
+  assert.equal(mutations, 1);
+  assert.equal(hidden, true);
 });

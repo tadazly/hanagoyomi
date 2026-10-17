@@ -87,19 +87,23 @@ npm run preview   # Preview the production build at http://127.0.0.1:4173/
 
 Settings stay in the current browser. Moving the time slider or changing its speed enters simulated time; **Back to now** restores real local time. Weather continues to follow current observations, so changing the simulated clock does not retrieve historical weather.
 
-On desktop, click the toolbar's time status to open a compact time panel. It shares its controls with World settings. Constellation lines and orientation are under **Landscape → Astronomy**.
+Open **Gallery** to browse a continuous horizontal strip of scenes. Drag the cards, swipe on touchscreens, or use the track below them. Previewing preserves your current world; close or choose **Restore** to return, and choose **Apply to world** to keep the scene. Time and weather can be held independently while grass, clouds and rain keep moving. **Save moment** stores the current scene and a small JPEG cover locally, with up to 24 saved scenes.
 
-In **World settings → Components**, show or hide the LOGO, time and weather, and controls hint independently. Only time and weather offer nine screen positions or an adaptive default, with room kept for the LOGO, hint, and toolbar. The LOGO and hint keep their adaptive positions. Preferences stay in the current browser.
+On desktop, click the toolbar's time status to open a compact time panel. It shares its controls with World settings. Constellation lines and orientation are under **Visuals → Sky and stars**.
 
-Weather display options and **Open world settings on startup** are also under **Components**. The startup option becomes available after choosing an observation location and is off by default. Controls help remains accessible here when the hint is hidden.
+In **World settings → Interface**, show or hide the LOGO, time and weather, and controls hint independently. Only time and weather offer nine screen positions or an adaptive default, with room kept for the LOGO, hint, and toolbar. The LOGO and hint keep their adaptive positions. Preferences stay in the current browser.
 
-Turn off **Components → Scene interaction** to disable mouse, keyboard, wheel, and touch controls and hide the hint. **Landscape → Camera → Auto flight** remains independent: it continues flying when enabled, and turning it off as well locks the camera position, orientation, and field of view. Settings remain usable; enabling interaction restores the saved hint preference. This switch stays saved in the current browser.
+Weather display options and **Open world settings on startup** are also under **Interface**. The startup option becomes available after choosing an observation location and is off by default. Controls help remains accessible here when the hint is hidden.
+
+Turn off **Basics → Manual controls** to disable mouse, keyboard, wheel, and touch controls and hide the hint. **Basics → Auto flight** remains independent: it continues flying when enabled, and turning it off as well locks the camera position, orientation, and field of view. Settings remain usable; enabling interaction restores the saved hint preference. This switch stays saved in the current browser.
 
 In immersive mode, **Show interface** hides after four seconds. Move the pointer to the bottom-right corner or tap that corner to reveal it. It stays visible while the pointer is nearby and hides four seconds after leaving. **Tab** can also reveal the button; **Esc** returns to the interface.
 
 ## Wallpaper Engine
 
 Run `npm run build:wallpaper` and import `dist-wallpaper/index.html` into Wallpaper Engine. This separate build starts at high quality with automatic flight and manual interaction disabled, and includes native properties and an auto-hiding toolbar. See [build and acceptance notes](docs/WALLPAPER_ENGINE.md).
+
+Open [`?wallpaper=1`](https://hanagoyomi.luyilabs.com/?wallpaper=1) to preview the same wallpaper experience in a browser or add that URL to Plash on Mac. Enable Plash’s Browsing Mode to change settings. Preferences are saved in the current host and restored on reload.
 
 ## Interface language
 
@@ -110,7 +114,7 @@ The interface supports Simplified Chinese, Japanese and English. On first load, 
 3. The browser's system time zone (`Intl.DateTimeFormat().resolvedOptions().timeZone`): Japanese for Japan; Simplified Chinese for mainland China, Hong Kong, Macau and Taiwan.
 4. English when the available signals cannot be read, recognized or matched.
 
-Change **World settings → Language** to update the interface immediately without reloading. Choose **Automatic** to restore detection. City search accepts Chinese, Japanese and English names. Language detection requests no geolocation permission and sends neither language nor time zone to external services.
+Change **World settings → Interface → Language** to update the interface immediately without reloading. Choose **Automatic** to restore detection. City search accepts Chinese, Japanese and English names. Language detection requests no geolocation permission and sends neither language nor time zone to external services.
 
 ## Where to start reading
 

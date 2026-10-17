@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { gradeAt } from '../src/rendering/landscape-look.js';
 import { project } from '../wallpaper/project.js';
+import { displayPreferences } from '../src/rendering/world.js';
 
 test('默认配色兼容原有昼夜调色，低饱和方案保留黄昏暖色与夜间冷色', () => {
   assert.deepEqual(gradeAt(0), { sat: 1.2, sh: [0.9, 0.92, 1.1], hi: [1.15, 0.96, 0.8], lift: [0.035, 0.025, 0.03] });
@@ -12,6 +13,20 @@ test('默认配色兼容原有昼夜调色，低饱和方案保留黄昏暖色�
   assert.ok(night.lift.every((value, i) => value < gradeAt(-40).lift[i]));
   assert.equal(project.general.properties.lowsaturation.type, 'bool');
   assert.equal(project.general.properties.lowsaturation.value, false);
+});
+
+test('旧世界缺少暗角偏好时默认开启，本机显式关闭经过存储往返仍保留', () => {
+  const stored = new Map(), storage = { getItem: key => stored.get(key), setItem: (key, value) => stored.set(key, value) };
+  storage.setItem('settings', JSON.stringify({ lowSaturation: true, world: { version: 1, settings: { lowSaturation: true } } }));
+  assert.deepEqual(displayPreferences(JSON.parse(storage.getItem('settings'))), { vignette: true });
+  storage.setItem('settings', JSON.stringify({ lowSaturation: false, vignette: false, world: { version: 1, settings: {} } }));
+  assert.deepEqual(displayPreferences(JSON.parse(storage.getItem('settings'))), { vignette: false });
+  for (const value of [undefined, null, {}, { vignette: 'false' }, { vignette: 0 }]) assert.deepEqual(displayPreferences(value), { vignette: true });
+  const property = project.general.properties.vignette;
+  assert.equal(property.type, 'bool'); assert.equal(property.value, true);
+  assert.equal(project.general.localization['zh-chs'][property.text], '暗角');
+  assert.equal(project.general.localization['en-us'][property.text], 'Vignette');
+  assert.equal(project.general.localization['ja-jp'][property.text], '周辺減光');
 });
 
 test('日夜分界连续插值，极端太阳高度有界，返回值不会污染后续帧', () => {

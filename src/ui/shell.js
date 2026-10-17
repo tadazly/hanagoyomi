@@ -49,7 +49,7 @@ function initToolbarVisibility() {
   document.body.append(zone);
   let timer, wakeTouchPointer = null;
   const hovered = new Set();
-  const held = () => hovered.size > 0 || !$('panel').hidden || !$('timePopover').hidden || $('helpDialog').open || Boolean(toolbar.querySelector(':focus-visible'));
+  const held = () => hovered.size > 0 || document.body.dataset.galleryOpen === 'true' || !$('panel').hidden || !$('timePopover').hidden || $('helpDialog').open || Boolean(toolbar.querySelector(':focus-visible'));
   const positionZone = () => {
     const rect = toolbar.getBoundingClientRect();
     const top = WALLPAPER_MODE ? Math.max(0, window.innerHeight - 160) : 0;
@@ -103,7 +103,7 @@ function initToolbarVisibility() {
     if (records.some(record => record.attributeName === 'data-immersive') || held()) reveal();
     else hideLater();
   });
-  changes.observe(document.body, { attributes: true, attributeFilter: ['data-panel-open', 'data-immersive'] });
+  changes.observe(document.body, { attributes: true, attributeFilter: ['data-panel-open', 'data-immersive', 'data-gallery-open'] });
   changes.observe($('timePopover'), { attributes: true, attributeFilter: ['hidden'] });
   changes.observe($('helpDialog'), { attributes: true, attributeFilter: ['open'] });
   new ResizeObserver(positionZone).observe(toolbar);
@@ -211,33 +211,61 @@ export function showToast(key) {
   toastTimer = setTimeout(() => { $('toast').hidden = true; }, 3500);
 }
 
+export function bindTimePopoverPosition({ popover, trigger, wallpaper = WALLPAPER_MODE, eventTarget = window, resizeObserver = globalThis.ResizeObserver }) {
+  const setStyle = (name, value) => { if (popover.style[name] !== value) popover.style[name] = value; };
+  const position = () => {
+    if (popover.hidden) return;
+    if (!trigger.getClientRects().length) {
+      popover.hidden = true;
+      if (trigger.getAttribute('aria-expanded') !== 'false') trigger.setAttribute('aria-expanded', 'false');
+      return;
+    }
+    const anchor = trigger.getBoundingClientRect();
+    // 壁纸浮层的可用高度只取决于工具栏位置，避免高度与 top 相互反馈。
+    const maxHeight = Math.max(0, wallpaper ? anchor.top - 24 : eventTarget.innerHeight - anchor.bottom - 24);
+    setStyle('maxHeight', `${maxHeight}px`);
+    const left = Math.max(12, Math.min(anchor.right - popover.offsetWidth, eventTarget.innerWidth - popover.offsetWidth - 12));
+    const top = wallpaper ? Math.max(12, anchor.top - popover.offsetHeight - 12) : anchor.bottom + 12;
+    setStyle('left', `${left}px`); setStyle('top', `${top}px`);
+  };
+  popover.addEventListener('toggle', position, true);
+  eventTarget.addEventListener('resize', position);
+  (popover.ownerDocument || eventTarget.document)?.addEventListener('fullscreenchange', position);
+  if (resizeObserver) {
+    const observer = new resizeObserver(position);
+    observer.observe(popover); observer.observe(trigger);
+  }
+  return position;
+}
+
 export function initShell() {
   initTimeControls();
   populateIcons();
-  if (WALLPAPER_MODE) initWallpaperScrolling();
+  if (WALLPAPER_MODE) {
+    initWallpaperScrolling();
+    initWallpaperScrolling({ viewport: document.querySelector('.help-body'), container: $('helpDialog') });
+    initWallpaperScrolling({ viewport: $('quickTimeControls'), container: $('timePopover') });
+  }
   translateDocument();
   const components = initComponentSettings();
+  // 壁纸 LOGO 的位置控件由组件模块克隆，移动已有节点以保留绑定与存储合同。
+  const logoPlacement = document.querySelector('[data-component-settings="logo"] .component-placement');
+  if (logoPlacement && !logoPlacement.closest('details')) {
+    const details = document.createElement('details'), summary = document.createElement('summary'), title = document.createElement('span'), body = document.createElement('div');
+    details.className = 'advanced'; body.className = 'settings-detail-body';
+    setMessage(title, 'components.position'); summary.append(title);
+    summary.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>');
+    logoPlacement.before(details); body.append(logoPlacement); details.append(summary, body);
+  }
   revealWeatherSource = initWeatherSource();
   const setRestoreButton = initRestoreButton();
   const timePopover = $('timePopover'), timeTrigger = $('liveStatus');
-  const positionTimePopover = () => {
-    if (timePopover.hidden) return;
-    if (!timeTrigger.getClientRects().length) {
-      timePopover.hidden = true;
-      timeTrigger.setAttribute('aria-expanded', 'false');
-      return;
-    }
-    const anchor = timeTrigger.getBoundingClientRect();
-    const left = Math.max(12, Math.min(anchor.right - timePopover.offsetWidth, window.innerWidth - timePopover.offsetWidth - 12));
-    const top = WALLPAPER_MODE ? Math.max(12, anchor.top - timePopover.offsetHeight - 12) : anchor.bottom + 12;
-    timePopover.style.left = `${left}px`;
-    timePopover.style.top = `${top}px`;
-    timePopover.style.maxHeight = `${Math.max(0, window.innerHeight - top - 12)}px`;
-  };
+  const positionTimePopover = bindTimePopoverPosition({ popover: timePopover, trigger: timeTrigger });
   const setTimePopover = (open, restoreFocus = false) => {
     timePopover.hidden = !open;
     timeTrigger.setAttribute('aria-expanded', String(open));
     if (open) {
+      document.dispatchEvent(new CustomEvent('worldpanelopen', { detail: { panel: 'time' } }));
       positionTimePopover();
       $('quick-time').focus({ preventScroll: true });
     } else if (restoreFocus) timeTrigger.focus({ preventScroll: true });
@@ -249,8 +277,6 @@ export function initShell() {
   };
   document.addEventListener('pointerdown', dismissTimePopover);
   document.addEventListener('focusin', dismissTimePopover);
-  window.addEventListener('resize', positionTimePopover);
-  document.addEventListener('fullscreenchange', positionTimePopover);
   initLanguageControls();
   const refreshLabels = () => {
     $('panelToggle').setAttribute('aria-label', t($('panel').hidden ? 'panel.open' : 'panel.close'));
@@ -265,6 +291,10 @@ export function initShell() {
     positionTimePopover();
   });
   const setPanel = (open, restoreFocus = false) => {
+    if (open) {
+      setTimePopover(false);
+      document.dispatchEvent(new CustomEvent('worldpanelopen', { detail: { panel: 'world' } }));
+    }
     document.body.dataset.panelOpen = String(open);
     $('panel').hidden = !open;
     $('panel').dataset.open = String(open);
@@ -272,6 +302,15 @@ export function initShell() {
     refreshLabels();
     if (restoreFocus) $('panelToggle').focus();
   };
+  document.addEventListener('galleryopen', () => {
+    setTimePopover(false); setPanel(false);
+    if ($('helpDialog').open) $('helpDialog').close();
+  });
+  document.addEventListener('worldsettingssaved', event => {
+    const saved = event.detail?.saved === true;
+    setMessage($('panelSaveStatus'), saved ? 'panel.saved' : 'panel.saveUnavailable');
+    $('panelSaveStatus').dataset.saved = String(saved);
+  });
   const selectTab = (name, focus = false) => {
     document.querySelectorAll('[data-tab]').forEach(btn => {
       const selected = btn.dataset.tab === name;
@@ -309,7 +348,22 @@ export function initShell() {
   setPanel(WALLPAPER_MODE ? openOnStartup : savedLocation ? openOnStartup : !narrow.matches);
   $('panelToggle').addEventListener('click', () => setPanel($('panel').hidden));
   $('panelClose').addEventListener('click', () => setPanel(false, true));
-  $('placeBtn').addEventListener('click', () => { setPanel(true); selectTab('now'); $('citySearch').focus(); });
+  $('placeBtn').addEventListener('click', () => {
+    setPanel(true); selectTab('now'); $('locationPicker').open = true;
+    if (!WALLPAPER_MODE) $('citySearch').focus();
+  });
+  const heightInput = $('height'), heightPresets = [...document.querySelectorAll('[data-height-preset]')];
+  const refreshHeightPresets = () => heightPresets.forEach(button => {
+    button.setAttribute('aria-pressed', String(Math.abs(Number(heightInput.value) - Number(button.dataset.heightPreset)) < .5));
+  });
+  heightPresets.forEach(button => button.addEventListener('click', () => {
+    heightInput.value = button.dataset.heightPreset;
+    heightInput.dispatchEvent(new Event('input', { bubbles: true }));
+    refreshHeightPresets();
+  }));
+  heightInput.addEventListener('input', refreshHeightPresets);
+  document.addEventListener('worldscenechange', refreshHeightPresets);
+  refreshHeightPresets();
   const setImmersive = (active) => {
     if (active) setTimePopover(false);
     document.body.dataset.immersive = String(active);
@@ -330,8 +384,14 @@ export function initShell() {
   };
   $('fullscreenBtn').addEventListener('click', fullscreen);
   document.addEventListener('fullscreenchange', refreshLabels);
-  $('helpBtn').addEventListener('click', () => { setTimePopover(false); $('helpDialog').showModal(); });
-  $('componentHelpBtn').addEventListener('click', () => { setTimePopover(false); $('helpDialog').showModal(); });
+  const openHelp = () => {
+    setTimePopover(false);
+    document.dispatchEvent(new CustomEvent('worldpanelopen', { detail: { panel: 'help' } }));
+    $('helpDialog').showModal();
+  };
+  $('helpBtn').addEventListener('click', openHelp);
+  $('componentHelpBtn').addEventListener('click', openHelp);
+  $('panelHelpBtn').addEventListener('click', openHelp);
   $('helpClose').addEventListener('click', () => $('helpDialog').close());
   $('helpDialog').addEventListener('click', e => { if (e.target === $('helpDialog')) $('helpDialog').close(); });
   $('reloadBtn').addEventListener('click', () => location.reload());
@@ -356,9 +416,33 @@ export function initShell() {
     document.querySelector('.github-button').hidden = true;
     document.querySelector('.workshop-button').hidden = true;
     $('geoBtn').hidden = true;
+    if (window.hanagoyomiWallpaper) {
+      $('citySearch').closest('.search-field').hidden = true;
+      $('cityResults').hidden = true;
+    }
+    // 仍保留署名和完整设置，去除桌面宿主无法可靠完成的页面跳转。
+    document.querySelectorAll('[data-about-link]').forEach(link => {
+      if (link.classList.contains('wordmark')) {
+        const name = document.createElement('span'); name.className = 'wordmark'; name.textContent = link.textContent; link.replaceWith(name);
+      } else link.closest('p')?.remove();
+    });
+    document.querySelectorAll('a[href]').forEach(link => {
+      const text = document.createElement('span');
+      text.className = link.className; text.textContent = link.textContent; text.hidden = link.hidden;
+      if (link.dataset.i18n) setMessage(text, link.dataset.i18n);
+      link.replaceWith(text);
+    });
+    document.querySelector('.help-controls').hidden = true;
+    document.querySelector('.touch-help').hidden = true;
+    const help = document.createElement('p'); setMessage(help, 'wallpaper.help');
+    document.querySelector('.help-body').prepend(help);
+    const interactionNote = document.querySelector('[data-i18n="components.interactionDescription"]');
+    if (interactionNote) setMessage(interactionNote, 'wallpaper.interactionDescription');
+    $('immersiveBtn').dataset.i18nTitle = 'immersive.enter';
+    $('immersiveBtn').title = t('immersive.enter');
   }
   initToolbarVisibility();
-  return { components, setPanel };
+  return { components, setPanel, setTimePopover };
 }
 
 export function updateObservation(state) {
@@ -390,7 +474,10 @@ export function updateObservation(state) {
   // 每半秒的观测刷新不重置隐藏计时，也不重建正在聚焦的来源链接。
   if (sourceKey !== lastSourceKey) {
     lastSourceKey = sourceKey;
-    if (live) {
+    if (live && WALLPAPER_MODE) {
+      source.textContent = `${t(live.cached ? 'weather.source.cached' : 'weather.data')} Open-Meteo${state.airQuality ? ` · ${t('weather.airQuality')} Open-Meteo / CAMS` : ''}`;
+      source.title = t('weather.fetched', { time: new Date(live.fetchedAt).toLocaleTimeString(getLocale(), { timeZone: loc.tz }) });
+    } else if (live) {
       let link = source.querySelector('a');
       if (!link) {
         link = document.createElement('a');

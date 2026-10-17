@@ -42,38 +42,62 @@
     <div class="time-popover-body" id="quickTimeControls"></div>
   </aside>
   <aside class="panel glass chrome" id="panel" aria-label="World settings" data-i18n-aria-label="panel.title" data-open="false" hidden>
-    <div class="panel-heading"><h2 data-i18n="panel.title">World settings</h2><button class="plain-icon" id="panelClose" aria-label="Close world settings" data-i18n-aria-label="panel.close"><span data-icon="close"></span></button></div>
-    <label class="language-field"><span data-i18n="language.label">Language</span><select id="languageSelect" aria-label="Language" data-i18n-aria-label="language.label"><option value="auto" data-i18n="language.auto">Automatic</option><option value="en" lang="en">English</option><option value="zh" lang="zh-CN">简体中文</option><option value="ja" lang="ja">日本語</option></select></label>
+    <div class="panel-heading"><h2 data-i18n="panel.title">World settings</h2><span class="panel-status" id="panelSaveStatus" role="status" data-i18n="panel.autoSave">Auto-save</span><button class="plain-icon" id="panelClose" aria-label="Close world settings" data-i18n-aria-label="panel.close"><span data-icon="close"></span></button></div>
     <div class="tabs" role="tablist" aria-label="Settings categories" data-i18n-aria-label="panel.tabs">
-      <button role="tab" id="tab-now" aria-controls="pane-now" aria-selected="true" data-tab="now" data-i18n="tab.now">Now</button>
+      <button role="tab" id="tab-now" aria-controls="pane-now" aria-selected="true" data-tab="now" data-i18n="tab.now">Basics</button>
       <button role="tab" id="tab-weather" aria-controls="pane-weather" aria-selected="false" tabindex="-1" data-tab="weather" data-i18n="tab.weather">Weather</button>
-      <button role="tab" id="tab-landscape" aria-controls="pane-landscape" aria-selected="false" tabindex="-1" data-tab="landscape" data-i18n="tab.landscape">Landscape</button>
-      <button role="tab" id="tab-components" aria-controls="pane-components" aria-selected="false" tabindex="-1" data-tab="components" data-i18n="tab.components">Components</button>
+      <button role="tab" id="tab-landscape" aria-controls="pane-landscape" aria-selected="false" tabindex="-1" data-tab="landscape" data-i18n="tab.landscape">Visuals</button>
+      <button role="tab" id="tab-components" aria-controls="pane-components" aria-selected="false" tabindex="-1" data-tab="components" data-i18n="tab.components">Interface</button>
     </div>
     <div class="panel-body" id="panelBody">
       <section id="pane-now" role="tabpanel" aria-labelledby="tab-now">
-        <h2 data-i18n="location.title">Observation location</h2>
-        <p class="loc-now" id="locName">Tokyo</p>
-        <p class="loc-sub" id="locCoords">35.68° N · 139.65° E</p>
+        <h2 data-i18n="settings.placeTime">Place and time</h2>
+        <div class="location-block">
+          <div class="location-summary"><span data-i18n="settings.place">Place</span><strong id="locName">Tokyo</strong></div>
+          <details class="location-picker" id="locationPicker"><summary data-i18n="settings.changePlace">Change place</summary><div class="settings-detail-body"><p class="loc-sub" id="locCoords">35.68° N · 139.65° E</p>
         <div class="search-field"><span data-icon="search" aria-hidden="true"></span><input type="search" id="citySearch" placeholder="Find a city" data-i18n-placeholder="location.searchPlaceholder" autocomplete="off" aria-label="Search cities" data-i18n-aria-label="location.searchLabel"></div>
         <div class="chips search-results" id="cityResults" aria-live="polite"></div>
         <div class="chips city-common" id="cityCommon"></div>
         <button class="btn outline" id="geoBtn" type="button"><span data-icon="location"></span><span data-i18n="location.useMine">Use my location</span></button>
         <p class="loc-sub feedback" id="geoMsg" role="status"></p>
-        <div class="divider"></div>
-        <h2 data-i18n="time.title">Time</h2>
-        <div id="timeControls"></div>
-        <p id="locSun" class="sr-only"></p>
+        </div></details>
+        </div>
+        <p class="settings-helper" data-i18n="settings.locationNote"></p>
+        <div id="timeControls"></div><p id="locSun" class="sr-only"></p>
+        <h2 data-i18n="settings.explore">Exploration</h2>
+        <label class="switch"><span data-i18n="camera.auto">Auto flight</span><input type="checkbox" id="auto"><i></i></label>
+        <label class="switch"><span data-i18n="components.interaction">Scene interaction</span><input type="checkbox" id="interactionEnabled" checked><i></i></label>
+        <p class="settings-helper" data-i18n="settings.interactionNote"></p>
+        <label class="ctl"><span data-i18n="camera.height">Height above ground</span><output for="height"></output><input type="range" id="height" min="0" max="1000" step="1"></label>
+        <div class="seg seg3 height-presets" role="group" aria-label="View height presets" data-i18n-aria-label="settings.heightPresets">
+          <button type="button" data-height-preset="0" aria-pressed="false" data-i18n="settings.heightMeadow">Meadow</button>
+          <button type="button" data-height-preset="100" aria-pressed="false" data-i18n="settings.heightHills">Hills</button>
+          <button type="button" data-height-preset="600" aria-pressed="false" data-i18n="settings.heightClouds">Clouds</button>
+        </div>
       </section>
-      <section id="pane-weather" role="tabpanel" aria-labelledby="tab-weather" hidden><h2 data-i18n="weather.mode">Weather mode</h2>
-      <div class="seg seg-sm" role="radiogroup" aria-label="Weather mode" data-i18n-aria-label="weather.mode">
-        <label><input type="radio" name="wxMode" value="follow"><span data-i18n="weather.follow">Local</span></label>
-        <label><input type="radio" name="wxMode" value="dynamic"><span data-i18n="weather.dynamic">Dynamic</span></label>
-        <label><input type="radio" name="wxMode" value="manual"><span data-i18n="weather.manual">Manual</span></label>
-        <label><input type="radio" name="wxMode" value="off"><span data-i18n="common.off">Off</span></label>
-      </div>
-      <p class="loc-now" id="wxNow">Partly cloudy</p>
-      <dl class="weather-metrics" id="panelWeatherMetrics" hidden>
+      <section id="pane-weather" role="tabpanel" aria-labelledby="tab-weather" hidden>
+        <h2 data-i18n="weather.mode">Weather mode</h2>
+        <div class="seg weather-modes" role="radiogroup" aria-label="Weather mode" data-i18n-aria-label="weather.mode">
+          <label><input type="radio" name="wxMode" value="follow"><span data-i18n="weather.follow">Local weather</span></label>
+          <label><input type="radio" name="wxMode" value="dynamic"><span data-i18n="weather.dynamic">Auto change</span></label>
+          <label><input type="radio" name="wxMode" value="manual"><span data-i18n="weather.manual">Choose weather</span></label>
+          <label><input type="radio" name="wxMode" value="off"><span data-i18n="common.off">Off</span></label>
+        </div>
+        <p class="settings-helper" data-i18n="settings.weatherNote"></p>
+        <p class="loc-now" id="wxNow">Partly cloudy</p>
+        <div id="wxManual" hidden><div class="chips" id="wxTypes"></div><details class="advanced"><summary><span data-i18n="settings.weatherFine"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body">
+
+        <label class="ctl"><span data-i18n="weather.coverage">Cloud cover</span><output for="coverage"></output><input type="range" id="coverage" min="0.12" max="0.97" step="0.01"></label>
+        <label class="ctl"><span data-i18n="weather.density">Cloud density</span><output for="density"></output><input type="range" id="density" min="0.3" max="2.5" step="0.01"></label>
+        <label class="ctl"><span data-i18n="weather.wind">Cloud speed</span><output for="wind"></output><input type="range" id="wind" min="0" max="200" step="1"></label>
+        <label class="ctl"><span data-i18n="weather.breeze">Ground wind</span><output for="breeze"></output><input type="range" id="breeze" min="0" max="1" step="0.01"></label>
+        <label class="ctl"><span data-i18n="weather.visibility">Visibility</span><output for="fogVis"></output><input type="range" id="fogVis" min="0" max="1000" step="1"></label>
+        <label class="ctl"><span data-i18n="weather.rainAmount">Rain intensity</span><output for="rainAmt"></output><input type="range" id="rainAmt" min="0" max="1" step="0.01"></label>
+        <label class="ctl"><span data-i18n="weather.snowAmount">Snow intensity</span><output for="snowAmt"></output><input type="range" id="snowAmt" min="0" max="1" step="0.01"></label>
+        <label class="ctl"><span data-i18n="weather.lightning">Lightning frequency</span><output for="boltFreq"></output><input type="range" id="boltFreq" min="0" max="4" step="0.1"></label>
+        <label class="ctl"><span data-i18n="weather.puddles">Puddle limit</span><output for="puddle"></output><input type="range" id="puddle" min="0" max="1" step="0.01"></label>
+        <label class="ctl"><span data-i18n="weather.snowLimit">Snow cover limit</span><output for="snowMax"></output><input type="range" id="snowMax" min="0" max="1" step="0.01"></label></div></details></div>
+        <details class="advanced"><summary><span data-i18n="settings.weatherData"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body"><dl class="weather-metrics" id="panelWeatherMetrics" hidden>
         <div><dt data-i18n="weather.temperature">Temperature</dt><dd><span data-weather-metric="temperature">—</span><small data-weather-metric="temperatureNote"></small></dd></div>
         <div><dt data-i18n="weather.precipitation">Precipitation</dt><dd><span data-weather-metric="precipitation">—</span><small data-weather-metric="precipitationNote"></small></dd></div>
         <div><dt data-i18n="weather.airQuality">Air quality</dt><dd><span class="air-quality-value" data-weather-metric="airQuality">—</span><small data-weather-metric="airQualityNote"></small></dd></div>
@@ -84,74 +108,59 @@
         <label><input type="radio" name="temperatureUnit" value="celsius" checked><span data-i18n="weather.celsius">Celsius °C</span></label>
         <label><input type="radio" name="temperatureUnit" value="fahrenheit"><span data-i18n="weather.fahrenheit">Fahrenheit °F</span></label>
       </div>
-      <div id="wxManual" hidden>
-        <div class="chips" id="wxTypes"></div>
-        <label class="ctl"><span data-i18n="weather.coverage">Cloud cover</span><output for="coverage"></output><input type="range" id="coverage" min="0.12" max="0.97" step="0.01"></label>
-        <label class="ctl"><span data-i18n="weather.density">Cloud density</span><output for="density"></output><input type="range" id="density" min="0.3" max="2.5" step="0.01"></label>
-        <label class="ctl"><span data-i18n="weather.wind">Cloud speed</span><output for="wind"></output><input type="range" id="wind" min="0" max="200" step="1"></label>
-        <label class="ctl"><span data-i18n="weather.breeze">Ground wind</span><output for="breeze"></output><input type="range" id="breeze" min="0" max="1" step="0.01"></label>
-        <label class="ctl"><span data-i18n="weather.visibility">Visibility</span><output for="fogVis"></output><input type="range" id="fogVis" min="0" max="1000" step="1"></label>
-        <label class="ctl"><span data-i18n="weather.rainAmount">Rain intensity</span><output for="rainAmt"></output><input type="range" id="rainAmt" min="0" max="1" step="0.01"></label>
-        <label class="ctl"><span data-i18n="weather.snowAmount">Snow intensity</span><output for="snowAmt"></output><input type="range" id="snowAmt" min="0" max="1" step="0.01"></label>
-        <label class="ctl"><span data-i18n="weather.lightning">Lightning frequency</span><output for="boltFreq"></output><input type="range" id="boltFreq" min="0" max="4" step="0.1"></label>
-        <label class="ctl"><span data-i18n="weather.puddles">Puddle limit</span><output for="puddle"></output><input type="range" id="puddle" min="0" max="1" step="0.01"></label>
-        <label class="ctl"><span data-i18n="weather.snowLimit">Snow cover limit</span><output for="snowMax"></output><input type="range" id="snowMax" min="0" max="1" step="0.01"></label>
-      </div>
-      <label class="switch"><span data-i18n="weather.lensDrops">Lens raindrops</span><input type="checkbox" id="lensDrops"><i></i></label>
-
-        <button class="btn outline" id="retryWeather"><span data-icon="refresh"></span><span data-i18n="weather.refresh">Refresh local weather</span></button>
+      <button class="btn outline" id="retryWeather"><span data-icon="refresh"></span><span data-i18n="weather.refresh">Refresh local weather</span></button>
         <p class="service-note"><span data-i18n="weather.data">Weather data</span> <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></p>
         <p class="service-note"><span data-i18n="weather.airQuality">Air quality</span> · <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" rel="noopener noreferrer">Open-Meteo</a> / <a href="https://atmosphere.copernicus.eu/" target="_blank" rel="noopener noreferrer">CAMS</a> · <span data-i18n="weather.usAqi">US AQI</span></p>
+      </div></details>
       </section>
-      <section id="pane-landscape" role="tabpanel" aria-labelledby="tab-landscape" hidden>      <h2 data-i18n="landscape.title">Meadow and flowers</h2>
-      <label class="switch"><span data-i18n="landscape.lowSaturation">Low-saturation colours</span><input type="checkbox" id="lowSaturation"><i></i></label>
-      <label class="switch"><span data-i18n="landscape.petals">Petal stream</span><input type="checkbox" id="petals"><i></i></label>
-      <label class="switch"><span data-i18n="landscape.fireflies">Fireflies at night</span><input type="checkbox" id="flies"><i></i></label>
-      <label class="switch"><span data-i18n="landscape.bloom">Flower opening animation</span><input type="checkbox" id="bloom"><i></i></label>
-      <label class="ctl"><span data-i18n="landscape.bloomRadius">Bloom range</span><output for="bloomR"></output><input type="range" id="bloomR" min="1.5" max="10" step="0.5"></label>
-      <label class="switch"><span data-i18n="landscape.flowerGlow">Flower glow at night</span><input type="checkbox" id="flowerGlow"><i></i></label>
-      <label class="switch"><span data-i18n="landscape.memory">Remember blooms at any distance</span><input type="checkbox" id="infMem"><i></i></label>
-      <button class="btn" id="clearMem" type="button" data-i18n="landscape.clearMemory">Clear bloom history</button>
-      <h2 data-i18n="camera.title">Camera</h2>
-      <label class="ctl"><span data-i18n="camera.height">Height above ground</span><output for="height"></output><input type="range" id="height" min="0" max="1000" step="1"></label>
-      <p class="ctl-label" id="sdistLabel" data-i18n="camera.distance">Distance to petal stream</p>
-      <div class="seg seg3" role="radiogroup" aria-labelledby="sdistLabel">
-        <label><input type="radio" name="sdist" value="near"><span data-i18n="camera.near">Near</span></label>
-        <label><input type="radio" name="sdist" value="mid"><span data-i18n="camera.mid">Medium</span></label>
-        <label><input type="radio" name="sdist" value="far"><span data-i18n="camera.far">Far</span></label>
-      </div>
-      <label class="switch"><span data-i18n="camera.scale">Scale petals with distance</span><input type="checkbox" id="streamScale"><i></i></label>
-      <label class="ctl"><span data-i18n="camera.dof">Depth of field</span><output for="dof"></output><input type="range" id="dof" min="0" max="1" step="0.01"></label>
-      <label class="switch"><span data-i18n="camera.auto">Auto flight</span><input type="checkbox" id="auto"><i></i></label>
-      <label class="switch"><span data-i18n="camera.sway">Camera motion</span><input type="checkbox" id="sway"><i></i></label>
-      <h2 data-i18n="astronomy.title">Astronomy</h2>
-      <label class="switch"><span data-i18n="astronomy.constellations">Constellation lines</span><input type="checkbox" id="constel"><i></i></label>
-      <label class="ctl"><span data-i18n="astronomy.orientation">Orientation</span><output for="sunAz"></output><input type="range" id="sunAz" min="0" max="360" step="1"></label>
-      <h2 data-i18n="quality.title">Quality</h2>
-      <div class="seg" role="radiogroup" aria-label="Quality" data-i18n-aria-label="quality.title">
+      <section id="pane-landscape" role="tabpanel" aria-labelledby="tab-landscape" hidden>
+        <h2 data-i18n="quality.title">Quality</h2><div class="seg" role="radiogroup" aria-label="Quality" data-i18n-aria-label="quality.title">
         <label><input type="radio" name="q" value="low"><span data-i18n="quality.low">Low</span></label>
         <label><input type="radio" name="q" value="med"><span data-i18n="quality.medium">Medium</span></label>
         <label><input type="radio" name="q" value="high"><span data-i18n="quality.high">High</span></label>
         <label><input type="radio" name="q" value="ultra"><span data-i18n="quality.ultra">Ultra</span></label>
       </div>
-      <label class="switch"><span data-i18n="quality.godRays">Volumetric light</span><input type="checkbox" id="god"><i></i></label>
+        <p class="settings-helper" data-i18n="settings.qualityNote"></p>
+        <h2 data-i18n="settings.visualStyle">Visual style</h2>
+        <label class="switch"><span data-i18n="landscape.lowSaturation">Low-saturation colours</span><input type="checkbox" id="lowSaturation"><i></i></label>
+        <label class="switch"><span data-i18n="visual.vignette">Vignette</span><input type="checkbox" id="vignette" checked><i></i></label>
+        <p class="settings-helper" data-i18n="visual.vignetteNote"></p>
+        <label class="ctl"><span data-i18n="camera.dof">Depth of field</span><output for="dof"></output><input type="range" id="dof" min="0" max="1" step="0.01"></label>
+        <p class="settings-helper" data-i18n="settings.dofNote"></p>
+        <details class="advanced"><summary><span data-i18n="settings.flowerDetails"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body"><label class="switch"><span data-i18n="landscape.petals">Petal stream</span><input type="checkbox" id="petals"><i></i></label>
+        <label class="switch"><span data-i18n="landscape.fireflies">Fireflies at night</span><input type="checkbox" id="flies"><i></i></label>
+        <label class="switch"><span data-i18n="landscape.bloom">Flower opening animation</span><input type="checkbox" id="bloom"><i></i></label>
+        <label class="ctl"><span data-i18n="landscape.bloomRadius">Bloom range</span><output for="bloomR"></output><input type="range" id="bloomR" min="1.5" max="10" step="0.5"></label>
+        <label class="switch"><span data-i18n="landscape.flowerGlow">Flower glow at night</span><input type="checkbox" id="flowerGlow"><i></i></label>
+        <label class="switch"><span data-i18n="landscape.memory">Remember blooms at any distance</span><input type="checkbox" id="infMem"><i></i></label>
+        <button class="btn" id="clearMem" type="button" data-i18n="landscape.clearMemory">Clear bloom history</button></div></details>
+        <details class="advanced"><summary><span data-i18n="settings.cameraDetails"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body"><p class="ctl-label" id="sdistLabel" data-i18n="camera.distance">Distance to petal stream</p>
+      <div class="seg seg3" role="radiogroup" aria-labelledby="sdistLabel">
+        <label><input type="radio" name="sdist" value="near"><span data-i18n="camera.near">Near</span></label>
+        <label><input type="radio" name="sdist" value="mid"><span data-i18n="camera.mid">Medium</span></label>
+        <label><input type="radio" name="sdist" value="far"><span data-i18n="camera.far">Far</span></label>
+      </div>
+        <label class="switch"><span data-i18n="camera.scale">Scale petals with distance</span><input type="checkbox" id="streamScale"><i></i></label>
+        <label class="switch"><span data-i18n="camera.sway">Camera motion</span><input type="checkbox" id="sway"><i></i></label>
+        <label class="switch"><span data-i18n="weather.lensDrops">Lens raindrops</span><input type="checkbox" id="lensDrops"><i></i></label></div></details>
+        <details class="advanced"><summary><span data-i18n="settings.skyDetails"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body"><label class="switch"><span data-i18n="astronomy.constellations">Constellation lines</span><input type="checkbox" id="constel"><i></i></label>
+        <label class="ctl"><span data-i18n="astronomy.orientation">Orientation</span><output for="sunAz"></output><input type="range" id="sunAz" min="0" max="360" step="1"></label>
+        <label class="switch"><span data-i18n="quality.godRays">Volumetric light</span><input type="checkbox" id="god"><i></i></label></div></details>
         <details class="advanced"><summary><span data-i18n="rendering.title">Rendering info</span><span data-icon="chevron"></span></summary>
           <div class="stats"><p><span id="fps">--</span> FPS</p><p id="ms">Frame time -- ms</p><p id="res">Cloud buffer --</p><p id="clock">Local time --</p><p id="blades">Grass blades --</p><p id="gpu"></p></div>
         </details>
       </section>
       <section id="pane-components" role="tabpanel" aria-labelledby="tab-components" hidden>
+        <label class="language-field"><span data-i18n="language.label">Language</span><select id="languageSelect" aria-label="Language" data-i18n-aria-label="language.label"><option value="auto" data-i18n="language.auto">Automatic</option><option value="en" lang="en">English</option><option value="zh" lang="zh-CN">简体中文</option><option value="ja" lang="ja">日本語</option></select></label>
         <h2 data-i18n="components.title">Interface components</h2>
         <p class="component-intro" data-i18n="components.description">Show or hide components and choose the time and weather position.</p>
-        <div class="component-card">
-          <label class="switch"><span data-i18n="components.interaction">Scene interaction</span><input type="checkbox" id="interactionEnabled" checked><i></i></label>
-          <p class="component-intro" data-i18n="components.interactionDescription">Turn off to disable mouse, keyboard, wheel and touch controls and hide the hint. Auto flight remains independent; turn it off to hold the camera still.</p>
-        </div>
+
         <div class="component-card" data-component-settings="logo">
           <label class="switch"><span data-i18n="components.logo">LOGO</span><input type="checkbox" data-component-visible checked><i></i></label>
         </div>
         <div class="component-card" data-component-settings="observation">
           <label class="switch"><span data-i18n="components.observation">Time and weather</span><input type="checkbox" data-component-visible checked><i></i></label>
-          <div class="component-placement"><div><p data-i18n="components.position">Position</p><strong data-component-current></strong><button class="component-default" type="button" data-component-default data-i18n="components.defaultPosition">Default position</button></div><fieldset class="position-grid"><legend class="sr-only" data-i18n="components.observationPosition">Time and weather position</legend></fieldset></div>
+          <details class="advanced"><summary><span data-i18n="components.position"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body"><div class="component-placement"><div><p data-i18n="components.position">Position</p><strong data-component-current></strong><button class="component-default" type="button" data-component-default data-i18n="components.defaultPosition">Default position</button></div><fieldset class="position-grid"><legend class="sr-only" data-i18n="components.observationPosition">Time and weather position</legend></fieldset></div></div></details>
           <details class="advanced weather-display-options" id="weatherDisplayOptions">
             <summary><span data-i18n="weather.displayOptions">Weather display</span><span data-icon="chevron"></span></summary>
             <label class="switch"><span data-i18n="weather.showWeather">Show weather information</span><input type="checkbox" id="showWeather" checked><i></i></label>
@@ -168,11 +177,13 @@
           <label class="switch"><span data-i18n="components.hint">Controls hint</span><input type="checkbox" data-component-visible checked><i></i></label>
           <button class="component-default" id="componentHelpBtn" type="button" data-i18n="help.open">Show controls</button>
         </div>
-        <h2 data-i18n="components.startup">Startup</h2>
+        <details class="advanced"><summary><span data-i18n="settings.startupRecovery"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body"><h2 data-i18n="components.startup">Startup</h2>
         <label class="switch" id="startupPanelOption" hidden><span data-i18n="panel.openOnStartup">Open world settings on startup</span><input type="checkbox" id="openPanelOnStartup"><i></i></label>
         <button class="btn outline" id="resetComponents" type="button" data-i18n="components.reset">Restore component settings</button>
+      </div></details>
       </section>
     </div>
+    <div class="panel-footer"><p data-i18n="panel.saveNote">Saved on this device.</p><button class="btn outline" id="panelHelpBtn" type="button" data-i18n="panel.help">Help</button></div>
   </aside>
   <section class="observation chrome ui-component" data-ui-component="observation" aria-label="Nature right now" data-i18n-aria-label="observation.label">
     <button class="observer-place" id="placeBtn" aria-label="Change observation location" data-i18n-aria-label="location.change"><span data-icon="location"></span><span id="observerCity">Tokyo</span><span id="observerEnglish">TOKYO</span></button>
@@ -207,7 +218,8 @@
     <p class="service-note" data-i18n="help.privacy">Location and settings stay in this browser. When you use geolocation, coordinates are sent to Open-Meteo to request weather.</p>
     </div>
     <div class="help-footer">
-    <div class="help-preference"><label><input id="hideHint" type="checkbox"><span data-i18n="help.hideHint">Don't show again</span></label><p class="service-note" data-i18n="help.restoreHint">You can show the controls hint again in World settings → Components.</p></div>
+    <div class="help-preference"><label><input id="hideHint" type="checkbox"><span data-i18n="help.hideHint">Don't show again</span></label>
+        <p class="service-note" data-i18n="help.restoreHint">You can show the controls hint again in World settings → Components.</p></div>
     <a class="project-link" href="https://github.com/tadazly/hanagoyomi" target="_blank" rel="noopener noreferrer"><span data-i18n="github.explore">Explore Hanagoyomi on GitHub</span><span data-icon="arrow-up-right"></span></a>
     </div>
   </dialog>
