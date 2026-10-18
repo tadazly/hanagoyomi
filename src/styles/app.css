@@ -179,6 +179,7 @@ kbd { display: inline-block; min-width: 16px; font: 10px system-ui, sans-serif; 
 .help-controls dd { margin: 0; color: var(--ink-soft); }
 .help-controls dd[data-i18n='help.mouseSteer'] { white-space: nowrap; }
 .help-dialog p.service-note { font-size: 11px; }
+.help-dialog .help-version { margin: 0 0 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .help-preference { margin: 0 0 12px; }
 .help-preference label { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 13px; cursor: pointer; }
 .help-preference input { width: 16px; height: 16px; margin: 0; flex-shrink: 0; accent-color: var(--sun); }

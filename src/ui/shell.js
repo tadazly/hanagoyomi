@@ -320,6 +320,7 @@ export function bindShellContentScrolling({ document: doc = globalThis.document,
 }
 
 export function initShell() {
+  setMessage($('helpVersion'), 'help.version', { version: __APP_VERSION__ });
   initTimeControls();
   populateIcons();
   if (WALLPAPER_MODE) {

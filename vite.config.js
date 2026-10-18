@@ -5,6 +5,7 @@ import { ABOUT_PAGES, renderAboutPage, renderSitemap, websiteSchema } from './sr
 const version = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
 
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(version) },
   resolve: { alias: { '#scene-qr': fileURLToPath(new URL('./src/platform/scene-qr.js', import.meta.url)) } },
   plugins: [{
     name: 'hanagoyomi-release-metadata',
