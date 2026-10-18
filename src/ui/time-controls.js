@@ -6,8 +6,8 @@ const template = `
   <div class="scene-lock-row"><span data-time-lock-state></span><button type="button" data-time-action="lock"></button></div>
   <p class="settings-helper" data-i18n="locks.timeHelp"></p>
   <label class="ctl"><span data-i18n="time.local">Local time</span><output data-time-output="time"></output><input aria-label="Local time" data-i18n-aria-label="time.local" type="range" data-time-field="time" min="0" max="23.99" step="0.01"></label>
-  <button class="btn outline" data-time-action="sync" type="button"><span data-i18n="time.sync">Follow now</span></button>
   <label class="ctl"><span data-i18n="time.speed">Time speed</span><output data-time-output="speed"></output><input aria-label="Time speed" data-i18n-aria-label="time.speed" type="range" data-time-field="speed" min="0" step="1"></label>
+  <button class="btn outline" data-time-action="sync" type="button"><span data-i18n="time.sync">Follow now</span></button>
   <div class="solar-row"><span><span data-icon="sunrise"></span><span data-time-sun="rise">Sunrise --</span></span><span><span data-icon="sunset"></span><span data-time-sun="set">Sunset --</span></span></div>
 `;
 const instances = [];
@@ -29,6 +29,7 @@ function render() {
   const set = sun.polar ? t(`phase.${phase}`) : t('sun.set', { time: formatSun(sun.set) });
   for (const view of instances) {
     view.time.disabled = view.speed.disabled = view.sync.disabled = locked;
+    view.sync.hidden = locked;
     view.lock.textContent = t(locked ? 'locks.unlock' : 'locks.lock');
     view.lock.setAttribute('aria-pressed', String(locked));
     view.lockState.textContent = t(locked ? 'locks.timeLocked' : 'locks.timeUnlocked');
