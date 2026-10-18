@@ -1,5 +1,6 @@
 import { validateScene } from '../world/scene-state.js';
 import { wxPreset } from '../world/weather-presets.js';
+import { RECOMMENDED_SCENES } from './gallery-recommendations.js';
 
 function scene(id, title, description, hour, weather, camera = {}, settings = {}) {
   const current = wxPreset(weather);
@@ -23,4 +24,5 @@ export const GALLERY_SCENES = Object.freeze([
   scene('snow', ['雪野微光', 'Quiet snowfall', '雪原の光'], ['小雪 · 上午', 'Light snow · Morning', '小雪 · 午前'], 10, 'lightsnow', { agl: 3 }, { petals: false }),
   scene('clouds', ['云影漫游', 'Passing clouds', '流れる雲影'], ['多云 · 午后', 'Cloudy · Afternoon', '曇り · 午後'], 14.5, 'cloudy', { agl: 12, pitch: .1 }),
   scene('sky', ['云上远行', 'Above the clouds', '雲の上へ'], ['少云 · 清晨', 'Few clouds · Morning', '薄曇り · 朝'], 7, 'fewcloud', { agl: 2200, pitch: -.18 }, { petals: false, sunAz: 240 }),
+  ...RECOMMENDED_SCENES,
 ]);

@@ -1,0 +1,208 @@
+// 从旧版经视觉筛选的推荐作品迁入；保留构图、绝对时刻、天空位置与天气。
+// 场景已转换为当前格式；封面由当前 WebGL 渲染器生成。
+export const RECOMMENDED_SCENES = Object.freeze([
+  {
+    id: "recommended-cloud-sea-dawn",
+    title: {"zh":"云海初阳","en":"Dawn above the Clouds","ja":"雲海の朝日"},
+    thumbnail: "gallery/recommended-cloud-sea-dawn.jpg",
+    scene: {
+      version: 1,
+      camera: {"x":8000,"z":-750,"agl":4300,"yaw":1.1780972450961724,"pitch":-0.12,"roll":0,"fov":65,"y":4377.16747813907,"focus":120},
+      settings: {"auto":false,"god":true,"petals":false,"sway":false,"constel":false,"flies":false,"flowerGlow":false,"bloom":true,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":false,"streamDist":"near","bloomR":4,"sunAz":22.663466914213075,"dof":0,"wxMode":"manual","wxType":"cloudy","coverage":0.88,"density":1.35,"wind":40,"breeze":0.55,"fogVisS":1000,"rainAmt":0,"snowAmt":0,"boltFreq":0,"puddle":0,"snowMax":0},
+      environment: {
+        time: {"ms":1781496416329.869,"followNow":false,"speedIndex":0},
+        weather: {"type":"cloudy","current":{"cov":0.88,"dens":1.35,"wind":40,"breeze":0.55,"vis":30000,"rain":0,"snow":0,"bolt":0,"wet":0,"snowCov":0},"wet":0,"snowCover":0},
+        skyLocation: {"lat":2.9296875,"lon":31.25,"tz":"UTC"},
+        motion: {"time":8,"windAngle":0.6,"windOffset":[0,0]},
+      },
+      freeze: {"time":true,"weather":true},
+    },
+  },
+  {
+    id: "recommended-snowfield-blue",
+    title: {"zh":"雪岭晴蓝","en":"Snow Ridges under Blue Skies","ja":"青空と雪の稜線"},
+    thumbnail: "gallery/recommended-snowfield-blue.jpg",
+    scene: {
+      version: 1,
+      camera: {"x":5250,"z":10500,"agl":2.6,"yaw":0.7853981633974483,"pitch":-0.015,"roll":0,"fov":65,"y":65.42426075990272,"focus":120},
+      settings: {"auto":false,"god":true,"petals":false,"sway":false,"constel":false,"flies":false,"flowerGlow":false,"bloom":true,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":false,"streamDist":"near","bloomR":4,"sunAz":166.82598973014296,"dof":0,"wxMode":"manual","wxType":"lightsnow","coverage":0.6,"density":1.05,"wind":20,"breeze":0.3,"fogVisS":852.5585656629274,"rainAmt":0,"snowAmt":0.15,"boltFreq":0,"puddle":0,"snowMax":0.92},
+      environment: {
+        time: {"ms":1781519878125,"followNow":false,"speedIndex":0},
+        weather: {"type":"lightsnow","current":{"cov":0.6,"dens":1.05,"wind":20,"breeze":0.3,"vis":12000,"rain":0,"snow":0.15,"bolt":0,"wet":0,"snowCov":0.92},"wet":0,"snowCover":0.92},
+        skyLocation: {"lat":-41.015625,"lon":20.5078125,"tz":"UTC"},
+        motion: {"time":8,"windAngle":0.6,"windOffset":[0,0]},
+      },
+      freeze: {"time":true,"weather":true},
+    },
+  },
+  {
+    id: "recommended-rain-on-the-ridge",
+    title: {"zh":"听雨青坡","en":"Rain on the Green Ridge","ja":"雨に濡れる緑の丘"},
+    thumbnail: "gallery/recommended-rain-on-the-ridge.jpg",
+    scene: {
+      version: 1,
+      camera: {"x":-3500,"z":6500,"agl":2.2,"yaw":2.356194490192345,"pitch":-0.035,"roll":0,"fov":65,"y":64.40204126955834,"focus":120},
+      settings: {"auto":false,"god":true,"petals":false,"sway":false,"constel":false,"flies":false,"flowerGlow":false,"bloom":false,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":true,"streamDist":"near","bloomR":4,"sunAz":306.78507488687944,"dof":0,"wxMode":"manual","wxType":"lightrain","coverage":0.88,"density":1.4,"wind":35,"breeze":0.45,"fogVisS":618.3865616428637,"rainAmt":0.3,"snowAmt":0,"boltFreq":0,"puddle":0.6,"snowMax":0},
+      environment: {
+        time: {"ms":1781528081250,"followNow":false,"speedIndex":0},
+        weather: {"type":"lightrain","current":{"cov":0.88,"dens":1.4,"wind":35,"breeze":0.45,"vis":2800,"rain":0.3,"snow":0,"bolt":0,"wet":0.6,"snowCov":0},"wet":0.6,"snowCover":0},
+        skyLocation: {"lat":-25.390625,"lon":-13.671875,"tz":"UTC"},
+        motion: {"time":8,"windAngle":0.6,"windOffset":[0,0]},
+      },
+      freeze: {"time":true,"weather":true},
+    },
+  },
+  {
+    id: "recommended-mist-valley-dawn",
+    title: {"zh":"雾谷流金","en":"Golden Light through Mist","ja":"霧の谷に差す金色"},
+    thumbnail: "gallery/recommended-mist-valley-dawn.jpg",
+    scene: {
+      version: 1,
+      camera: {"x":3500,"z":-5750,"agl":28,"yaw":0,"pitch":-0.1,"roll":0,"fov":65,"y":96.08643826425863,"focus":120},
+      settings: {"auto":false,"god":true,"petals":false,"sway":false,"constel":false,"flies":false,"flowerGlow":false,"bloom":false,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":false,"streamDist":"near","bloomR":4,"sunAz":315.84550292704574,"dof":0,"wxMode":"manual","wxType":"mist","coverage":0.45,"density":1.05,"wind":12,"breeze":0.2,"fogVisS":654.2928565821799,"rainAmt":0,"snowAmt":0,"boltFreq":0,"puddle":0,"snowMax":0},
+      environment: {
+        time: {"ms":1781498456494.0276,"followNow":false,"speedIndex":0},
+        weather: {"type":"mist","current":{"cov":0.45,"dens":1.05,"wind":12,"breeze":0.2,"vis":3500,"rain":0,"snow":0,"bolt":0,"wet":0,"snowCov":0},"wet":0,"snowCover":0},
+        skyLocation: {"lat":22.4609375,"lon":13.671875,"tz":"UTC"},
+        motion: {"time":8,"windAngle":0.6,"windOffset":[0,0]},
+      },
+      freeze: {"time":true,"weather":true},
+    },
+  },
+  {
+    id: "recommended-wet-meadow-glow",
+    title: {"zh":"雨后金泽","en":"After-rain Gilded Meadow","ja":"雨上がりの黄金の野"},
+    thumbnail: "gallery/recommended-wet-meadow-glow.jpg",
+    scene: {
+      version: 1,
+      camera: {"x":-2000,"z":11250,"agl":2.2,"yaw":5.497787143782139,"pitch":-0.12,"roll":0,"fov":65,"y":56.30455029094068,"focus":120},
+      settings: {"auto":false,"god":true,"petals":false,"sway":false,"constel":false,"flies":false,"flowerGlow":false,"bloom":false,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":false,"streamDist":"near","bloomR":4,"sunAz":30.2265722052245,"dof":0,"wxMode":"manual","wxType":"fewcloud","coverage":0.42,"density":1,"wind":28,"breeze":0.4,"fogVisS":934.7561259396058,"rainAmt":0,"snowAmt":0,"boltFreq":0,"puddle":0.68,"snowMax":0},
+      environment: {
+        time: {"ms":1781541260134.7336,"followNow":false,"speedIndex":0},
+        weather: {"type":"fewcloud","current":{"cov":0.42,"dens":1,"wind":28,"breeze":0.4,"vis":20000,"rain":0,"snow":0,"bolt":0,"wet":0.68,"snowCov":0},"wet":0.68,"snowCover":0},
+        skyLocation: {"lat":-43.9453125,"lon":-7.8125,"tz":"UTC"},
+        motion: {"time":8,"windAngle":0.6,"windOffset":[0,0]},
+      },
+      freeze: {"time":true,"weather":true},
+    },
+  },
+  {
+    id: "recommended-rolling-hills-flight",
+    title: {"zh":"长风碧丘","en":"Wind over Rolling Hills","ja":"風わたる緑の丘"},
+    thumbnail: "gallery/recommended-rolling-hills-flight.jpg",
+    scene: {
+      version: 1,
+      camera: {"x":12000,"z":13750,"agl":150,"yaw":0.7853981633974483,"pitch":-0.24,"roll":0,"fov":65,"y":200.21954415713293,"focus":120},
+      settings: {"auto":false,"god":true,"petals":false,"sway":false,"constel":false,"flies":false,"flowerGlow":false,"bloom":true,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":false,"streamDist":"near","bloomR":4,"sunAz":169.05086701149617,"dof":0,"wxMode":"manual","wxType":"fewcloud","coverage":0.57,"density":1,"wind":28,"breeze":0.4,"fogVisS":1000,"rainAmt":0,"snowAmt":0,"boltFreq":0,"puddle":0,"snowMax":0},
+      environment: {
+        time: {"ms":1797333750000,"followNow":false,"speedIndex":0},
+        weather: {"type":"fewcloud","current":{"cov":0.57,"dens":1,"wind":28,"breeze":0.4,"vis":30000,"rain":0,"snow":0,"bolt":0,"wet":0,"snowCov":0},"wet":0,"snowCover":0},
+        skyLocation: {"lat":-53.7109375,"lon":46.875,"tz":"UTC"},
+        motion: {"time":8,"windAngle":0.6,"windOffset":[0,0]},
+      },
+      freeze: {"time":true,"weather":true},
+    },
+  },
+  {
+    id: "recommended-rose-full",
+    title: {"zh":"玫瑰暮色","en":"Rose Afterglow","ja":"薔薇色の薄暮"},
+    thumbnail: "gallery/recommended-rose-full.jpg",
+    scene: {
+      version: 1,
+      camera: {"x":43917.4,"z":11414,"agl":1.55,"yaw":4.974188368183839,"pitch":0.06,"roll":0,"fov":60,"y":38.765801765150975,"focus":25},
+      settings: {"auto":false,"god":true,"petals":false,"sway":false,"constel":false,"flies":true,"flowerGlow":false,"bloom":false,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":false,"streamDist":"near","bloomR":4,"sunAz":319.56945185992794,"dof":0.1,"wxMode":"manual","wxType":"clear","coverage":0.36,"density":0.7,"wind":16,"breeze":0.2,"fogVisS":1000,"rainAmt":0,"snowAmt":0,"boltFreq":0,"puddle":0,"snowMax":0},
+      environment: {
+        time: {"ms":1781845711781.1836,"followNow":false,"speedIndex":0},
+        weather: {"type":"clear","current":{"cov":0.36,"dens":0.7,"wind":16,"breeze":0.2,"vis":30000,"rain":0,"snow":0,"bolt":0,"wet":0,"snowCov":0},"wet":0,"snowCover":0},
+        skyLocation: {"lat":-44.5859375,"lon":171.55234375,"tz":"Pacific/Auckland"},
+        motion: {"time":32,"windAngle":0.6,"windOffset":[4,6]},
+      },
+      freeze: {"time":true,"weather":true},
+    },
+  },
+  {
+    id: "recommended-blue-edge",
+    title: {"zh":"蓝调花原","en":"Blue-hour Meadow","ja":"青の花原"},
+    thumbnail: "gallery/recommended-blue-edge.jpg",
+    scene: {
+      version: 1,
+      camera: {"x":-2979,"z":4552.8,"agl":1.7,"yaw":4.71238898038469,"pitch":0.08,"roll":0,"fov":60,"y":12.830623183500588,"focus":18},
+      settings: {"auto":false,"god":true,"petals":false,"sway":false,"constel":false,"flies":false,"flowerGlow":false,"bloom":false,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":false,"streamDist":"near","bloomR":4,"sunAz":66.43473899243423,"dof":0.03,"wxMode":"manual","wxType":"clear","coverage":0.35,"density":0.7,"wind":16,"breeze":0.2,"fogVisS":1000,"rainAmt":0,"snowAmt":0,"boltFreq":0,"puddle":0,"snowMax":0},
+      environment: {
+        time: {"ms":1781807451810.2202,"followNow":false,"speedIndex":0},
+        weather: {"type":"clear","current":{"cov":0.35,"dens":0.7,"wind":16,"breeze":0.2,"vis":30000,"rain":0,"snow":0,"bolt":0,"wet":0,"snowCov":0},"wet":0,"snowCover":0},
+        skyLocation: {"lat":-17.784375,"lon":-11.63671875,"tz":"Atlantic/Cape_Verde"},
+        motion: {"time":32,"windAngle":0.6,"windOffset":[4,6]},
+      },
+      freeze: {"time":true,"weather":true},
+    },
+  },
+  {
+    id: "recommended-moon-cinema",
+    title: {"zh":"月照花丘","en":"Moonlit Flower Ridge","ja":"月明かりの花丘"},
+    thumbnail: "gallery/recommended-moon-cinema.jpg",
+    scene: {
+      version: 1,
+      camera: {"x":-18445,"z":7969.4,"agl":1.8,"yaw":3.4033920413889422,"pitch":0.075,"roll":0,"fov":58,"y":41.611080983370854,"focus":25},
+      settings: {"auto":false,"god":true,"petals":false,"sway":false,"constel":false,"flies":false,"flowerGlow":false,"bloom":false,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":true,"streamDist":"near","bloomR":4,"sunAz":289.14719158413664,"dof":0.025,"wxMode":"manual","wxType":"clear","coverage":0.07,"density":0.5,"wind":16,"breeze":0.2,"fogVisS":1000,"rainAmt":0,"snowAmt":0,"boltFreq":0,"puddle":0,"snowMax":0},
+      environment: {
+        time: {"ms":1780221900000,"followNow":false,"speedIndex":0},
+        weather: {"type":"clear","current":{"cov":0.07,"dens":0.5,"wind":16,"breeze":0.2,"vis":30000,"rain":0,"snow":0,"bolt":0,"wet":0,"snowCov":0},"wet":0,"snowCover":0},
+        skyLocation: {"lat":-31.13046875,"lon":-72.05078125,"tz":"America/Santiago"},
+        motion: {"time":32,"windAngle":0.6,"windOffset":[4,6]},
+      },
+      freeze: {"time":true,"weather":true},
+    },
+  },
+  {
+    id: "recommended-milky-full",
+    title: {"zh":"星河之下","en":"Under the Milky Way","ja":"天の川の下で"},
+    thumbnail: "gallery/recommended-milky-full.jpg",
+    scene: {
+      version: 1,
+      camera: {"x":43917.4,"z":11414,"agl":1.8,"yaw":4.974188368183839,"pitch":0.2,"roll":0,"fov":68,"y":39.015801765150975,"focus":25},
+      settings: {"auto":false,"god":true,"petals":false,"sway":false,"constel":false,"flies":true,"flowerGlow":true,"bloom":false,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":false,"streamDist":"near","bloomR":4,"sunAz":23.148051456050496,"dof":0.1,"wxMode":"manual","wxType":"clear","coverage":0.01,"density":0.4,"wind":16,"breeze":0.2,"fogVisS":1000,"rainAmt":0,"snowAmt":0,"boltFreq":0,"puddle":0,"snowMax":0},
+      environment: {
+        time: {"ms":1781716200000,"followNow":false,"speedIndex":0},
+        weather: {"type":"clear","current":{"cov":0.01,"dens":0.4,"wind":16,"breeze":0.2,"vis":30000,"rain":0,"snow":0,"bolt":0,"wet":0,"snowCov":0},"wet":0,"snowCover":0},
+        skyLocation: {"lat":-44.5859375,"lon":171.55234375,"tz":"Pacific/Auckland"},
+        motion: {"time":32,"windAngle":0.6,"windOffset":[4,6]},
+      },
+      freeze: {"time":true,"weather":true},
+    },
+  },
+  {
+    id: "recommended-constel-cinema",
+    title: {"zh":"星座花原","en":"Constellation Meadow","ja":"星座の花原"},
+    thumbnail: "gallery/recommended-constel-cinema.jpg",
+    scene: {
+      version: 1,
+      camera: {"x":-2979,"z":4552.8,"agl":1.7,"yaw":4.71238898038469,"pitch":0.14,"roll":0,"fov":68,"y":12.830623183500588,"focus":25},
+      settings: {"auto":false,"god":true,"petals":false,"sway":false,"constel":true,"flies":true,"flowerGlow":false,"bloom":false,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":true,"streamDist":"near","bloomR":4,"sunAz":344.01703307691156,"dof":0.02,"wxMode":"manual","wxType":"clear","coverage":0,"density":0.35,"wind":16,"breeze":0.2,"fogVisS":1000,"rainAmt":0,"snowAmt":0,"boltFreq":0,"puddle":0,"snowMax":0},
+      environment: {
+        time: {"ms":1781817300000,"followNow":false,"speedIndex":0},
+        weather: {"type":"clear","current":{"cov":0,"dens":0.35,"wind":16,"breeze":0.2,"vis":30000,"rain":0,"snow":0,"bolt":0,"wet":0,"snowCov":0},"wet":0,"snowCover":0},
+        skyLocation: {"lat":-17.784375,"lon":-11.63671875,"tz":"Atlantic/Cape_Verde"},
+        motion: {"time":32,"windAngle":0.6,"windOffset":[4,6]},
+      },
+      freeze: {"time":true,"weather":true},
+    },
+  },
+  {
+    id: "recommended-film-gold-clear",
+    title: {"zh":"淡金花海","en":"Soft Gold Meadow","ja":"淡い金の花畑"},
+    thumbnail: "gallery/recommended-film-gold-clear.jpg",
+    scene: {
+      version: 1,
+      camera: {"x":43917.4,"z":11414,"agl":1.7,"yaw":4.974188368183839,"pitch":0.035,"roll":0,"fov":58,"y":38.91580176515098,"focus":16},
+      settings: {"auto":false,"god":true,"petals":true,"sway":false,"constel":false,"flies":false,"flowerGlow":false,"bloom":false,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":true,"streamDist":"near","bloomR":4,"sunAz":39.125867556813375,"dof":0.025,"wxMode":"manual","wxType":"clear","coverage":0.23,"density":0.65,"wind":16,"breeze":0.2,"fogVisS":1000,"rainAmt":0,"snowAmt":0,"boltFreq":0,"puddle":0,"snowMax":0},
+      environment: {
+        time: {"ms":1779337628500.6145,"followNow":false,"speedIndex":0},
+        weather: {"type":"clear","current":{"cov":0.23,"dens":0.65,"wind":16,"breeze":0.2,"vis":30000,"rain":0,"snow":0,"bolt":0,"wet":0,"snowCov":0},"wet":0,"snowCover":0},
+        skyLocation: {"lat":-44.5859375,"lon":171.55234375,"tz":"Pacific/Auckland"},
+        motion: {"time":32,"windAngle":0.6,"windOffset":[4,6]},
+      },
+      freeze: {"time":true,"weather":true},
+    },
+  },
+]);

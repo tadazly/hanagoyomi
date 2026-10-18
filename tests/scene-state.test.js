@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateScene, resolveSceneTime, sceneFrameTiming, renderSize } from '../src/world/scene-state.js';
 import { GALLERY_SCENES } from '../src/data/gallery-scenes.js';
+import { describeScene } from '../src/world/scene-share.js';
 import { zonedHours } from '../src/world/clock.js';
 
 test('场景导入使用白名单，不携带设备画质、城市、组件或语言偏好', () => {
@@ -88,14 +89,17 @@ test('窄而极高画布受独立高度限制，普通画布不额外降采样',
   assert.deepEqual(tall, { width: 1, height: 2048 });
 });
 
-test('八个推荐风景都是可导入的实际世界参数，前三语目录完整', () => {
+test('精选风景都是可导入的实际世界参数，三语目录完整', () => {
   assert.deepEqual(GALLERY_SCENES.slice(0, 4).map(item => item.id), ['meadow', 'mist', 'sunset', 'stars']);
-  assert.equal(GALLERY_SCENES.length, 8);
-  assert.equal(new Set(GALLERY_SCENES.map(item => item.id)).size, 8);
+  assert.ok(GALLERY_SCENES.length >= 8);
+  assert.equal(new Set(GALLERY_SCENES.map(item => item.id)).size, GALLERY_SCENES.length);
   for (const item of GALLERY_SCENES) {
     assert.ok(item.scene, item.id);
     assert.deepEqual(validateScene(item.scene), item.scene);
-    for (const language of ['zh', 'en', 'ja']) assert.ok(item.title[language] && item.description[language]);
+    for (const language of ['zh', 'en', 'ja']) assert.ok(item.title[language]);
+    const metadata = describeScene(item.scene);
+    assert.equal(metadata.weatherKey, item.scene.environment.weather.type);
+    assert.match(metadata.timeText, /^\d{2}:\d{2}$/);
     assert.equal(item.thumbnail, `gallery/${item.id}.jpg`);
   }
 });
