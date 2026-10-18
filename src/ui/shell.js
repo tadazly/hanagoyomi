@@ -90,7 +90,10 @@ function initToolbarVisibility() {
     // 触屏操纵时不让透明唤醒区挡住风景；同一次触摸仍能唤出工具栏。
     if (event.pointerType === 'touch' && document.body.dataset.sceneInteractive === 'true' && event.target === $('view')) {
       const rect = zone.getBoundingClientRect();
-      if (event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom) reveal();
+      if (event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom) {
+        wakeTouchPointer = event.pointerId;
+        reveal();
+      }
     }
   }, true);
   document.addEventListener('pointercancel', () => { wakeTouchPointer = null; }, true);

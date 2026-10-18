@@ -50,3 +50,17 @@ test('时间天气避让固定 LOGO 和操作提示，固定组件位置保持�
   assert.ok(bottom.observation.y + 210 < reserved[1].top);
   assert.deepEqual(reserved, before);
 });
+
+test('壁纸底部工具栏下方无空间时，组件向上避让而不夹回按钮后方', () => {
+  const bounds = { left: 20, top: 20, right: 374, bottom: 764, width: 354, height: 744 };
+  const toolbar = { left: 262, right: 374, top: 740, bottom: 772 };
+  for (const item of [
+    { name: 'hint', width: 32, height: 32, position: 'bottom-right' },
+    { name: 'observation', width: 230, height: 210, position: 'bottom-center' },
+  ]) {
+    const placed = layoutComponents([item], bounds, toolbar)[item.name];
+    assert.ok(placed.y >= bounds.top);
+    assert.ok(placed.y + item.height <= toolbar.top - 16);
+    assert.ok(placed.y + item.height <= bounds.bottom);
+  }
+});

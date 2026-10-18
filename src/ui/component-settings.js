@@ -28,7 +28,10 @@ export function layoutComponents(items, bounds, toolbar, reserved = []) {
     if (toolbar && group.some(item => {
       const x = horizontal(item.width);
       return x < toolbar.right + 12 && x + item.width > toolbar.left - 12 && y < toolbar.bottom + 16 && y + height > toolbar.top - 12;
-    })) y = toolbar.bottom + 16;
+    })) {
+      const below = toolbar.bottom + 16;
+      y = below + height <= bounds.bottom ? below : toolbar.top - height - 16;
+    }
     y = Math.max(bounds.top, Math.min(y, bounds.bottom - height));
     // 小屏幕中相邻格也可能相交，优先保持横向对齐并沿竖直方向避让。
     for (let attempt = 0; attempt < items.length + reserved.length; attempt++) {
