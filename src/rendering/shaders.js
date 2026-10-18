@@ -1290,12 +1290,13 @@ void main(){
 const BOLT_VS = VPRE + SCENE + `
 layout(location = 0) in vec3 aA; layout(location = 1) in vec3 aB; layout(location = 2) in float aW;
 uniform vec2 uResB;
-out float vT;
+out float vT; out vec3 vBoltRel;
 void main(){
   int v = gl_VertexID;
   float sx = (v == 1 || v == 2 || v == 4) ? 1.0 : -1.0, sy = (v == 2 || v == 4 || v == 5) ? 1.0 : 0.0;
   vec4 ca = project(aA), cb = project(aB);
   vT = sx;
+  vBoltRel = mix(aA, aB, sy);
   if (ca.w <= 0.1 || cb.w <= 0.1){ gl_Position = vec4(0.0, 0.0, -2.0, 1.0); return; }
   vec2 ds = normalize((cb.xy / cb.w - ca.xy / ca.w) * uResB + vec2(1e-6, 0.0));
   vec4 c = mix(ca, cb, sy);
@@ -1304,8 +1305,18 @@ void main(){
 }`;
 const BOLT_FS = `#version 300 es
 precision highp float;
-in float vT; uniform float uBoltI; out vec4 o;
-void main(){ float a = 1.0 - vT * vT; o = vec4(vec3(0.82, 0.86, 1.0) * uBoltI * a, 1.0); }`;
+in float vT; in vec3 vBoltRel;
+uniform float uBoltI; uniform vec2 uResB;
+uniform sampler2D uCloud, uCloudDepth;
+out vec4 o;
+void main(){
+  vec2 uv = gl_FragCoord.xy / uResB;
+  float cloudDistance = texture(uCloudDepth, uv).r * 1000.0;
+  // 只让闪电前方的云遮挡线条；云后方的地面放电不再穿透云海。
+  float visibility = cloudDistance < length(vBoltRel) ? clamp(texture(uCloud, uv).a, 0.0, 1.0) : 1.0;
+  float a = (1.0 - vT * vT) * visibility;
+  o = vec4(vec3(0.82, 0.86, 1.0) * uBoltI * a, 1.0);
+}`;
 const RAIN_N = {low: 1800, med: 3000, high: 4500, ultra: 6500}, BOLT_MAX = 400;
 /* snow: soft camera-facing flakes, slow fall with a swirl, driven sideways by the wind (a blizzard goes nearly horizontal) */
 const SNOW_VS = VPRE + SCENE + `

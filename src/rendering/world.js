@@ -17,6 +17,7 @@ import { createFrameGate } from '../platform/frame-gate.js';
 import { readWeatherCache, saveWeatherCache } from '../world/weather-cache.js';
 import { gradeAt } from './landscape-look.js';
 import { weatherFogDensity } from './weather-fog.js';
+import { CLOUD_LAYER_METRES, localWeatherAtHeight } from './weather-altitude.js';
 import { petalStreamOpacity } from './petal-stream.js';
 import { SCENE_SETTINGS, WEATHER_SETTINGS, validateScene, resolveSceneTime, sceneFrameTiming, renderSize } from '../world/scene-state.js';
 import { DEFAULT_VIEW, HEIGHT_PRESETS, VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX, aglFromSlider, sliderFromAgl, startupPreferences, sceneForStartup } from '../world/view-preferences.js';
@@ -650,7 +651,7 @@ function saveSettings(){
 }
 setInterval(saveSettings, 1500);
 window.addEventListener('pagehide', saveSettings);
-const LAYER = [1.5, 4.0], windOff = [0, 0, 0];
+const LAYER = CLOUD_LAYER_METRES.map(height => height / 1000), windOff = [0, 0, 0];
 let WIND_ANGLE = 0.6;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -1396,6 +1397,7 @@ function frame(now){
   lastView = view;
   const {yaw, pitch} = view, camM = view.position, camK = camM.map(v => v / 1000);
   const aglReal = camM[1] - groundNow;
+  const localWeather = localWeatherAtHeight(camM[1]);
 
   const wv = WP.wind / 1000;
   windOff[0] += Math.cos(WIND_ANGLE) * wv * dt; windOff[2] += Math.sin(WIND_ANGLE) * wv * dt; windOff[1] = simTime * 0.0025;
@@ -1406,6 +1408,7 @@ function frame(now){
   if (!sceneFreeze.time) simMs = advanceClock(simMs, clockElapsed, SPEEDS[S.speed | 0], followNow);
   S.time = cityHours(simMs);
   if (!sceneFreeze.weather) updateWeather(weatherDt);
+  const localRain = WXS.rain * localWeather.precipitation;
   const lightChanged = updateLighting();
   const L = light, sun = L.lightDir, q = QUALITY[S.quality];
   expo = !isFinite(expo) ? L.exposure : Math.exp(Math.log(expo) + (Math.log(L.exposure) - Math.log(expo)) * (1 - Math.exp(-dt * 2.5)));
@@ -1696,7 +1699,7 @@ function frame(now){
     setCloudCommon(Sk); tex(Sk, 'uSkyLut', gl.TEXTURE_2D, skyTex); tex(Sk, 'uCloud', gl.TEXTURE_2D, hist[cur]); tex(Sk, 'uCloudDepth', gl.TEXTURE_2D, cloudDepth);
     set(Sk, 'uCloudSize', CW, CH); set(Sk, 'uSunDisk', L.sunDisk); set(Sk, 'uExposure', expoS); set(Sk, 'uRes', W, H);
     set(Sk, 'uFogSky', fogSky[0], fogSky[1], fogSky[2], fogSky[3]);
-    set(Sk, 'uFogW', fogW[0], fogW[1], fogW[2], fogW[3]); set(Sk, 'uFogCol', fogCol); set(Sk, 'uFlashSky', [0.8, 0.85, 1.0].map(v => v * flash * 1.4)); set(Sk, 'uFlashDir', flashTop.map(v => v / ftl));
+    set(Sk, 'uFogW', fogW[0], fogW[1], fogW[2], fogW[3]); set(Sk, 'uFogCol', fogCol); set(Sk, 'uFlashSky', [0.8, 0.85, 1.0].map(v => v * flash * 1.4 * localWeather.skyFlash)); set(Sk, 'uFlashDir', flashTop.map(v => v / ftl));
     set(Sk, 'uSunTrue', L.sunT); set(Sk, 'uMoonDir', L.moonD); set(Sk, 'uMoonDisk', L.moonDisk);
     const off = S.sunAz * Math.PI / 180, dirAE = (az, el) => [Math.cos(el) * Math.sin(az + off), Math.sin(el), Math.cos(el) * Math.cos(az + off)];
     const LATR = renderLocation().lat * RAD; set(Sk, 'uPole', dirAE(0, LATR)); set(Sk, 'uSouthEq', dirAE(Math.PI, Math.PI / 2 - LATR)); set(Sk, 'uWestEq', dirAE(Math.PI * 1.5, 0));
@@ -1736,17 +1739,17 @@ function frame(now){
     gl.disable(gl.BLEND);
   }
   /* rain streaks (alpha) and lightning channels (additive), depth-tested against the scene */
-  if (WXS.rain > 0.01){
+  if (WXS.rain > 0.01 && localWeather.precipitation > 0.0){
     const Rn = P.rain; use(Rn); setScene(Rn);
-    set(Rn, 'uRainBox', 30); set(Rn, 'uRainH', 18); set(Rn, 'uRainA', 0.6 * Math.sqrt(WXS.rain));
+    set(Rn, 'uRainBox', 30); set(Rn, 'uRainH', 18); set(Rn, 'uRainA', 0.6 * Math.sqrt(WXS.rain) * localWeather.precipitation);
     set(Rn, 'uRainCol', L.skyIrr.map((v, i) => v / Math.PI * 1.7 + flashAmb[i] / Math.PI * 1.2));
     gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthFunc(gl.LESS); gl.depthMask(false);
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, Math.round((RAIN_N[S.quality] || 3000) * WXS.rain));
     gl.disable(gl.BLEND); gl.depthMask(true);
   }
-  if (WXS.snow > 0.01){
+  if (WXS.snow > 0.01 && localWeather.precipitation > 0.0){
     const Sn = P.snow; use(Sn); setScene(Sn);
-    set(Sn, 'uSnowBox', 20); set(Sn, 'uSnowH', 14); set(Sn, 'uSnowA', 0.85 * Math.sqrt(WXS.snow));
+    set(Sn, 'uSnowBox', 20); set(Sn, 'uSnowH', 14); set(Sn, 'uSnowA', 0.85 * Math.sqrt(WXS.snow) * localWeather.precipitation);
     set(Sn, 'uSnowCol', L.skyIrr.map((v, i) => v / Math.PI * 3.2 + flashAmb[i] / Math.PI * 1.5));
     gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthFunc(gl.LESS); gl.depthMask(false);
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, Math.round((SNOW_N[S.quality] || 4000) * WXS.snow));
@@ -1759,6 +1762,7 @@ function frame(now){
       boltData.set([a[0] - camM[0], a[1] - camM[1], a[2] - camM[2], b[0] - camM[0], b[1] - camM[1], b[2] - camM[2], wd * pxs], i * 7);
     }
     const Bo = P.bolt; use(Bo); setScene(Bo);
+    tex(Bo, 'uCloud', gl.TEXTURE_2D, hist[cur]); tex(Bo, 'uCloudDepth', gl.TEXTURE_2D, cloudDepth);
     set(Bo, 'uResB', W, H); set(Bo, 'uBoltI', Math.min(3, flash * 2.2 * Math.exp(-fogDens * bolt.dist * 0.3)));
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.depthFunc(gl.LESS); gl.depthMask(false);
     gl.bindVertexArray(boltVAO); gl.bindBuffer(gl.ARRAY_BUFFER, boltBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, boltData, 0, n * 7);
@@ -1824,10 +1828,10 @@ function frame(now){
   }
   {
     /* lens rain: simulate and draw the water map, then return to the screen */
-    const lensOn = S.lensDrops && (WXS.rain > 0.01 || LR.drops.length > 0);
+    const lensOn = S.lensDrops && (localRain > 0.01 || LR.drops.length > 0);
     if (lensOn){
       const yr = (cam.yaw - LR.lastYaw) / Math.max(dt, 1e-3);
-      lensRainUpdate(dt, WXS.rain, W / H, clamp(yr, -3, 3));
+      lensRainUpdate(dt, localRain, W / H, clamp(yr, -3, 3));
       lensRainDraw(W / H);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
     } else if (!S.lensDrops) LR.drops.length = 0;
