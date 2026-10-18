@@ -1422,6 +1422,8 @@ function frame(now){
   const fogCol = fogColR.map(v => fogLum + (v - fogLum) * 0.4);
   const fogAlt = Math.max(aglReal, 0.5);
   const fogW = [fogDens, WXS.fogH, fogAlt, Math.exp(-fogAlt / WXS.fogH)];
+  const fogScale = Math.sqrt(6371000 / (2 * WXS.fogH));
+  const fogSky = [fogScale, WXS.fogH * fogScale * Math.sqrt(Math.PI), smooth(2, 10, fogAlt / WXS.fogH), Math.sqrt(2 * fogAlt / 6371000)];
   const flashTop = [bolt.x - camM[0], LAYER[0] * 1000 + 300 - camM[1], bolt.z - camM[2]], ftl = Math.hypot(...flashTop) || 1;
   const tanY = Math.tan(view.fov * Math.PI / 360), tanX = tanY * aspect;
   /* focus pulls to the petal stream: it is what the shot is about */
@@ -1580,7 +1582,7 @@ function frame(now){
     set(Pp, 'uTanS', tanX, tanY); set(Pp, 'uDepthAB', depthAB[0], depthAB[1]);
     set(Pp, 'uTime', simTime); set(Pp, 'uWindDirG', windDir[0], windDir[1]); set(Pp, 'uWindStr', WP.breeze);
     set(Pp, 'uShadowP', cshP); set(Pp, 'uSunDir', sun); set(Pp, 'uSunGround', L.lightGround); set(Pp, 'uSkyIrr', L.skyIrr);
-    set(Pp, 'uFogKG', 1 / 13); set(Pp, 'uExposure', expoS); set(Pp, 'uRes', W, H); set(Pp, 'uNightGlow', nightGlow);
+    set(Pp, 'uFogKG', 1 / 13); set(Pp, 'uFogSky', fogSky[0], fogSky[1], fogSky[2], fogSky[3]); set(Pp, 'uExposure', expoS); set(Pp, 'uRes', W, H); set(Pp, 'uNightGlow', nightGlow);
     set(Pp, 'uCShadowAmt', L.cshAmt); tex(Pp, 'uTouch', gl.TEXTURE_2D, touchTex[touchIdx]); set(Pp, 'uTouchP', tcx, tcz, TOUCH_EXT, S.flowerGlow ? 1 : 0); set(Pp, 'uBloomAnim', S.bloom ? 1 : 0); set(Pp, 'uWet', WXS.wet); set(Pp, 'uPudTh', pudThreshold(WXS.wet)); set(Pp, 'uSnowCov', WXS.snowCov); tex(Pp, 'uPud', gl.TEXTURE_2D, pudTex); set(Pp, 'uPudP', pudCx, pudCz, PUD_EXT); set(Pp, 'uRainNow', WXS.rain); set(Pp, 'uFlashAmb', flashAmb); set(Pp, 'uFogW', fogW[0], fogW[1], fogW[2], fogW[3]); set(Pp, 'uFogCol', fogCol); set(Pp, 'uStreamScale', S.streamScale ? 1 + (streamD - 6.5) * 0.05 : 1); tex(Pp, 'uGlowMap', gl.TEXTURE_2D, glowTex); set(Pp, 'uGlowP4', gcx, gcz, GLOW_EXT, glowAmt);
   };
   /* night glow map: flowers, petals and fireflies splatted top-down, sampled by grass, shells and terrain */
@@ -1693,6 +1695,7 @@ function frame(now){
     gl.depthFunc(gl.LEQUAL); gl.depthMask(false);
     setCloudCommon(Sk); tex(Sk, 'uSkyLut', gl.TEXTURE_2D, skyTex); tex(Sk, 'uCloud', gl.TEXTURE_2D, hist[cur]); tex(Sk, 'uCloudDepth', gl.TEXTURE_2D, cloudDepth);
     set(Sk, 'uCloudSize', CW, CH); set(Sk, 'uSunDisk', L.sunDisk); set(Sk, 'uExposure', expoS); set(Sk, 'uRes', W, H);
+    set(Sk, 'uFogSky', fogSky[0], fogSky[1], fogSky[2], fogSky[3]);
     set(Sk, 'uFogW', fogW[0], fogW[1], fogW[2], fogW[3]); set(Sk, 'uFogCol', fogCol); set(Sk, 'uFlashSky', [0.8, 0.85, 1.0].map(v => v * flash * 1.4)); set(Sk, 'uFlashDir', flashTop.map(v => v / ftl));
     set(Sk, 'uSunTrue', L.sunT); set(Sk, 'uMoonDir', L.moonD); set(Sk, 'uMoonDisk', L.moonDisk);
     const off = S.sunAz * Math.PI / 180, dirAE = (az, el) => [Math.cos(el) * Math.sin(az + off), Math.sin(el), Math.cos(el) * Math.cos(az + off)];

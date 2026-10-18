@@ -8,9 +8,14 @@ export function weatherFogDensity(visibility) {
 // uFogW packs extinction, scale height, camera altitude and camera air density.
 export const WEATHER_FOG_GLSL = `
 uniform vec4 uFogW;
+// 帧常量：切线尺度、高斯柱系数、雾层上方权重、地平线俯角。
+uniform vec4 uFogSky;
 uniform vec3 uFogCol;
 float wxFogF(vec3 rel){
   if (uFogW.x <= 0.0) return 0.0;
+  // 在本项目最大消光下，整段高于 28 个尺度高度且不超过 120 km 时，
+  // 光学厚度小于 6e-9，已低于 float32 的透射率分辨率。
+  if (min(uFogW.z, uFogW.z + rel.y) >= 28.0 * uFogW.y && dot(rel, rel) <= 1.44e10) return 0.0;
   // Camera density is constant for the whole frame and supplied by the CPU.
   float dy = rel.y / uFogW.y, rho0 = uFogW.w;
   // Evaluate the two endpoint densities separately: descending from above
@@ -22,14 +27,51 @@ float wxFogF(vec3 rel){
   float od = uFogW.x * length(rel) * meanDensity;
   return 1.0 - exp(-od);
 }
-vec3 wxFogRadiance(vec3 directionalSky){
+// 背景沿弯曲的薄雾层积分到远方，不把有限地形半径当成雾的尽头。
+// 指数球面大气在切线附近可写成高斯积分；erfcx 避免高空的 0 * infinity。
+float wxErfcx(float x){
+  float t = 1.0 / (1.0 + 0.3275911 * x);
+  float erfcx = t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
+  if (x > 3.0){
+    float inv = 1.0 / (x * x);
+    float tail = 0.564189584 / x * (1.0 + inv * (-0.5 + inv * (0.75 - 1.875 * inv)));
+    erfcx = mix(erfcx, tail, smoothstep(3.0, 4.0, x));
+  }
+  return erfcx;
+}
+float wxFogColumn(vec3 rd){
+  float curve = inversesqrt(max(1.0 - rd.y * rd.y, 1e-4));
+  float x = abs(rd.y) * uFogSky.x * curve;
+  float erfcx = wxErfcx(x);
+  float column = uFogSky.y * curve;
+  float rho0 = uFogW.w;
+  if (rd.y >= 0.0) column *= rho0 * erfcx;
+  else {
+    float minHeight = uFogW.z / uFogW.y - x * x;
+    // 碰到地面时停在第一个交点；稀薄天气雾也不能被当作完全不透明。
+    if (minHeight <= 0.0) column *= max(0.0, wxErfcx(sqrt(-minHeight)) - rho0 * erfcx);
+    else column *= exp(-minHeight) * (2.0 - exp(-x * x) * erfcx);
+  }
+  return column;
+}
+float wxSkyFogF(vec3 rd){
+  if (uFogW.x <= 0.0) return 0.0;
+  if (rd.y >= 0.0 && uFogW.z >= 28.0 * uFogW.y) return 0.0;
+  float column = wxFogColumn(rd);
+  return 1.0 - exp(-uFogW.x * column);
+}
+vec3 wxFogRadiance(vec3 directionalSky, vec3 rd){
   // Thin haze retains the light's direction and dawn/dusk colour. Dense fog
   // becomes diffuse as multiple scattering erases that directionality.
   float diffuse = smoothstep(0.0002, 0.0013, uFogW.x);
-  return mix(directionalSky, uFogCol, diffuse);
+  if (diffuse <= 0.0 || uFogW.z <= 2.0 * uFogW.y) return mix(directionalSky, uFogCol, diffuse);
+  // 高于雾层时，远缘的掠射散射承接同方向的天空光，向下逐渐回到漫射雾色。
+  // 以世界方向和相对雾层高度计算，转动视角时不会形成固定屏幕色带。
+  float grazing = 1.0 - smoothstep(0.0, 0.2, max(-rd.y - uFogSky.w, 0.0));
+  return mix(directionalSky, uFogCol, diffuse * (1.0 - uFogSky.z * grazing));
 }
 vec3 wxFog(vec3 c, vec3 rel, vec3 directionalSky){
-  return mix(c, wxFogRadiance(directionalSky), wxFogF(rel));
+  return mix(c, wxFogRadiance(directionalSky, rel / max(length(rel), 1e-4)), wxFogF(rel));
 }
 // 云是预乘散射与透射率，前景雾只积分到云深度；背景仍保留自己的雾。
 vec3 wxCloud(vec3 background, vec4 cloud, vec3 cloudRel, vec3 directionalSky){
@@ -37,7 +79,10 @@ vec3 wxCloud(vec3 background, vec4 cloud, vec3 cloudRel, vec3 directionalSky){
   vec3 scattering = max(cloud.rgb, vec3(0.0));
   if (uFogW.x > 0.0 && transmittance < 1.0){
     float frontFog = wxFogF(cloudRel);
-    scattering = scattering * (1.0 - frontFog) + wxFogRadiance(directionalSky) * frontFog * (1.0 - transmittance);
+    if (frontFog > 0.0){
+      vec3 rd = cloudRel / max(length(cloudRel), 1e-4);
+      scattering = scattering * (1.0 - frontFog) + wxFogRadiance(directionalSky, rd) * frontFog * (1.0 - transmittance);
+    }
   }
   return background * transmittance + scattering;
 }

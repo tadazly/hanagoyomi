@@ -98,11 +98,15 @@ float cloudBase(vec3 pw, float h01, float fp){
   vec2 wt = textureLod(uWeather, ps.xz * WEATHER_FREQ, 0.0).rg;
   float cov = saturate(uCoverage + (wt.r - 0.6) * 1.2);
   if (cov <= 0.002) return 0.0;
+  float gradient = heightGradient(h01, wt.g);
+  // 即使形状纹理取最大值，这些位置也不会有云；先跳过无贡献的 3D 采样。
+  if (gradient <= 1.0 - cov) return 0.0;
   vec4 n = textureLod(uShape, ps * SHAPE_FREQ, lodOf(fp, SHAPE_TEXEL));
   float wf = n.g * 0.625 + n.b * 0.25 + n.a * 0.125;
   float shape = saturate(remap(remap(n.r, wf - 1.0, 1.0, 0.0, 1.0), 0.62, 0.95, 0.0, 1.0));
-  shape *= heightGradient(h01, wt.g);
-  return saturate(remap(shape, 1.0 - cov, 1.0, 0.0, 1.0)) * cov;
+  shape *= gradient;
+  // shape 已在 [0,1]，消去覆盖度 remap 中互相抵消的除法与乘法。
+  return max(shape - (1.0 - cov), 0.0);
 }
 float erode(float c, vec3 pw, float h01, float fp){
   vec3 dn = textureLod(uDetail, (pw + uWindDetail) * DETAIL_FREQ, lodOf(fp, DETAIL_TEXEL)).rgb;
@@ -197,29 +201,38 @@ void main(){
   vec3 rd = normalize(uFwd + (vUv.x * 2.0 - 1.0) * uTan.x * uRight + (vUv.y * 2.0 - 1.0) * uTan.y * uUp);
   vec3 ro = vec3(0.0, uCamPos.y, 0.0); float hc = uCamPos.y;
   vec2 iB = raySphere(ro, rd, R_EARTH + uLayer.x), iT = raySphere(ro, rd, R_EARTH + uLayer.y), iG = raySphere(ro, rd, R_EARTH);
-  float t0 = -1.0, t1 = -1.0; bool inside = false;
+  float t0 = -1.0, t1 = -1.0;
   if (hc < uLayer.x){ if (!(iG.x > 0.0)){ t0 = iB.y; t1 = iT.y; } }
-  else if (hc < uLayer.y){ inside = true; t0 = 0.0; t1 = iB.x > 0.0 ? iB.x : iT.y; }
+  else if (hc < uLayer.y){ t0 = 0.0; t1 = iB.x > 0.0 ? iB.x : iT.y; }
   else if (iT.x > 0.0){ t0 = iT.x; t1 = iB.x > 0.0 ? iB.x : iT.y; }
   const float FAR = 95.0;
   if (t0 < 0.0 || t0 > FAR){ oColor = vec4(0.0, 0.0, 0.0, 1.0); oDepth = vec4(FAR); return; }
   t1 = min(t1, t0 + 60.0); float seg = t1 - t0;
+  if (seg <= 0.0){ oColor = vec4(0.0, 0.0, 0.0, 1.0); oDepth = vec4(FAR); return; }
   float jit = fract(ign(gl_FragCoord.xy) + uFrame * 0.61803398875);
   float cosT = dot(rd, uSunDir);
   float ph0 = mix(hg(0.80 * uFwdScat, cosT), hg(-0.25, cosT), 0.30), ph1 = mix(hg(0.40 * uFwdScat, cosT), hg(-0.125, cosT), 0.30);
   float ph2 = mix(hg(0.20, cosT), hg(-0.06, cosT), 0.30), ph3 = 1.0 / (4.0 * PI);
-  float baseDt = max(seg / float(uSteps), 0.022);
-  float t = t0 + (inside ? 0.02 : baseDt) * jit;
+  // 每条射线都覆盖完整云段。靠近云层时把采样集中在近处，并在出入云层时连续过渡。
+  float nearWeight = 1.0 - smoothstep(0.0, 0.3, t0);
+  // 很短的云段保留原有约 22 m 的步进预算，避免刚出云顶时空跑全部步数。
+  int stepCount = min(uSteps, max(1, int(ceil(seg / 0.022))));
+  float nSteps = float(stepCount);
+  // 二次分区的段长是等差数列，循环内只递增，避免逐步除法和重算端点。
+  float quadratic = seg * nearWeight / (nSteps * nSteps);
+  float dt = seg * (1.0 - nearWeight) / nSteps + quadratic;
+  float dtIncrease = 2.0 * quadratic, jitterIncrease = dtIncrease * jit;
+  float t = t0 + dt * jit;
   vec3 L = vec3(0.0); float T = 1.0, wsum = 0.0, dsum = 0.0;
   for (int i = 0; i < 160; i++){
-    if (i >= uSteps || t > t1) break;
-    float dt = inside ? clamp(t * 0.04, 0.02, max(baseDt, 0.02)) : baseDt;
+    if (i >= stepCount) break;
     vec3 p = ro + rd * t;
     float h = length(p - PC) - R_EARTH; float h01 = (h - uLayer.x) / (uLayer.y - uLayer.x);
     float fp = t * uPixAngle;
     vec3 pw = vec3(p.x + uCamPos.x, h, p.z + uCamPos.z);
     float c = cloudBase(pw, h01, fp);
-    if (c > 0.0){
+    // erode(c) 不大于 c，低于消光阈值时无需读取细节噪声。
+    if (c > 0.002){
       float d = erode(c, pw, h01, fp);
       if (d > 0.002){
         float sigE = d * uDensity * SIGMA;
@@ -236,7 +249,8 @@ void main(){
         if (T < 0.008) break;
       }
     }
-    t += dt;
+    t += dt + jitterIncrease;
+    dt += dtIncrease;
   }
   T = saturate((T - 0.008) / 0.992);
   float depth = wsum > 1e-4 ? dsum / wsum : t0 + min(seg, 6.0) * 0.5;
@@ -395,12 +409,15 @@ vec3 litPetal(vec3 alb, vec3 n, vec3 V, float sh){
   c += alb / PI * uFlashAmb * 0.8;
   return c;
 }
-vec3 applyFog(vec3 c, vec3 rel){
+vec3 applyFog(vec3 c, vec3 rel, float distant, out vec3 haze){
   float d = length(rel); vec3 rd = rel / d;
-  vec3 haze = skyLookup(normalize(vec3(rd.x, max(rd.y, 0.0) + 0.012, rd.z)));
+  haze = skyLookup(normalize(vec3(rd.x, max(rd.y, 0.0) + 0.012, rd.z)));
   float e = exp(-d * 0.001 * uFogKG);
-  return wxFog(c * e + haze * (1.0 - e), rel, haze);
+  float fog = wxFogF(rel);
+  if (distant > 0.0) fog = mix(fog, wxSkyFogF(rd), distant);
+  return mix(c * e + haze * (1.0 - e), wxFogRadiance(haze, rd), fog);
 }
+vec3 applyFog(vec3 c, vec3 rel){ vec3 haze; return applyFog(c, rel, 0.0, haze); }
 /* raindrop rings on puddles: expanding ripples in two jittered cell layers */
 vec2 rippleN(vec2 w, float t){
   vec2 nn = vec2(0.0);
@@ -458,6 +475,20 @@ uniform sampler2D uCloud, uCloudDepth;
 out vec4 o;
 void main(){
   float dist = length(vRel); vec3 V = -vRel / dist;
+  vec4 foregroundCloud = vec4(0.0, 0.0, 0.0, 1.0);
+  float cloudDistance = dist;
+  if (uCloudOver > 0.5){
+    vec2 suv = gl_FragCoord.xy / uRes;
+    foregroundCloud = texture(uCloud, suv);
+    cloudDistance = clamp(texture(uCloudDepth, suv).r * 1000.0, 0.0, dist);
+    // 透射率为零时，地表对最终像素没有贡献；保持深度，只跳过被遮住的着色。
+    if (foregroundCloud.a <= 0.0 && cloudDistance < dist){
+      vec3 rd = -V;
+      vec3 haze = skyLookup(normalize(vec3(rd.x, max(rd.y, 0.0) + 0.012, rd.z)));
+      o = vec4(toDisplay(wxCloud(vec3(0.0), foregroundCloud, rd * cloudDistance, haze)), 1.0);
+      return;
+    }
+  }
   vec3 n = normalize(vN);
   float p1 = tn(vW * (1.0 / 310.0) + vec2(0.37, 0.11)), p2 = tn(vW * (1.0 / 85.0) + vec2(0.71, 0.43));
   vec3 tip = grassTip(p1, p2);
@@ -503,17 +534,10 @@ void main(){
     c += uSunGround * step(0.985, sg.x) * pow(saturate(dot(reflect(-V, n), uSunDir)), 20.0) * 1.5 * smoothstep(0.1, 0.5, uSnowCov) * (1.0 - smoothstep(30.0, 80.0, dist));
   }
   c += alb * glowAt(vW) * 0.65;
-  c = applyFog(c, vRel);
-  if (uCloudOver > 0.5){
-    vec2 suv = gl_FragCoord.xy / uRes;
-    vec4 cl = texture(uCloud, suv);
-    float cloudDistance = clamp(texture(uCloudDepth, suv).r * 1000.0, 0.0, dist);
-    if (cloudDistance < dist){
-      vec3 rd = vRel / dist, haze = uFogCol;
-      if (uFogW.x > 0.0 && uFogW.x < 0.0013) haze = skyLookup(normalize(vec3(rd.x, max(rd.y, 0.0) + 0.012, rd.z)));
-      c = wxCloud(c, cl, rd * cloudDistance, haze);
-    }
-  }
+  // 只让远端天气雾收敛到天空积分；晴朗时完整保留原来的地形与雾霭。
+  vec3 haze;
+  c = applyFog(c, vRel, smoothstep(35000.0, 55000.0, dist), haze);
+  if (cloudDistance < dist) c = wxCloud(c, foregroundCloud, -V * cloudDistance, haze);
   o = vec4(toDisplay(c), 1.0);
 }`;
 
@@ -803,17 +827,11 @@ void main(){
     }
   }
   vec4 cl = catmullRom(uCloud, vUv, uCloudSize);
-  vec3 haze = uFogCol;
+  vec3 haze = baseSky;
   float backgroundFog = 0.0;
   if (uFogW.x > 0.0){
-    // Dense fog is fully diffuse; its directional sample would be discarded.
-    if (uFogW.x < 0.0013){
-      haze = baseSky;
-    }
-    // Match the terrain's 60 km extent instead of an infinite horizontal ray.
-    // The finite integral stays continuous on both sides of the horizon.
-    backgroundFog = wxFogF(rd * 60000.0);
-    col = mix(col, wxFogRadiance(haze), backgroundFog);
+    backgroundFog = wxSkyFogF(rd);
+    col = mix(col, wxFogRadiance(haze, rd), backgroundFog);
   }
   float cloudDistance = uFogW.x > 0.0 && cl.a < 1.0 ? clamp(texture(uCloudDepth, vUv).r * 1000.0, 0.0, 60000.0) : 0.0;
   col = wxCloud(col, cl, rd * cloudDistance, haze);
@@ -1008,7 +1026,7 @@ void main(){
   float dist = length(p); vec3 rd = p / dist;
   vec3 hzF = textureLod(uSkyLut, skyUVv(normalize(vec3(rd.x, max(rd.y, 0.0) + 0.012, rd.z))), 0.0).rgb;
   float eF = exp(-dist * 0.001 * uFogKG), fw = wxFogF(p), aN = eF * (1.0 - fw);
-  vFog = vec4((hzF * (1.0 - eF) * (1.0 - fw) + wxFogRadiance(hzF) * fw) / max(1.0 - aN, 1e-4), aN);
+  vFog = vec4((hzF * (1.0 - eF) * (1.0 - fw) + wxFogRadiance(hzF, rd) * fw) / max(1.0 - aN, 1e-4), aN);
   vOff = uWindDirG * uWindStr * (0.1 + 1.25 * wave) * 0.45 * uShellS * uShellS;
   vRel = p; vW = w;
   gl_Position = project(p);
