@@ -129,10 +129,40 @@ function initWeatherSource() {
   const group = $('observerWeatherGroup'), weather = $('observerWeather'), source = $('weatherSource');
   let hideTimer, hovered = false;
   const held = () => hovered || Boolean(group.querySelector(':focus-visible'));
+  const position = () => {
+    if (source.dataset.visible !== 'true' || group.hidden) return;
+    const anchor = group.getBoundingClientRect(), observation = group.closest('.observation');
+    const viewport = window.visualViewport;
+    const safe = $('componentBounds').getBoundingClientRect();
+    const viewportLeft = viewport?.offsetLeft || 0, viewportTop = viewport?.offsetTop || 0;
+    const leftEdge = Math.max(viewportLeft + 12, safe.left), topEdge = Math.max(viewportTop + 12, safe.top);
+    const rightEdge = Math.min(viewportLeft + (viewport?.width || innerWidth) - 12, safe.right);
+    const bottomEdge = Math.min(viewportTop + (viewport?.height || innerHeight) - 12, safe.bottom);
+    const maxWidth = `${Math.max(24, Math.min(380, rightEdge - leftEdge))}px`;
+    if (source.style.maxWidth !== maxWidth) source.style.maxWidth = maxWidth;
+    const width = source.offsetWidth, height = source.offsetHeight, column = observation.dataset.uiColumn;
+    const aligned = column === 'right' ? anchor.right - width : column === 'center' ? (anchor.left + anchor.right - width) / 2 : anchor.left;
+    const clampX = x => Math.max(leftEdge, Math.min(x, rightEdge - width));
+    const clampY = y => Math.max(topEdge, Math.min(y, bottomEdge - height));
+    const rect = observation.getBoundingClientRect();
+    const obstacles = [rect, ...['.toolbar', '.hint', '.masthead'].map(selector => document.querySelector(selector)).filter(element => element && !element.hidden).map(element => element.getBoundingClientRect())];
+    const candidates = [
+      [clampX(aligned), anchor.bottom + 8], [clampX(aligned), rect.top - height - 8],
+      [rect.right + 8, clampY(anchor.top)], [rect.left - width - 8, clampY(anchor.top)],
+      [leftEdge, topEdge], [rightEdge - width, topEdge],
+      [leftEdge, bottomEdge - height], [rightEdge - width, bottomEdge - height],
+    ];
+    const fits = ([x, y]) => x >= leftEdge && y >= topEdge && x + width <= rightEdge && y + height <= bottomEdge
+      && !obstacles.some(r => r.width && r.height && x < r.right + 8 && x + width > r.left - 8 && y < r.bottom + 8 && y + height > r.top - 8);
+    const [left, top] = candidates.find(fits) || [clampX(aligned), clampY(anchor.bottom + 8)];
+    if (source.style.left !== `${left}px`) source.style.left = `${left}px`;
+    if (source.style.top !== `${top}px`) source.style.top = `${top}px`;
+  };
   const setVisible = (visible) => {
     source.dataset.visible = String(visible);
     source.setAttribute('aria-hidden', String(!visible));
     weather.setAttribute('aria-expanded', String(visible));
+    if (visible) position();
   };
   const scheduleHide = () => {
     clearTimeout(hideTimer);
@@ -158,6 +188,12 @@ function initWeatherSource() {
     if (!group.contains(event.relatedTarget)) queueMicrotask(scheduleHide);
   });
   weather.addEventListener('click', reveal);
+  const observer = new ResizeObserver(position);
+  observer.observe(source); observer.observe(group);
+  document.addEventListener('componentlayout', position);
+  window.addEventListener('resize', position);
+  window.visualViewport?.addEventListener('resize', position);
+  window.visualViewport?.addEventListener('scroll', position);
   return reveal;
 }
 

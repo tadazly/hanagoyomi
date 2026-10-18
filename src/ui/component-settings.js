@@ -96,6 +96,7 @@ export function initComponentSettings() {
       element.dataset.uiColumn = placement.column;
       element.style.left = `${Math.round(placement.x)}px`; element.style.top = `${Math.round(placement.y)}px`;
     }
+    document.dispatchEvent(new Event('componentlayout'));
   };
   const requestLayout = () => { if (!queued) { queued = true; requestAnimationFrame(layout); } };
   const save = () => { try { localStorage.setItem(COMPONENTS_KEY, JSON.stringify(preferences)); } catch {} };
@@ -154,6 +155,7 @@ export function initComponentSettings() {
   const observer = new ResizeObserver(requestLayout);
   Object.values(elements).forEach(element => observer.observe(element));
   observer.observe(document.querySelector('.toolbar'));
+  observer.observe(boundsElement);
   refresh();
   return { set(name, update) {
     if (!COMPONENTS.includes(name)) return;
