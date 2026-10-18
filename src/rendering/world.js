@@ -17,8 +17,9 @@ import { createFrameGate } from '../platform/frame-gate.js';
 import { readWeatherCache, saveWeatherCache } from '../world/weather-cache.js';
 import { gradeAt } from './landscape-look.js';
 import { weatherFogDensity } from './weather-fog.js';
+import { petalStreamOpacity } from './petal-stream.js';
 import { SCENE_SETTINGS, WEATHER_SETTINGS, validateScene, resolveSceneTime, sceneFrameTiming, renderSize } from '../world/scene-state.js';
-import { DEFAULT_VIEW, HEIGHT_PRESETS, aglFromSlider, sliderFromAgl, startupPreferences, sceneForStartup } from '../world/view-preferences.js';
+import { DEFAULT_VIEW, HEIGHT_PRESETS, VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX, aglFromSlider, sliderFromAgl, startupPreferences, sceneForStartup } from '../world/view-preferences.js';
 
 // 显示偏好独立于作品协议；旧记录缺少新开关时默认开启，显式关闭须保留。
 export function displayPreferences(saved) {
@@ -616,7 +617,7 @@ try {
       } else if (k === 'qualityUser') {
         if (!Object.hasOwn(QUALITY, value)) continue;
       } else if (typeof value !== typeof S[k] || (typeof value === 'number' && !Number.isFinite(value))) continue;
-      if (k === 'agl' && (value < 1.2 || value > 6501.2)) continue;
+      if (k === 'agl' && (value < VIEW_HEIGHT_MIN || value > VIEW_HEIGHT_MAX)) continue;
       if (k === 'heightSlider' && (value < 0 || value > 1000)) continue;
       if (k === 'speed' && (!Number.isInteger(value) || value < 0 || value >= SPEEDS.length)) continue;
       S[k] = value; hasRestoredSettings = true;
@@ -654,7 +655,7 @@ let WIND_ANGLE = 0.6;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 let userPickedQuality = WALLPAPER_MODE;
-const cam = {yaw: 0, pitch: 0.04, roll: 0, yawT: 0, pitchT: 0.04, vx: 0, vz: 0, y: 0, focus: 40, fov: 60};
+const cam = {yaw: 0, pitch: 0.04, roll: 0, yawT: 0, pitchT: 0.04, pitchBase: 0.04, vx: 0, vz: 0, y: 0, focus: 40, fov: 60};
 let lastView = null, frozenView = null;
 
 (() => {
@@ -872,7 +873,7 @@ const mouseFlight = bindMouseFlightInput({
   canvas, isFlying: () => S.auto, isEnabled: () => S.interactionEnabled && !$('helpDialog').open,
   look: (dx, dy) => {
     const k = (S.fovY / 60) * 0.0032;
-    cam.yawT += dx * k; cam.pitchT = clamp(cam.pitchT - dy * k, -1.45, 1.45);
+    cam.yawT += dx * k; cam.pitchBase = cam.pitchT = clamp(cam.pitchT - dy * k, -1.45, 1.45);
   },
   dash: () => onDoubleTap(1), turn: () => onDoubleTap(2), toggleFlight: () => onDoubleTap(3),
 });
@@ -1028,6 +1029,7 @@ function wxStatus(){
 bindRange('dof', 'dof', (v) => v < 0.01 ? t('common.off') : Math.round(v * 100) + '%');
 const fmtAgl = (a) => a < 10 ? a.toFixed(1) + ' m' : Math.round(a) + ' m';
 function setViewHeight(na) {
+  na = clamp(na, VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX);
   if (Math.abs(na - S.agl) > 300) needReset = true;
   S.agl = na;
   if (preview || (!S.interactionEnabled && !S.auto)) {
@@ -1062,7 +1064,7 @@ function setInteractionEnabled(enabled){
   keys.clear(); mouseFlight.reset();
   for (const id of touches.keys()) { try { canvas.releasePointerCapture(id); } catch {} }
   touches.clear(); stick.active = false; gesture = null; lastTap = {n: 0, t: 0}; sprintUntil = 0;
-  if (!enabled) { lastSteerAt = -1e9; cam.yawT = cam.yaw; cam.pitchT = cam.pitch; }
+  if (!enabled) { lastSteerAt = -1e9; cam.yawT = cam.yaw; cam.pitchBase = cam.pitchT = cam.pitch; }
   if (!enabled && !S.auto) cam.vx = cam.vz = 0;
   frozenView = !enabled && !S.auto ? lastView : null;
   document.body.dataset.sceneInteractive = String(enabled);
@@ -1079,7 +1081,7 @@ $('clearMem').addEventListener('click', () => {
 window.addEventListener('pagehide', () => { if (S.infMem){ memDirty = true; memSave(true); } });
 function setAuto(value){
   S.auto = value; $('auto').checked = value; mouseFlight.reset();
-  if (!value) sprintUntil = 0;
+  if (!value) { sprintUntil = 0; cam.pitchBase = cam.pitchT = cam.pitch; }
   if (!S.interactionEnabled){
     frozenView = value ? null : lastView;
     if (!value) { cam.vx = cam.vz = 0; cam.yawT = cam.yaw; cam.pitchT = cam.pitch; }
@@ -1247,20 +1249,23 @@ function updateCamera(dt){
   const steering = performance.now() - lastSteerAt < 3000;
   if (S.auto && !steering){
     cam.yawT += (0.16 * Math.sin(autoT * 0.19) + 0.09 * Math.sin(autoT * 0.071 + 1.3)) * dt;
-    cam.pitchT = 0.035 + 0.05 * Math.sin(autoT * 0.13);
+    cam.pitchBase = 0.035 + 0.05 * Math.sin(autoT * 0.13);
   }
   if (stickActive){
     cam.yawT += stX * 1.1 * dt;
-    cam.pitchT = 0.035 - stY * 0.22;
-    if (stY){ S.agl = clamp(S.agl * Math.exp(-stY * 0.9 * dt), 1.2, 800); syncHeightSlider(); }
+    cam.pitchBase = 0.035 - stY * 0.22;
+    if (stY){ S.agl = clamp(S.agl * Math.exp(-stY * 0.9 * dt), VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX); syncHeightSlider(); }
   }
   /* chase camera (as in flight games): while flying, pitch looks at the lead petal and keeps it a little below centre,
      so slopes, dives and climbs never carry the stream out of frame */
   const lead = trailHist.length ? trailHist[trailHist.length - 1].p : null;
+  if (S.auto || stickActive) cam.pitchT = cam.pitchBase;
+  else cam.pitchBase = cam.pitchT;
   if ((S.auto || stickActive) && lead && S.petals){
     const dh = Math.max(1, Math.hypot(lead[0] - S.x, lead[2] - S.z));
     const look = Math.atan2(lead[1] - cam.y, dh) + 0.12;
-    cam.pitchT = clamp(look - (stickActive ? stY * 0.18 : 0) + (S.auto && !steering ? 0.02 * Math.sin(autoT * 0.13) : 0), -0.75, 0.6);
+    const chase = clamp(look - (stickActive ? stY * 0.18 : 0) + (S.auto && !steering ? 0.02 * Math.sin(autoT * 0.13) : 0), -0.75, 0.6);
+    cam.pitchT += (chase - cam.pitchT) * streamOpacity;
   }
   /* inertia on look, banking into turns */
   const k = 1 - Math.exp(-dt * 8), py = cam.yaw;
@@ -1276,7 +1281,7 @@ function updateCamera(dt){
   const ka = 1 - Math.exp(-dt * 2.2);
   cam.vx += (tvx - cam.vx) * ka; cam.vz += (tvz - cam.vz) * ka;
   S.x += cam.vx * dt; S.z += cam.vz * dt;
-  if (mu){ S.agl = clamp(S.agl * Math.exp(mu * 1.2 * dt * fast), 1.2, 6500); syncHeightSlider(); }
+  if (mu){ S.agl = clamp(S.agl * Math.exp(mu * 1.2 * dt * fast), VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX); syncHeightSlider(); }
   /* glide over the hills: look ahead so the camera rises before a slope, not into it */
   /* terrain following: sample fixed distances ahead (not times, so sprinting does not lift more) and only climb early
      as much as a 24-degree climb needs; the old 0.8 s / 1.6 s look-ahead lifted the camera metres off the grass whenever
@@ -1305,7 +1310,7 @@ const TRAIL_N = 40, trail = [], trailUni = new Float32Array(TRAIL_N * 4), pushUn
 /* path history is time-stamped every frame; each petal reads the path at a fixed delay with interpolation,
    so spacing and motion do not depend on frame rate (the old fixed-rate ring stuttered between two positions) */
 const TRAIL_DT = 1 / 45, trailHist = [], STREAM_DIST = {near: 6.5, mid: 11, far: 17};
-let streamG = NaN;
+let streamG = NaN, streamAge = 0, streamOpacity = 0;
 let streamD = 6.5;
 function trailAt(tq){
   if (tq <= trailHist[0].t) return trailHist[0].p;
@@ -1318,9 +1323,10 @@ function trailAt(tq){
   }
   return trailHist[0].p;
 }
-function updateTrail(dt, t, camM, active, spd){
+function updateTrail(dt, t, camM, active, spd, height){
   pushUni.fill(0);
-  if (!active){ trailHist.length = 0; streamG = NaN; return false; }
+  if (!active){ trailHist.length = 0; streamG = NaN; streamAge = 0; return false; }
+  streamAge = Math.min(TRAIL_N * TRAIL_DT, streamAge + dt);
   /* the lead petal flies streamD metres ahead; switching near/mid/far glides there over about a second */
   streamD += ((STREAM_DIST[S.streamDist] || 6.5) - streamD) * (1 - Math.exp(-dt * 4.5));
   const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw), weave = Math.sin(t * 0.8) * (0.6 + 0.06 * streamD);
@@ -1330,7 +1336,7 @@ function updateTrail(dt, t, camM, active, spd){
   const gl0 = groundH(lx, lz);
   if (!isFinite(streamG)) streamG = gl0;
   streamG += (gl0 - streamG) * (1 - Math.exp(-dt * (gl0 > streamG ? 5 : 2.5)));
-  const ly = Math.max(gl0 + 0.6, streamG + Math.max(0.9, S.agl - 1.05)) + 0.3 * Math.sin(t * 1.25);
+  const ly = Math.max(gl0 + 0.6, streamG + Math.max(0.9, height - 1.05)) + 0.3 * Math.sin(t * 1.25);
   if (trailHist.length && t <= trailHist[trailHist.length - 1].t) trailHist[trailHist.length - 1] = {t, p: [lx, ly, lz]};
   else trailHist.push({t, p: [lx, ly, lz]});
   const maxAge = TRAIL_N * TRAIL_DT + 0.5;
@@ -1420,13 +1426,15 @@ function frame(now){
   const tanY = Math.tan(view.fov * Math.PI / 360), tanX = tanY * aspect;
   /* focus pulls to the petal stream: it is what the shot is about */
   const grassOn = aglReal < 450;
-  const streamOn = updateTrail(dt, simTime, camM, S.petals, Math.hypot(cam.vx, cam.vz));
+  const altitudeFade = S.petals ? petalStreamOpacity(aglReal) : 0;
+  const streamOn = updateTrail(dt, simTime, camM, altitudeFade > 0, Math.hypot(cam.vx, cam.vz), aglReal);
+  streamOpacity = altitudeFade * smooth(0, TRAIL_N * TRAIL_DT, streamAge);
   let fd = focusDistance(camM, B.f);
   if (streamOn){
     let sx = 0, sy2 = 0, sz = 0;
     for (let k = 0; k < 14; k++){ sx += trailUni[k * 4]; sy2 += trailUni[k * 4 + 1]; sz += trailUni[k * 4 + 2]; }
     const dz = (sx * B.f[0] + sy2 * B.f[1] + sz * B.f[2]) / 14;
-    if (dz > 0.8) fd = dz;
+    if (dz > 0.8) fd += (dz - fd) * streamOpacity;
   }
   if (cameraActive) cam.focus += (clamp(fd, 1.5, 600) - cam.focus) * (1 - Math.exp(-dt * 3));
 
@@ -1565,6 +1573,7 @@ function frame(now){
   gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS); gl.depthMask(true);
 
   const setScene = (Pp) => {
+    set(Pp, 'uOpacity', 1);
     set(Pp, 'uLowSaturation', S.lowSaturation ? 1 : 0);
     tex(Pp, 'uTerr', gl.TEXTURE_2D, terrTex); tex(Pp, 'uSkyLut', gl.TEXTURE_2D, skyTex); tex(Pp, 'uCShadow', gl.TEXTURE_2D, cshTex);
     set(Pp, 'uCamM', camM); set(Pp, 'uR', B.r); set(Pp, 'uU', B.u); set(Pp, 'uF', B.f);
@@ -1590,7 +1599,7 @@ function frame(now){
     if (flyG > 0.01){ seti(Gw, 'uMode', 1); set(Gw, 'uFBox', 60); set(Gw, 'uFlyMul', flyG); gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, FLY_COUNT[S.quality] || 240); }
     if (S.petals){
       seti(Gw, 'uMode', 2); set(Gw, 'uPBox', 70); gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, q.petals);
-      if (streamOn){ seti(Gw, 'uMode', 3); gl.uniform4fv(Gw.u.uTrail, trailUni); gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, TRAIL_N); }
+      if (streamOn){ seti(Gw, 'uMode', 3); set(Gw, 'uStreamOpacity', streamOpacity); gl.uniform4fv(Gw.u.uTrail, trailUni); gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, TRAIL_N); }
     }
     gl.disable(gl.BLEND);
     gl.bindFramebuffer(gl.FRAMEBUFFER, msFBO); gl.viewport(0, 0, W, H);
@@ -1672,7 +1681,7 @@ function frame(now){
     const Pe = P.petal; use(Pe); setScene(Pe); set(Pe, 'uPBox', 70);
     if (grassOn) gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, q.petals);
     if (streamOn){
-      const St = P.stream; use(St); setScene(St);
+      const St = P.stream; use(St); setScene(St); set(St, 'uOpacity', streamOpacity);
       gl.uniform4fv(St.u.uTrail, trailUni);
       gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, TRAIL_N);
     }
@@ -1682,7 +1691,7 @@ function frame(now){
   {
     const Sk = P.sky; use(Sk);
     gl.depthFunc(gl.LEQUAL); gl.depthMask(false);
-    setCloudCommon(Sk); tex(Sk, 'uSkyLut', gl.TEXTURE_2D, skyTex); tex(Sk, 'uCloud', gl.TEXTURE_2D, hist[cur]);
+    setCloudCommon(Sk); tex(Sk, 'uSkyLut', gl.TEXTURE_2D, skyTex); tex(Sk, 'uCloud', gl.TEXTURE_2D, hist[cur]); tex(Sk, 'uCloudDepth', gl.TEXTURE_2D, cloudDepth);
     set(Sk, 'uCloudSize', CW, CH); set(Sk, 'uSunDisk', L.sunDisk); set(Sk, 'uExposure', expoS); set(Sk, 'uRes', W, H);
     set(Sk, 'uFogW', fogW[0], fogW[1], fogW[2], fogW[3]); set(Sk, 'uFogCol', fogCol); set(Sk, 'uFlashSky', [0.8, 0.85, 1.0].map(v => v * flash * 1.4)); set(Sk, 'uFlashDir', flashTop.map(v => v / ftl));
     set(Sk, 'uSunTrue', L.sunT); set(Sk, 'uMoonDir', L.moonD); set(Sk, 'uMoonDisk', L.moonDisk);
@@ -1905,7 +1914,7 @@ function loadScene(scene) {
   Object.assign(S, scene.settings);
   Object.assign(S, { x: scene.camera.x, z: scene.camera.z, agl: scene.camera.agl, fovY: scene.camera.fov });
   Object.assign(cam, { y: scene.camera.y ?? groundH(S.x, S.z) + S.agl, yaw: scene.camera.yaw, pitch: scene.camera.pitch,
-    yawT: scene.camera.yaw, pitchT: scene.camera.pitch, roll: scene.camera.roll, fov: scene.camera.fov, vx: 0, vz: 0 });
+    yawT: scene.camera.yaw, pitchT: scene.camera.pitch, pitchBase: scene.camera.pitch, roll: scene.camera.roll, fov: scene.camera.fov, vx: 0, vz: 0 });
   cam.focus = scene.camera.focus ?? clamp(focusDistance([S.x, cam.y, S.z], basis(cam.yaw, cam.pitch, cam.roll).f), 1.5, 600);
   simMs = scene.environment.time.ms; followNow = scene.environment.time.followNow; S.speed = scene.environment.time.speedIndex; S.time = cityHours(simMs);
   const motion = scene.environment.motion;
@@ -1918,7 +1927,7 @@ function loadScene(scene) {
   // 作品可恢复运动相位；旧作品保留当前相位，自然动画继续运行。
   keys.clear(); mouseFlight.reset(); frozenView = null; lastView = null;
   prev = null; needReset = true; lightKey = ''; skyKey = ''; expo = NaN;
-  trailHist.length = 0; LR.drops.length = 0; streamG = NaN; bolt.t = 99;
+  trailHist.length = 0; LR.drops.length = 0; streamG = NaN; streamAge = 0; streamOpacity = 0; bolt.t = 99;
   last = performance.now(); syncSceneControls();
 }
 function previewScene(input, { freezeTime = true, freezeWeather = true } = {}) {

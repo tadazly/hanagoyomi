@@ -46,6 +46,9 @@ body[data-immersive='false'] .chrome { transition-property: opacity; }
 .toolbar { position: fixed; top: calc(24px + env(safe-area-inset-top, 0px)); right: calc(32px + env(safe-area-inset-right, 0px)); display: flex; align-items: center; gap: 12px; }
 .toolbar[data-visible='false'] { opacity: 0; pointer-events: none; }
 #toolbarZone { position: fixed; right: 0; z-index: 5; touch-action: none; }
+@media (pointer: coarse) {
+  body[data-scene-interactive='true'] #toolbarZone { pointer-events: none; }
+}
 body[data-immersive='true'] #toolbarZone { display: none; }
 /* 面板打开时工具栏本已保持显示，透明唤醒区必须让出下方控件的点击。 */
 body:is([data-panel-open='true'],[data-gallery-open='true']) #toolbarZone,
@@ -102,7 +105,8 @@ body:has(#helpDialog[open]) #toolbarZone { pointer-events: none; }
 .service-note a { text-underline-offset: 3px; }
 .stats { font-family: system-ui, sans-serif; font-size: 12px; color: var(--ink-soft); overflow-wrap: anywhere; padding-bottom: 12px; }
 .stats p { margin: 5px 0; }
-.observation { position: fixed; left: calc(32px + env(safe-area-inset-left, 0px)); bottom: calc(38px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 64px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); }
+.observation { position: fixed; left: calc(32px + env(safe-area-inset-left, 0px)); bottom: calc(38px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 64px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); pointer-events: none; }
+.observation button, .observation a { pointer-events: auto; }
 .observer-place { border: 0; background: none; display: flex; align-items: center; padding: 0; color: inherit; gap: 10px; text-shadow: inherit; font-size: 15px; }
 .observer-place svg { width: 20px; height: 20px; }
 #observerEnglish { font-family: Georgia, serif; font-size: 11px; letter-spacing: .24em; margin-left: 2px; }
@@ -134,8 +138,8 @@ body:has(#helpDialog[open]) #toolbarZone { pointer-events: none; }
 .air-quality-value[data-level='veryUnhealthy'] { --aqi-color: #c89cbc; }
 .air-quality-value[data-level='hazardous'] { --aqi-color: #c17b91; }
 .air-quality-value:not([data-level]), .air-quality-value[data-level='unknown'] { --aqi-color: transparent; }
-.observer-source { margin: 12px 0 0; min-height: 1.5em; max-width: 380px; font-size: 11px; line-height: 1.5; letter-spacing: .015em; visibility: hidden; opacity: 0; pointer-events: none; transition: opacity .18s ease, visibility .18s ease; }
-.observer-source[data-visible='true'] { visibility: visible; opacity: .8; pointer-events: auto; }
+.observer-source { margin: 12px 0 0; min-height: 1.5em; max-width: 380px; font-size: 11px; line-height: 1.5; letter-spacing: .015em; visibility: hidden; opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+.observer-source[data-visible='true'] { visibility: inherit; opacity: .8; }
 .observer-source a { text-decoration: none; }
 .observer-source a:hover, .observer-source a:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
 .hint { position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); }

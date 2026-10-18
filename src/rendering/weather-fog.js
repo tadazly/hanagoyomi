@@ -31,4 +31,14 @@ vec3 wxFogRadiance(vec3 directionalSky){
 vec3 wxFog(vec3 c, vec3 rel, vec3 directionalSky){
   return mix(c, wxFogRadiance(directionalSky), wxFogF(rel));
 }
+// 云是预乘散射与透射率，前景雾只积分到云深度；背景仍保留自己的雾。
+vec3 wxCloud(vec3 background, vec4 cloud, vec3 cloudRel, vec3 directionalSky){
+  float transmittance = clamp(cloud.a, 0.0, 1.0);
+  vec3 scattering = max(cloud.rgb, vec3(0.0));
+  if (uFogW.x > 0.0 && transmittance < 1.0){
+    float frontFog = wxFogF(cloudRel);
+    scattering = scattering * (1.0 - frontFog) + wxFogRadiance(directionalSky) * frontFog * (1.0 - transmittance);
+  }
+  return background * transmittance + scattering;
+}
 `;

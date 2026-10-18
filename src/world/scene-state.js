@@ -1,5 +1,6 @@
 import { WX_TYPES, WX_KEYS, wxPreset } from './weather-presets.js';
 import { localTimeToUTC } from './clock.js';
+import { VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX } from './view-preferences.js';
 
 // 作品只保存稳定的构图和风景；画质、语言、城市、组件及交互权限属于本机偏好。
 export const SCENE_VERSION = 1;
@@ -60,7 +61,7 @@ export function validateScene(input) {
     }
     const c = input.camera || {};
     const camera = { x: number(c.x, -2801.597137599582, -1e8, 1e8), z: number(c.z, 4700.742448387173, -1e8, 1e8),
-      agl: number(c.agl, 2.2, 1.2, 6501.2), yaw: number(c.yaw, 3.9269908169872414, -1e9, 1e9),
+      agl: number(c.agl, 2.2, VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX), yaw: number(c.yaw, 3.9269908169872414, -1e9, 1e9),
       pitch: number(c.pitch, .04, -1.5, 1.5), roll: number(c.roll, 0, -Math.PI, Math.PI), fov: number(c.fov, 60, 28, 95) };
     if (c.y !== undefined) camera.y = number(c.y, undefined, -1e6, 1e6);
     if (c.focus !== undefined) camera.focus = number(c.focus, undefined, 1.5, 600);

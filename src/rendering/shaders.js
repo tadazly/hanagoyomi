@@ -507,7 +507,12 @@ void main(){
   if (uCloudOver > 0.5){
     vec2 suv = gl_FragCoord.xy / uRes;
     vec4 cl = texture(uCloud, suv);
-    if (texture(uCloudDepth, suv).r < dist * 0.001) c = c * cl.a + cl.rgb;
+    float cloudDistance = clamp(texture(uCloudDepth, suv).r * 1000.0, 0.0, dist);
+    if (cloudDistance < dist){
+      vec3 rd = vRel / dist, haze = uFogCol;
+      if (uFogW.x > 0.0 && uFogW.x < 0.0013) haze = skyLookup(normalize(vec3(rd.x, max(rd.y, 0.0) + 0.012, rd.z)));
+      c = wxCloud(c, cl, rd * cloudDistance, haze);
+    }
   }
   o = vec4(toDisplay(c), 1.0);
 }`;
@@ -693,7 +698,7 @@ void main(){
 }`;
 const PETAL_FS = PRE + COMMON + SCENE_FS + `
 in vec2 vUv; in vec3 vN; in vec3 vRel; in vec3 vAlb; in float vSh; in float vKind; in float vEmit; in float vGlowN;
-uniform float uNightGlow;
+uniform float uNightGlow, uOpacity;
 out vec4 o;
 void main(){
   float a = 1.0; vec3 alb = vAlb;
@@ -706,6 +711,7 @@ void main(){
     }
     alb *= shade;
   }
+  a *= uOpacity;
   if (a < 0.02) discard;
   vec3 V = -normalize(vRel); vec3 n = normalize(vN); if (dot(n, V) < 0.0) n = -n;
   vec3 c = vKind < 0.5 ? litGrass(alb, n, V, 0.6, vSh, 0.7) : litPetal(alb, n, V, vSh);
@@ -715,7 +721,7 @@ void main(){
 }`;
 
 const SKYPASS_FS = HEAD + COMMON + DISPLAY + WEATHER_FOG_GLSL + `
-uniform sampler2D uCloud; uniform vec2 uCloudSize;
+uniform sampler2D uCloud, uCloudDepth; uniform vec2 uCloudSize;
 uniform vec3 uRight, uUp, uFwd; uniform vec2 uTan;
 uniform vec3 uSunTrue, uMoonDir, uSunDisk, uMoonDisk;
 uniform vec3 uPole, uSouthEq, uWestEq; uniform float uSidereal, uStarI, uPixAngS, uTimeS;
@@ -797,18 +803,21 @@ void main(){
     }
   }
   vec4 cl = catmullRom(uCloud, vUv, uCloudSize);
-  col = col * saturate(cl.a) + max(cl.rgb, vec3(0.0));
-  col += uFlashSky * (0.35 + 0.65 * exp((dot(rd, uFlashDir) - 1.0) * 6.0));
+  vec3 haze = uFogCol;
+  float backgroundFog = 0.0;
   if (uFogW.x > 0.0){
     // Dense fog is fully diffuse; its directional sample would be discarded.
-    vec3 haze = uFogCol;
     if (uFogW.x < 0.0013){
       haze = baseSky;
     }
     // Match the terrain's 60 km extent instead of an infinite horizontal ray.
     // The finite integral stays continuous on both sides of the horizon.
-    col = wxFog(col, rd * 60000.0, haze);
+    backgroundFog = wxFogF(rd * 60000.0);
+    col = mix(col, wxFogRadiance(haze), backgroundFog);
   }
+  float cloudDistance = uFogW.x > 0.0 && cl.a < 1.0 ? clamp(texture(uCloudDepth, vUv).r * 1000.0, 0.0, 60000.0) : 0.0;
+  col = wxCloud(col, cl, rd * cloudDistance, haze);
+  col += uFlashSky * (0.35 + 0.65 * exp((dot(rd, uFlashDir) - 1.0) * 6.0)) * (1.0 - backgroundFog);
   o = vec4(toDisplay(col), 1.0);
 }`;
 const GOD_FS = HEAD + `
@@ -1120,7 +1129,7 @@ const FLY_COUNT = {low: 160, med: 280, high: 450, ultra: 600};
 
 /* splats each light-emitting thing as a soft disc into the top-down glow map (same placement/motion as its visible shader) */
 const GLOW_VS = VPRE + SCENE + `
-uniform int uMode; uniform float uGlowI, uFlyMul;
+uniform int uMode; uniform float uGlowI, uFlyMul, uStreamOpacity;
 uniform float uFGrid, uFCell; uniform vec2 uFBase, uFOrig;
 uniform float uFBox, uPBox; uniform vec4 uTrail[40];
 out vec2 vQ; out vec3 vC;
@@ -1164,7 +1173,7 @@ void main(){
   } else {
     vec4 tr = uTrail[gl_InstanceID]; rel = tr.xz;
     float y = max(tr.y + uCamM.y - terrainH(uCamM.xz + tr.xz, 0.0), 0.0);
-    col = paletteAt(fract(tr.w * 0.618 + 0.13)); I = 0.12 / (1.0 + y * y * 0.35); R = 1.4 + 0.3 * y;
+    col = paletteAt(fract(tr.w * 0.618 + 0.13)); I = uStreamOpacity * 0.12 / (1.0 + y * y * 0.35); R = 1.4 + 0.3 * y;
   }
   vC = max(mix(vec3(dot(col, vec3(0.2126, 0.7152, 0.0722))), col, mix(1.5, 1.02, uLowSaturation)), 0.0) * I * uGlowI;
   vec2 q = cornerG(gl_VertexID); vQ = q;
