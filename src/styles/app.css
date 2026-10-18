@@ -227,14 +227,13 @@ kbd { display: inline-block; min-width: 16px; font: 10px system-ui, sans-serif; 
 .panel-heading { gap: 10px; padding: 14px 20px 8px; flex-shrink: 0; }
 .panel-heading h2 { font-size: 24px; letter-spacing: .035em; }
 .panel-heading .plain-icon { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; }
-.panel-status { margin-left: auto; color: var(--ink-soft); font-size: 11px; white-space: nowrap; }
-.panel-status[data-saved='false'] { color: #8b5d42; }
+.panel-title { display: flex; align-items: center; min-width: 0; gap: 2px; }
+.panel-help { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; padding: 0; border: 0; background: transparent; color: var(--ink-soft); cursor: pointer; }
+.panel-help > span { display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid currentColor; border-radius: 50%; font: 14px/1 system-ui, sans-serif; }
+.panel-help:hover { color: var(--ink); }
 .panel-body { min-height: 0; flex: 1; padding: 16px 20px 10px; }
 .panel-body h2 { font-family: var(--serif); font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .panel-body h2::after { content: ''; flex: 1; height: 1px; background: var(--track); }
-.panel-footer { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 20px 12px; border-top: 1px solid var(--track); }
-.panel-footer p { margin: 0; color: var(--ink-soft); font-size: 11px; line-height: 1.6; }
-.panel-footer .btn { width: auto; min-width: 96px; min-height: 44px; margin: 0; padding-inline: 14px; flex-shrink: 0; font-size: 12px; border-radius: 10px; }
 .panel :is(.tabs button, .chip, .seg label, .btn, .component-default, .advanced summary) { min-height: 44px; }
 .panel :is(input[type='range'], .switch) { min-height: 44px; }
 .panel .switch { margin-block: 0; font-size: 13px; }
@@ -291,13 +290,14 @@ body[data-wallpaper='true'] .help-controls, body[data-wallpaper='true'] .touch-h
   .panel { width: calc(100vw - 24px); max-width: 380px; left: auto; right: 12px; }
   .panel-heading { padding-inline: 20px; }
   .panel-heading h2 { font-size: 24px; }
-  .panel-footer { padding: 10px 20px 12px; gap: 12px; }
-  .panel-footer .btn { min-width: 80px; }
   body[data-wallpaper='true'] .panel { top: auto; bottom: 126px; max-height: calc(100dvh - 154px); }
 }
 @media (max-height: 600px) and (min-width: 701px) {
   body[data-wallpaper='true'] .panel { top: 16px; max-height: calc(100dvh - 124px); }
   .panel-heading { padding-top: 14px; padding-bottom: 8px; }
+}
+@media (max-width: 360px) {
+  #panel .panel-title h2 { font-size: 20px; letter-spacing: 0; white-space: nowrap; }
 }
 
 /* 展示文字不产生选区；输入仍保留编辑，滚动内容可直接拖动。 */
@@ -308,16 +308,14 @@ body[data-wallpaper='true'] .help-controls, body[data-wallpaper='true'] .touch-h
 
 /* 短横屏把标题和分类合为一行，优先给真正可操作的正文留出高度。 */
 @media (max-height: 420px) and (orientation: landscape) {
- .panel { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); grid-template-rows: 50px minmax(0,1fr) 51px; top: 64px; bottom: auto; left: auto; right: 12px; width: min(720px,calc(100vw - 24px)); max-width: calc(100vw - 24px); height: calc(100dvh - 76px); max-height: none; }
+ .panel { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); grid-template-rows: 50px minmax(0,1fr); top: 64px; bottom: auto; left: auto; right: 12px; width: min(720px,calc(100vw - 24px)); max-width: calc(100vw - 24px); height: calc(100dvh - 76px); max-height: none; }
  .panel-heading { grid-column: 1; grid-row: 1; padding: 3px 14px; gap: 8px; border-bottom: 1px solid var(--track); }
  .panel-heading h2 { font-size: 20px; white-space: nowrap; }
- .panel-heading .plain-icon { position: absolute; top: 3px; right: 14px; margin: 0; }
+ #panelClose { position: absolute; top: 3px; right: 14px; margin: 0; }
  .panel .tabs { grid-column: 2; grid-row: 1; margin: 0 64px 0 0; align-items: stretch; }
  .panel .tabs button { font-size: 12px; padding: 4px 0; }
  .panel > :is(.panel-body,.wallpaper-scroll-region) { grid-column: 1/-1; grid-row: 2; min-height: 0; }
  .panel-body { padding-top: 8px; padding-bottom: 8px; }
- .panel-footer { grid-column: 1/-1; grid-row: 3; padding: 3px 14px; }
- .panel-footer .btn { min-width: 80px; }
  body[data-wallpaper='true'] .panel { top: 12px; bottom: auto; height: calc(100dvh - 136px); max-height: none; }
 }
 @media (max-width: 700px) and (max-height: 420px) and (orientation: landscape) {

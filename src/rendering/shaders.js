@@ -784,7 +784,8 @@ vec3 moonDiskCol(vec3 rd){
 }
 void main(){
   vec3 rd = normalize(uFwd + (vUv.x * 2.0 - 1.0) * uTan.x * uRight + (vUv.y * 2.0 - 1.0) * uTan.y * uUp);
-  vec2 skyCoord = skyUV(rd.y < 0.0 ? normalize(vec3(rd.x, 0.012, rd.z)) : rd);
+  // 与地形雾霭使用同一连续方向；避免水平线两侧突然切换 LUT 采样。
+  vec2 skyCoord = skyUV(normalize(vec3(rd.x, max(rd.y, 0.0) + 0.012, rd.z)));
   vec3 baseSky = textureLod(uSkyLut, skyCoord, 0.0).rgb;
   vec3 col = baseSky;
   if (rd.y >= 0.0){
@@ -802,14 +803,7 @@ void main(){
     // Dense fog is fully diffuse; its directional sample would be discarded.
     vec3 haze = uFogCol;
     if (uFogW.x < 0.0013){
-      // Below the horizon this is exactly the existing sky direction. Above
-      // it, only elevation changes: reuse azimuth rather than another atan.
       haze = baseSky;
-      if (rd.y >= 0.0){
-        float el = asin(clamp(normalize(vec3(rd.x, rd.y + 0.012, rd.z)).y, -1.0, 1.0));
-        vec2 hazeCoord = vec2(skyCoord.x, 0.5 + 0.5 * sign(el) * sqrt(abs(el) / (PI * 0.5)));
-        haze = textureLod(uSkyLut, hazeCoord, 0.0).rgb;
-      }
     }
     // Match the terrain's 60 km extent instead of an infinite horizontal ray.
     // The finite integral stays continuous on both sides of the horizon.

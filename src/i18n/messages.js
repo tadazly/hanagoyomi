@@ -63,6 +63,8 @@ const entries = {
   'settings.cameraDetails': ['Camera details', '镜头细节', 'カメラの詳細'],
   'settings.skyDetails': ['Sky and stars', '天空与星空', '空と星空'],
   'settings.startupRecovery': ['Startup and reset', '启动与恢复', '起動とリセット'],
+  'settings.rememberPosition': ['Remember last position', '记住上次位置', '前回の位置を記憶'],
+  'settings.rememberPositionNote': ['Resume from where you left off. Turn off to start from the default view next time.', '开启后从上次离开的位置继续；关闭后，下次启动回到默认视角。', '前回の位置から再開します。オフにすると、次回は初期の視点から始まります。'],
   'components.title': ['Interface components', '组件设置', '表示設定'],
   'components.description': ['Show or hide components and choose the time and weather position.', '独立开关组件，并调整时间天气的位置。', '各表示を切り替え、時刻・天気の位置を選びます。'],
   'components.logo': ['LOGO', 'LOGO 显示', 'ロゴ表示'],

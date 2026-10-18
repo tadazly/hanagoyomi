@@ -7,6 +7,7 @@ import { updateWeatherDetails } from './weather-details.js';
 import { initComponentSettings } from './component-settings.js';
 import { initWallpaperScrolling } from './wallpaper-scroll.js';
 import { bindDragScroll, cancelDragScroll } from './drag-scroll.js';
+import { HEIGHT_PRESETS, sliderFromAgl } from '../world/view-preferences.js';
 import { getSavedLocation, onLocationChange } from '../world/location.js';
 import { getLanguage, getLocale, onLanguageChange, setLanguage, setMessage, t, translateDocument } from '../i18n/index.js';
 import { WALLPAPER_MODE, storageKey } from '../platform/environment.js';
@@ -343,10 +344,11 @@ export function initShell() {
     setTimePopover(false); setPanel(false);
     if ($('helpDialog').open) $('helpDialog').close();
   });
+  let saveUnavailable = false;
   document.addEventListener('worldsettingssaved', event => {
     const saved = event.detail?.saved === true;
-    setMessage($('panelSaveStatus'), saved ? 'panel.saved' : 'panel.saveUnavailable');
-    $('panelSaveStatus').dataset.saved = String(saved);
+    if (!saved && !saveUnavailable) showToast('panel.saveUnavailable');
+    saveUnavailable = !saved;
   });
   const selectTab = (name, focus = false) => {
     contentScrolling.cancel('panel');
@@ -392,13 +394,8 @@ export function initShell() {
   });
   const heightInput = $('height'), heightPresets = [...document.querySelectorAll('[data-height-preset]')];
   const refreshHeightPresets = () => heightPresets.forEach(button => {
-    button.setAttribute('aria-pressed', String(Math.abs(Number(heightInput.value) - Number(button.dataset.heightPreset)) < .5));
+    button.setAttribute('aria-pressed', String(Math.abs(Number(heightInput.value) - sliderFromAgl(HEIGHT_PRESETS[button.dataset.heightPreset])) < .5));
   });
-  heightPresets.forEach(button => button.addEventListener('click', () => {
-    heightInput.value = button.dataset.heightPreset;
-    heightInput.dispatchEvent(new Event('input', { bubbles: true }));
-    refreshHeightPresets();
-  }));
   heightInput.addEventListener('input', refreshHeightPresets);
   document.addEventListener('worldscenechange', refreshHeightPresets);
   refreshHeightPresets();
@@ -429,7 +426,6 @@ export function initShell() {
     $('helpDialog').showModal();
   };
   $('helpBtn').addEventListener('click', openHelp);
-  $('componentHelpBtn').addEventListener('click', openHelp);
   $('panelHelpBtn').addEventListener('click', openHelp);
   $('helpClose').addEventListener('click', () => $('helpDialog').close());
   $('helpDialog').addEventListener('click', e => { if (e.target === $('helpDialog')) $('helpDialog').close(); });

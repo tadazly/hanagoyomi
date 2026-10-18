@@ -18,6 +18,7 @@ import { readWeatherCache, saveWeatherCache } from '../world/weather-cache.js';
 import { gradeAt } from './landscape-look.js';
 import { weatherFogDensity } from './weather-fog.js';
 import { SCENE_SETTINGS, WEATHER_SETTINGS, validateScene, resolveSceneTime, sceneFrameTiming, renderSize } from '../world/scene-state.js';
+import { DEFAULT_VIEW, HEIGHT_PRESETS, aglFromSlider, sliderFromAgl, startupPreferences, sceneForStartup } from '../world/view-preferences.js';
 
 // 显示偏好独立于作品协议；旧记录缺少新开关时默认开启，显式关闭须保留。
 export function displayPreferences(saved) {
@@ -594,17 +595,19 @@ const S = {
   heightSlider: 0, dof: 0.6, sway: !reduceMotion, quality: WALLPAPER_MODE ? 'high' : coarse ? 'med' : 'high', god: !coarse, auto: WALLPAPER_MODE || !reduceMotion,
   fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: !WALLPAPER_MODE, lowSaturation: false,
   ...displayPreferences(),
+  ...startupPreferences(),
   showWeather: true, showTemperature: true, showPrecipitation: false, showAirQuality: false, showClouds: false, showWind: false,
 };
 /* 本机偏好与完整世界分开保存，未应用的预览始终写回原世界。 */
 const SETTINGS_KEY = storageKey('meadow.settings.v1');
 const PERSIST_KEYS = ['auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof', 'lowSaturation', 'vignette',
   'heightSlider', 'agl', 'speed', 'streamDist', 'wxMode', 'wxType', 'coverage', 'density', 'wind', 'breeze', 'fogVisS', 'rainAmt', 'snowAmt', 'boltFreq',
-  'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind', 'interactionEnabled'];
+  'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind', 'interactionEnabled', 'rememberPosition'];
 try {
   const sv = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
   if (sv && typeof sv === 'object' && !Array.isArray(sv)){
     Object.assign(S, displayPreferences(sv));
+    Object.assign(S, startupPreferences(sv));
     for (const k of PERSIST_KEYS) {
       if (!Object.hasOwn(sv, k)) continue;
       const value = sv[k];
@@ -648,8 +651,6 @@ setInterval(saveSettings, 1500);
 window.addEventListener('pagehide', saveSettings);
 const LAYER = [1.5, 4.0], windOff = [0, 0, 0];
 let WIND_ANGLE = 0.6;
-const aglFromSlider = (v) => 1.2 + 6500 * Math.pow(v / 1000, 2.2);
-const sliderFromAgl = (a) => Math.pow(Math.max(a - 1.2, 0) / 6500, 1 / 2.2) * 1000;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 let userPickedQuality = WALLPAPER_MODE;
@@ -676,6 +677,8 @@ let lastView = null, frozenView = null;
   /* turn the world so the afternoon sun (azimuth ~230°) sits ahead and to the left of the starting view */
   if (!hasRestoredSettings) S.sunAz = (((best.yaw * 180 / Math.PI - 38 - 230) % 360) + 360) % 360;
 })();
+const startupCamera = { ...DEFAULT_VIEW, x: S.x, z: S.z, yaw: cam.yaw, y: groundH(S.x, S.z) + DEFAULT_VIEW.agl };
+if (!S.rememberPosition) { S.agl = DEFAULT_VIEW.agl; S.fovY = DEFAULT_VIEW.fov; }
 S.heightSlider = sliderFromAgl(S.agl);
 cam.y = groundH(S.x, S.z) + S.agl;
 
@@ -1024,8 +1027,7 @@ function wxStatus(){
 }
 bindRange('dof', 'dof', (v) => v < 0.01 ? t('common.off') : Math.round(v * 100) + '%');
 const fmtAgl = (a) => a < 10 ? a.toFixed(1) + ' m' : Math.round(a) + ' m';
-const heightCtl = bindRange('height', 'heightSlider', (v) => fmtAgl(aglFromSlider(v)), () => {
-  const na = aglFromSlider(S.heightSlider);
+function setViewHeight(na) {
   if (Math.abs(na - S.agl) > 300) needReset = true;
   S.agl = na;
   if (preview || (!S.interactionEnabled && !S.auto)) {
@@ -1034,8 +1036,18 @@ const heightCtl = bindRange('height', 'heightSlider', (v) => fmtAgl(aglFromSlide
     cam.focus = clamp(focusDistance([S.x, cam.y, S.z], basis(cam.yaw, cam.pitch, cam.roll).f), 1.5, 600);
     frozenView = null; lastView = null;
   }
-});
-function syncHeightSlider(){ S.heightSlider = sliderFromAgl(S.agl); heightCtl.el.value = S.heightSlider; heightCtl.paint(); }
+}
+const heightCtl = bindRange('height', 'heightSlider', (v) => fmtAgl(aglFromSlider(v)), () => setViewHeight(aglFromSlider(S.heightSlider)));
+function syncHeightSlider(){ S.heightSlider = sliderFromAgl(S.agl); heightCtl.el.value = S.heightSlider; heightCtl.paint(S.heightSlider); }
+document.querySelectorAll('[data-height-preset]').forEach(button => button.addEventListener('click', () => {
+  const height = HEIGHT_PRESETS[button.dataset.heightPreset];
+  if (!Number.isFinite(height)) return;
+  setViewHeight(height); syncHeightSlider();
+  document.dispatchEvent(new Event('worldscenechange'));
+  saveSettings();
+}));
+$('rememberPosition').checked = S.rememberPosition;
+$('rememberPosition').addEventListener('change', event => { S.rememberPosition = event.target.checked; saveSettings(); });
 const toggles = {auto: 'auto', god: 'god', petals: 'petals', sway: 'sway', constel: 'constel', flies: 'flies', flowerGlow: 'flowerGlow', bloom: 'bloom', streamScale: 'streamScale', infMem: 'infMem', lensDrops: 'lensDrops', vignette: 'vignette'};
 for (const [id, key] of Object.entries(toggles)){ const el = $(id); el.checked = S[key]; el.addEventListener('change', () => { if (key === 'auto') setAuto(el.checked); else S[key] = el.checked; }); }
 $('lowSaturation').checked = S.lowSaturation;
@@ -2005,7 +2017,7 @@ function tick(now) {
     fail('error.rendering');
   }
 }
-if (restoredScene) loadScene(restoredScene);
+if (restoredScene) loadScene(sceneForStartup(restoredScene, startupCamera, S.rememberPosition));
 worldReady = true;
 for (const eventName of ['input', 'change']) document.addEventListener(eventName, event => {
   if (event.target.closest('#panel, #timePopover')) saveSettings();
