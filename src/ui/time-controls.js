@@ -3,6 +3,8 @@ import { onLanguageChange, t } from '../i18n/index.js';
 
 // 大面板与快捷面板共用这一份结构、事件绑定和数值格式。
 const template = `
+  <div class="scene-lock-row"><span data-time-lock-state></span><button type="button" data-time-action="lock"></button></div>
+  <p class="settings-helper" data-i18n="locks.timeHelp"></p>
   <label class="ctl"><span data-i18n="time.local">Local time</span><output data-time-output="time"></output><input aria-label="Local time" data-i18n-aria-label="time.local" type="range" data-time-field="time" min="0" max="23.99" step="0.01"></label>
   <button class="btn outline" data-time-action="sync" type="button"><span data-i18n="time.sync">Follow now</span></button>
   <label class="ctl"><span data-i18n="time.speed">Time speed</span><output data-time-output="speed"></output><input aria-label="Time speed" data-i18n-aria-label="time.speed" type="range" data-time-field="speed" min="0" step="1"></label>
@@ -20,12 +22,16 @@ function paintRange(input, output, value, format) {
 
 function render() {
   if (!snapshot) return;
-  const { hours, speedIndex, loc, sun, phase } = snapshot;
+  const { hours, speedIndex, loc, sun, phase, locked = false } = snapshot;
   const speedLabel = index => index === 0 ? t('time.paused') : index === 1 ? t('time.realtime') : `${TIME_SPEEDS[index]}×`;
   const formatSun = ms => ms === null ? '--' : fmtTime(zonedHours(loc.tz, ms));
   const rise = sun.polar ? t(sun.polar === 'day' ? 'sun.polarDay' : 'sun.polarNight') : t('sun.rise', { time: formatSun(sun.rise) });
   const set = sun.polar ? t(`phase.${phase}`) : t('sun.set', { time: formatSun(sun.set) });
   for (const view of instances) {
+    view.time.disabled = view.speed.disabled = view.sync.disabled = locked;
+    view.lock.textContent = t(locked ? 'locks.unlock' : 'locks.lock');
+    view.lock.setAttribute('aria-pressed', String(locked));
+    view.lockState.textContent = t(locked ? 'locks.timeLocked' : 'locks.timeUnlocked');
     paintRange(view.time, view.timeOutput, hours, fmtTime);
     paintRange(view.speed, view.speedOutput, speedIndex, speedLabel);
     view.sunrise.textContent = rise;
@@ -53,6 +59,8 @@ function mount(root, prefix) {
   view.sunrise.id = `${prefix}sunriseText`;
   view.sunset.id = `${prefix}sunsetText`;
   const sync = root.querySelector('[data-time-action="sync"]');
+  view.sync = sync; view.lock = root.querySelector('[data-time-action="lock"]'); view.lockState = root.querySelector('[data-time-lock-state]');
+  view.lock.addEventListener('click', () => actions.lock?.(!snapshot?.locked));
   sync.id = `${prefix}syncNow`;
   sync.addEventListener('click', () => actions.sync?.());
   instances.push(view);

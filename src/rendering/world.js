@@ -3,7 +3,8 @@ import { VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CL
 import { STAR_DATA, LINE_DATA } from '../data/stars.js';
 import { CITIES, COMMON_CITIES, cityName, locationName, searchCities } from '../data/cities.js';
 import { WX_TYPES, WX_KEYS, wxPreset, WX_NEXT } from '../world/weather-presets.js';
-import { fetchAirQuality, fetchWeather } from '../world/weather.js';
+import { createObservationStore, realObservationState } from '../world/observation.js';
+import { advanceCloudOffset, advanceCloudAngle } from './cloud-motion.js';
 import { updateWeatherDetails } from '../ui/weather-details.js';
 import { getSavedLocation, saveLocation } from '../world/location.js';
 import { zonedHours, zonedDayStart, localTimeToUTC, fmtTime, advanceClock, timezoneOffset, TIME_SPEEDS as SPEEDS } from '../world/clock.js';
@@ -19,7 +20,7 @@ import { gradeAt } from './landscape-look.js';
 import { weatherFogDensity } from './weather-fog.js';
 import { CLOUD_LAYER_METRES, localWeatherAtHeight } from './weather-altitude.js';
 import { petalStreamOpacity } from './petal-stream.js';
-import { SCENE_SETTINGS, WEATHER_SETTINGS, validateScene, resolveSceneTime, sceneFrameTiming, renderSize } from '../world/scene-state.js';
+import { SCENE_SETTINGS, validateScene, resolveSceneTime, sceneFrameTiming, renderSize } from '../world/scene-state.js';
 import { DEFAULT_VIEW, HEIGHT_PRESETS, VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX, aglFromSlider, sliderFromAgl, startupPreferences, sceneForStartup } from '../world/view-preferences.js';
 
 // 显示偏好独立于作品协议；旧记录缺少新开关时默认开启，显式关闭须保留。
@@ -591,7 +592,7 @@ const TILE = 32, LAYER_WIDTH = [1.0, 2.4, 6.0];
 /* simulated clock: starts at the browser's local time and runs at a chosen multiple of real time */
 let simMs = Date.now();
 let worldReady = false, hasRestoredSettings = false, restoredScene = null, preview = null;
-let sceneFreeze = { time: false, weather: false }, thumbnailJob = null;
+let sceneFreeze = { time: false, weather: false, clouds: false }, thumbnailJob = null;
 const S = {
   time: 0, speed: 1, wxSync: true, constel: false, flies: true, flowerGlow: false, bloom: true, streamDist: 'near', streamScale: false, infMem: false, bloomR: 4, wxMode: 'follow', wxType: 'cloudy', fogVisS: 1000, rainAmt: 0, snowAmt: 0, boltFreq: 0, puddle: 0, snowMax: 0, lensDrops: true, sunAz: 0, coverage: 0.58, density: 1.0, wind: 40, breeze: 0.65, petals: true,
   heightSlider: 0, dof: 0.6, sway: !reduceMotion, quality: WALLPAPER_MODE ? 'high' : coarse ? 'med' : 'high', god: !coarse, auto: WALLPAPER_MODE || !reduceMotion,
@@ -652,6 +653,7 @@ function saveSettings(){
 setInterval(saveSettings, 1500);
 window.addEventListener('pagehide', saveSettings);
 const LAYER = CLOUD_LAYER_METRES.map(height => height / 1000), windOff = [0, 0, 0];
+let cloudAngle = .6;
 let WIND_ANGLE = 0.6;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -688,6 +690,8 @@ cam.y = groundH(S.x, S.z) + S.agl;
 const RAD = Math.PI / 180;
 let LOC = getSavedLocation() || {name: '东京', lat: 35.6762, lon: 139.6503, tz: 'Asia/Tokyo'};
 let sceneSkyLocation = null;
+const observation = createObservationStore({
+  cache: WALLPAPER_MODE ? { read: loc => readWeatherCache(localStorage, loc), write: (loc, live) => saveWeatherCache(localStorage, loc, live) } : null, onChange: () => { if (worldReady) { consumeObservedWeather(); publishObservation(); } } });
 const renderLocation = () => sceneSkyLocation || LOC;
 const skyLocation = () => { const { lat, lon, tz } = renderLocation(); return { lat, lon, tz }; };
 const cityOffset = (ms) => timezoneOffset(renderLocation().tz, ms);
@@ -925,31 +929,32 @@ canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (S.interactionE
 /*  UI                                                                 */
 /* ================================================================== */
 const rangeControls = [];
-function bindRange(id, key, fmt, onChange){
+function bindRange(id, key, fmt, onChange, isLocked = () => false){
   const el = $(id), out = document.querySelector(`output[for="${id}"]`);
   const paint = (displayValue) => { const v = displayValue ?? parseFloat(el.value); out.textContent = fmt(v); el.style.setProperty('--fill', ((v - el.min) / (el.max - el.min) * 100) + '%'); };
   el.value = S[key]; paint(S[key]);
-  el.addEventListener('input', () => { S[key] = parseFloat(el.value); paint(); onChange && onChange(); });
+  el.addEventListener('input', () => { if (isLocked()) { el.value = S[key]; paint(); return; } S[key] = parseFloat(el.value); paint(); onChange && onChange(); });
   onLanguageChange(() => paint(S[key]));
   const control = { el, paint, key }; rangeControls.push(control); return control;
 }
-const publishTimeControls = () => updateTimeControls({
-  hours: S.time, speedIndex: sceneFreeze.time ? 0 : S.speed, loc: renderLocation(), sun: getSunEvents(simMs, renderLocation()), phase: phaseIndex(astro(simMs).phase),
-});
+const publishTimeControls = () => { updateTimeControls({
+  locked: sceneFreeze.time, hours: S.time, speedIndex: sceneFreeze.time ? 0 : S.speed, loc: renderLocation(), sun: getSunEvents(simMs, renderLocation()), phase: phaseIndex(astro(simMs).phase),
+}); if (worldReady) publishObservation(); };
 bindTimeActions({
   time(value) {
-    sceneFreeze.time = false;
+    if (sceneFreeze.time) return;
     S.time = value; followNow = false;
     simMs = localTimeToUTC(renderLocation().tz, simMs, S.time); expo = NaN;
     publishTimeControls();
   },
   speed(value) {
-    sceneFreeze.time = false;
+    if (sceneFreeze.time) return;
     S.speed = value; followNow = false;
     publishTimeControls();
   },
+  lock(value) { setPreviewFreeze({ freezeTime: value }); },
   sync() {
-    if (preview) cancelPreview();
+    if (sceneFreeze.time) return;
     sceneSkyLocation = null;
     sceneFreeze.time = false;
     simMs = Date.now(); S.time = cityHours(simMs);
@@ -961,7 +966,7 @@ publishTimeControls();
 bindRange('sunAz', 'sunAz', (v) => Math.round(v) + '°');
 bindRange('bloomR', 'bloomR', (v) => t('landscape.radiusValue', { value: Number(v).toFixed(1) }));
 const wxCtl = {};
-const wxBind = (id, key, fmt) => { wxCtl[key] = bindRange(id, key, fmt, () => { sceneFreeze.weather = false; if (S.wxMode === 'manual') wxSetTarget(S.wxType, manualParams(), 2); }); };
+const wxBind = (id, key, fmt) => { wxCtl[key] = bindRange(id, key, fmt, () => { if (S.wxMode === 'manual') wxSetTarget(S.wxType, manualParams(), 2); }, () => sceneFreeze.weather); };
 wxBind('coverage', 'coverage', (v) => Math.round(v * 100) + '%');
 wxBind('density', 'density', (v) => v.toFixed(2));
 wxBind('wind', 'wind', (v) => Math.round(v) + ' m/s');
@@ -978,7 +983,7 @@ for (const k of Object.keys(WX_TYPES)){
   const b = document.createElement('button');
   b.type = 'button'; b.className = 'chip'; setMessage(b, `weather.${k}`); b.dataset.wx = k;
   b.addEventListener('click', () => {
-    sceneFreeze.weather = false;
+    if (sceneFreeze.weather) return;
     const pp = wxPreset(k);
     S.wxType = k; S.coverage = pp.cov; S.density = pp.dens; S.wind = pp.wind; S.breeze = pp.breeze; S.fogVisS = sliderFromVis(pp.vis);
     S.rainAmt = pp.rain; S.snowAmt = pp.snow; S.boltFreq = pp.bolt; S.puddle = pp.wet; S.snowMax = pp.snowCov;
@@ -987,7 +992,7 @@ for (const k of Object.keys(WX_TYPES)){
   $('wxTypes').appendChild(b);
 }
 function setWxMode(mode){
-  sceneFreeze.weather = false;
+  if (sceneFreeze.weather) { document.querySelectorAll('input[name="wxMode"]').forEach(r => { r.checked = r.value === S.wxMode; }); return; }
   S.wxMode = mode;
   document.querySelectorAll('input[name="wxMode"]').forEach(r => { r.checked = r.value === mode; });
   $('wxManual').hidden = mode !== 'manual';
@@ -1017,8 +1022,12 @@ function wxStatus(){
   if (WP.snow > 0.02) parts.push(t('weather.snowValue', { value: Math.round(WP.snow * 100) }));
   if (WXS.wet > 0.02) parts.push(t('weather.wetValue', { value: Math.round(WXS.wet * 100) }));
   if (WXS.snowCov > 0.02) parts.push(t('weather.snowCoverValue', { value: Math.round(WXS.snowCov * 100) }));
-  const live = S.wxMode === 'follow' && WXS.followOK ? WXS.live : null;
-  updateWeatherDetails($('panelWeatherMetrics'), { live, airQuality: live ? WXS.airQuality : null, temperatureUnit: S.temperatureUnit, simulated: S.wxMode !== 'follow' || Boolean(WXS.src && !live), hideUnavailable: S.wxMode !== 'follow' });
+  const observed = observation.read(), live = observed.live;
+  updateWeatherDetails($('panelWeatherMetrics'), { live, airQuality: observed.airQuality, temperatureUnit: S.temperatureUnit, simulated: false, hideUnavailable: false });
+  $('weatherControls').disabled = sceneFreeze.weather;
+  $('sceneWeatherLock').checked = sceneFreeze.weather;
+  $('cloudLock').checked = sceneFreeze.clouds;
+  $('weatherLockState').textContent = t(sceneFreeze.weather ? 'locks.weatherLocked' : 'locks.weatherUnlocked');
   const src = S.wxMode === 'dynamic' ? t('weather.dynamicDescription', { minutes: Math.max(1, Math.round((WXS.until - wxClock) / 60000)) })
     : S.wxMode === 'off' ? t('weather.offDescription') : S.wxMode === 'manual' ? t('weather.manualDescription')
     : live ? t('weather.liveDescription', { city: locationName(LOC), weather: t(`weather.${live.type}`), clouds: Math.round(live.cloud_cover), wind: Number(live.wind_speed_10m).toFixed(1) })
@@ -1114,12 +1123,10 @@ function renderLoc(){
   });
 }
 function setLocation(loc){
-  if (preview) cancelPreview();
-  sceneSkyLocation = null;
   LOC = loc; lightKey = ''; expo = NaN; WXS.followOK = false; WXS.live = null; WXS.airQuality = null; WXS.src = '';
   S.time = cityHours(simMs); skyKey = '';
   saveLocation(LOC);
-  renderLoc(); publishTimeControls(); syncWeather(); saveSettings();
+  renderLoc(); publishTimeControls(); void observation.refresh(LOC); syncWeather(); saveSettings();
 }
 function cityChip(c){
   const b = document.createElement('button');
@@ -1165,9 +1172,6 @@ $('geoBtn').addEventListener('click', () => {
 
 /* 当地天气请求失败时继续动态天气；始终在观测信息中说明数据来源。 */
 let weatherRequest = 0;
-function cachedWeather(loc) {
-  try { return readWeatherCache(localStorage, loc); } catch { return null; }
-}
 function applyObservedWeather(c) {
   const type = c.type, pp = wxPreset(type);
   pp.cov = clamp(0.12 + 0.85 * c.cloud_cover / 100, 0.12, 0.97);
@@ -1176,51 +1180,35 @@ function applyObservedWeather(c) {
   WXS.followOK = true; WXS.live = c; wxSetTarget(type, pp, 30);
   WXS.src = c.cached ? 'cached' : 'live';
 }
-async function syncAirQuality(loc, request){
-  const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
-  const isCurrent = () => request === weatherRequest && loc === LOC && S.wxMode === 'follow';
-  try {
-    const airQuality = await fetchAirQuality(loc, { signal: controller.signal });
-    if (isCurrent()) WXS.airQuality = airQuality;
-  } catch {
-    if (isCurrent()) WXS.airQuality = null;
-  } finally {
-    clearTimeout(timeout);
+function consumeObservedWeather() {
+  if (S.wxMode !== 'follow' || sceneFreeze.weather) return;
+  const observed = observation.read(), live = observed.live;
+  if (!live) {
+    if (observed.status === 'unavailable' && WXS.src !== 'unavailable') { WXS.followOK = false; WXS.live = null; WXS.src = 'unavailable'; wxStartDynamic(true); }
+    return;
   }
+  // 请求结果对象只有变化时才重新消费；复位或还原 WXS 后会自然重接实况。
+  if (WXS.followOK && WXS.live === live) return;
+  applyObservedWeather(live);
 }
 async function syncWeather(){
-  if (S.wxMode !== 'follow' || preview || sceneFreeze.weather) return;
   const loc = LOC, request = ++weatherRequest;
-  if (WALLPAPER_MODE && !WXS.live) {
-    const cached = cachedWeather(loc);
-    if (cached) applyObservedWeather(cached);
-  }
-  // 空气质量独立获取；失败或超时不影响正常天气显示。
-  void syncAirQuality(loc, request);
-  const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
-  try {
-    const c = await fetchWeather(loc, { signal: controller.signal });
-    if (request !== weatherRequest || loc !== LOC || S.wxMode !== 'follow' || preview || sceneFreeze.weather) return;
-    applyObservedWeather(c);
-    if (WALLPAPER_MODE) { try { saveWeatherCache(localStorage, loc, c); } catch {} }
-  } catch (e) {
-    if (request === weatherRequest && loc === LOC && S.wxMode === 'follow' && !preview && !sceneFreeze.weather) {
-      const cached = WALLPAPER_MODE ? cachedWeather(loc) : null;
-      if (cached) { applyObservedWeather(cached); return; }
-      WXS.followOK = false; WXS.live = null;
-      WXS.src = 'unavailable';
-      wxStartDynamic(true);
-    }
-  } finally {
-    clearTimeout(timeout);
-  }
+  const pending = observation.refresh(loc);
+  consumeObservedWeather();
+  const observed = await pending;
+  if (request !== weatherRequest || loc !== LOC || S.wxMode !== 'follow' || sceneFreeze.weather) return;
+  if (observed.live) consumeObservedWeather();
+  else if (WXS.src !== 'unavailable') { WXS.followOK = false; WXS.live = null; WXS.src = 'unavailable'; wxStartDynamic(true); }
 }
-setInterval(() => { if (S.wxMode === 'follow') syncWeather(); }, 15 * 60 * 1000);
-$('retryWeather').addEventListener('click', () => { setWxMode('follow'); });
+setInterval(() => { void observation.refresh(LOC); if (S.wxMode === 'follow') void syncWeather(); }, 15 * 60 * 1000);
+$('retryWeather').addEventListener('click', async () => { await observation.refresh(LOC, { force: true }); if (S.wxMode === 'follow' && !sceneFreeze.weather) void syncWeather(); });
+$('sceneWeatherLock').addEventListener('change', event => setPreviewFreeze({ freezeWeather: event.target.checked }));
+$('cloudLock').addEventListener('change', event => setPreviewFreeze({ freezeClouds: event.target.checked }));
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { keys.clear(); mouseFlight.reset(); }
-  if (!document.hidden && (!WXS.live || Date.now() - WXS.live.fetchedAt > 15 * 60 * 1000)) syncWeather();
+  else { void observation.refresh(LOC); if (S.wxMode === 'follow') void syncWeather(); }
 });
+void observation.refresh(LOC);
 renderLoc();
 setWxMode(S.wxMode);
 refreshWx();
@@ -1399,10 +1387,8 @@ function frame(now){
   const aglReal = camM[1] - groundNow;
   const localWeather = localWeatherAtHeight(camM[1]);
 
-  const wv = WP.wind / 1000;
-  windOff[0] += Math.cos(WIND_ANGLE) * wv * dt; windOff[2] += Math.sin(WIND_ANGLE) * wv * dt; windOff[1] = simTime * 0.0025;
-  if (Math.abs(windOff[0]) > 1e9) windOff[0] %= 1e9;
-  if (Math.abs(windOff[2]) > 1e9) windOff[2] %= 1e9;
+  advanceCloudOffset(windOff, dt, WP.wind, WIND_ANGLE, sceneFreeze.clouds);
+  cloudAngle = advanceCloudAngle(cloudAngle, WIND_ANGLE, dt, sceneFreeze.clouds);
   const windDir = [Math.cos(WIND_ANGLE), Math.sin(WIND_ANGLE)];
 
   if (!sceneFreeze.time) simMs = advanceClock(simMs, clockElapsed, SPEEDS[S.speed | 0], followNow);
@@ -1452,7 +1438,7 @@ function frame(now){
     set(Pp, 'uCoverage', covEff); set(Pp, 'uDensity', densEff);
     set(Pp, 'uWind', -windOff[0], -windOff[1], -windOff[2]);
     set(Pp, 'uWindDetail', -windOff[0] * 1.6, -windOff[1] * 3.0 - simTime * 0.004, -windOff[2] * 1.6);
-    set(Pp, 'uWindDir', windDir[0], windDir[1]);
+    set(Pp, 'uWindDir', Math.cos(cloudAngle), Math.sin(cloudAngle));
     set(Pp, 'uRight', B.r); set(Pp, 'uUp', B.u); set(Pp, 'uFwd', B.f); set(Pp, 'uTan', tanX, tanY);
   };
   const bindCloudTex = (Pp) => {
@@ -1855,24 +1841,12 @@ function frame(now){
   if (statT > 0.5){
     const fps = statFrames / statAcc;
     $('fps').textContent = fps.toFixed(1); setMessage($('ms'), 'rendering.frameTime', { value: (1000 / fps).toFixed(1) });
+    setMessage($('blades'), grassOn ? 'rendering.blades' : 'rendering.noGrass', { count: Math.round(bladeEst).toLocaleString(getLocale()) });
     wxStatus();
     renderClock();
     $('locSun').textContent = riseSetText(simMs);
-    const live = S.wxMode === 'follow' && WXS.followOK ? WXS.live : null;
-    const timeState = { hours: S.time, speedIndex: sceneFreeze.time ? 0 : S.speed, loc: renderLocation(), sun: getSunEvents(simMs, renderLocation()), phase: phaseIndex(AST.phase) };
+    const timeState = { locked: sceneFreeze.time, hours: S.time, speedIndex: sceneFreeze.time ? 0 : S.speed, loc: renderLocation(), sun: getSunEvents(simMs, renderLocation()), phase: phaseIndex(AST.phase) };
     updateTimeControls(timeState);
-    onUpdate({
-      loc: LOC, sceneLocation: skyLocation(), ms: simMs, live, followNow: followNow && !sceneFreeze.time, speed: sceneFreeze.time ? 0 : SPEEDS[S.speed | 0],
-      airQuality: live ? WXS.airQuality : null, temperatureUnit: S.temperatureUnit,
-      weatherDisplay: { show: S.showWeather, temperature: S.showTemperature, precipitation: S.showPrecipitation, airQuality: S.showAirQuality, clouds: S.showClouds, wind: S.showWind },
-      simulatedWeather: S.wxMode !== 'follow' || Boolean(WXS.src && !live),
-      hideUnavailableWeather: S.wxMode !== 'follow',
-      weather: live ? live.type : WXS.type,
-      coverage: WP.cov, wind: WP.wind,
-      weatherSource: S.wxMode === 'manual' ? 'weather.source.manual' : S.wxMode === 'off' ? 'weather.source.off' : S.wxMode === 'dynamic' ? 'weather.source.dynamic' : live?.cached ? 'weather.source.cached' : WXS.src ? 'weather.source.fallback' : 'weather.source.connecting',
-      sun: timeState.sun, sunAltitude: AST.sunAlt / RAD, phase: timeState.phase,
-    });
-    setMessage($('blades'), grassOn ? 'rendering.blades' : 'rendering.noGrass', { count: Math.round(bladeEst).toLocaleString(getLocale()) });
     statAcc = 0; statFrames = 0; statT = 0;
   }
   if (!userPickedQuality && downgrades < 2 && frameNo > 30){
@@ -1885,12 +1859,22 @@ function frame(now){
   }
 }
 
+function publishObservation() {
+  void observation.refresh(LOC);
+  onUpdate(realObservationState({
+    loc: LOC, temperatureUnit: S.temperatureUnit,
+    weatherDisplay: { show: S.showWeather, temperature: S.showTemperature, precipitation: S.showPrecipitation, airQuality: S.showAirQuality, clouds: S.showClouds, wind: S.showWind },
+    sceneTimeLocked: sceneFreeze.time, sceneFollowNow: followNow, sceneSpeed: sceneFreeze.time ? 0 : SPEEDS[S.speed | 0], sceneSunAltitude: AST.sunAlt / RAD,
+  }, observation.read()));
+}
+setInterval(() => { if (worldReady) { consumeObservedWeather(); publishObservation(); } }, 1000);
+
 function captureScene() {
   const settings = Object.fromEntries(Object.keys(SCENE_SETTINGS).map(key => [key, S[key]]));
   const value = validateScene({ version: 1, settings,
     camera: { x: S.x, z: S.z, y: cam.y, agl: S.agl, yaw: cam.yaw, pitch: cam.pitch, roll: cam.roll, fov: S.fovY, focus: cam.focus },
     environment: { time: { ms: simMs, followNow, speedIndex: S.speed }, skyLocation: skyLocation(),
-      motion: { time: simTime, windAngle: WIND_ANGLE, windOffset: [windOff[0], windOff[2]] },
+      motion: { time: simTime, windAngle: WIND_ANGLE, windOffset: [windOff[0], windOff[2]], cloudY: windOff[1], cloudAngle },
       weather: { type: WXS.type, current: { ...WP }, wet: WXS.wet, snowCover: WXS.snowCov } },
     freeze: { ...sceneFreeze },
   });
@@ -1927,7 +1911,7 @@ function loadScene(scene) {
   const motion = scene.environment.motion;
   if (motion) {
     simTime = motion.time; WIND_ANGLE = motion.windAngle;
-    windOff[0] = motion.windOffset[0]; windOff[1] = simTime * 0.0025; windOff[2] = motion.windOffset[1];
+    windOff[0] = motion.windOffset[0]; windOff[1] = motion.cloudY ?? simTime * 0.0025; windOff[2] = motion.windOffset[1]; cloudAngle = motion.cloudAngle ?? WIND_ANGLE;
   }
   sceneFreeze = { ...scene.freeze };
   applySceneWeather(scene.environment.weather);
@@ -1936,35 +1920,36 @@ function loadScene(scene) {
   prev = null; needReset = true; lightKey = ''; skyKey = ''; expo = NaN;
   trailHist.length = 0; LR.drops.length = 0; streamG = NaN; streamAge = 0; streamOpacity = 0; bolt.t = 99;
   last = performance.now(); syncSceneControls();
+  if (S.wxMode === 'follow' && !sceneFreeze.weather) { consumeObservedWeather(); void syncWeather(); }
 }
-function previewScene(input, { freezeTime = true, freezeWeather = true } = {}) {
+function previewScene(input, options = {}) {
   const scene = resolveSceneTime(input, LOC.tz);
   if (!scene) throw new TypeError('无效的风景');
+  const { freezeTime = scene.freeze.time, freezeWeather = scene.freeze.weather, freezeClouds = scene.freeze.clouds } = options;
+  if (!scene.environment.skyLocation) { const { lat, lon, tz } = LOC; scene.environment.skyLocation = { lat, lon, tz }; }
   if (!preview) preview = { original: captureScene(), weather: structuredClone(WXS), startedAt: performance.now() };
   preview.selected = scene;
   const composed = structuredClone(scene);
-  composed.freeze = { time: Boolean(freezeTime), weather: Boolean(freezeWeather) };
+  composed.freeze = { time: Boolean(freezeTime), weather: Boolean(freezeWeather), clouds: Boolean(freezeClouds) };
   if (!freezeTime) composed.environment.time = { ...scene.environment.time, followNow: false, speedIndex: Math.max(1, scene.environment.time.speedIndex) };
-  if (!freezeWeather) {
-    composed.settings.wxMode = 'dynamic';
-  }
+
   weatherRequest++; loadScene(composed);
   return captureScene();
 }
-function setPreviewFreeze({ freezeTime = sceneFreeze.time, freezeWeather = sceneFreeze.weather } = {}) {
-  if (!preview) return false;
+// 开关只改变当下状态的锁定，不重载作品或重置运动相位。
+function setPreviewFreeze({ freezeTime = sceneFreeze.time, freezeWeather = sceneFreeze.weather, freezeClouds = sceneFreeze.clouds } = {}) {
   if (sceneFreeze.time !== Boolean(freezeTime)) {
-    const time = freezeTime ? preview.selected.environment.time : { ms: simMs, followNow: false, speedIndex: Math.max(1, S.speed) };
-    simMs = time.ms; followNow = time.followNow; S.speed = time.speedIndex; S.time = cityHours(simMs);
+    followNow = false;
+    if (!freezeTime) S.speed = Math.max(1, S.speed);
   }
   if (sceneFreeze.weather !== Boolean(freezeWeather)) {
-    const source = freezeWeather ? preview.selected : captureScene();
-    for (const key of WEATHER_SETTINGS) S[key] = source.settings[key];
-    applySceneWeather(source.environment.weather);
-    if (!freezeWeather) S.wxMode = 'dynamic';
+    applySceneWeather(captureScene().environment.weather);
+
   }
-  sceneFreeze = { time: Boolean(freezeTime), weather: Boolean(freezeWeather) };
-  lightKey = ''; skyKey = ''; weatherRequest++; syncSceneControls(); return true;
+  sceneFreeze = { time: Boolean(freezeTime), weather: Boolean(freezeWeather), clouds: Boolean(freezeClouds) };
+  syncSceneControls(); saveSettings();
+  if (!sceneFreeze.weather && S.wxMode === 'follow') { consumeObservedWeather(); void syncWeather(); }
+  return true;
 }
 function cancelPreview() {
   if (!preview) return false;
@@ -2035,6 +2020,7 @@ function tick(now) {
 }
 if (restoredScene) loadScene(sceneForStartup(restoredScene, startupCamera, S.rememberPosition));
 worldReady = true;
+publishObservation();
 for (const eventName of ['input', 'change']) document.addEventListener(eventName, event => {
   if (event.target.closest('#panel, #timePopover')) saveSettings();
 });

@@ -2,6 +2,16 @@ import { ABOUT_PAGES } from '../content/seo.js';
 
 // 每条文案依次为英语、简体中文、日语；界面通过稳定的 key 引用。
 const entries = {
+  'locks.timeLocked': ['Scene time locked', '场景时刻已锁定', '風景の時刻を固定中'],
+  'locks.timeUnlocked': ['Scene time', '场景时刻', '風景の時刻'],
+  'locks.weatherLocked': ['Scene weather locked', '场景天气已锁定', '風景の天気を固定中'],
+  'locks.weatherUnlocked': ['Lock scene weather', '锁定场景天气', '風景の天気を固定'],
+  'locks.lock': ['Lock', '锁定', '固定'],
+  'locks.unlock': ['Unlock', '解锁', '解除'],
+  'locks.timeHelp': ['Holds sunlight and the night sky. Plants and wind keep moving. The clock shows real local time.', '仅固定日照与星空，草木和风仍自然流动。时间组件始终显示当地实时时间。', '日照と星空だけを固定。草木と風は動き、時計は現地の実時刻を表示します。'],
+  'locks.weatherHelp': ['Holds the current conditions; rain, snow and lightning stay animated. Unlock before changing the scene weather. The widget shows local observations.', '保持当前天气，雨雪和闪电仍自然变化。解锁后可调整场景天气；天气组件显示当地实况。', '天気を固定しても雨雪や雷の動きは続きます。変更するには解除してください。表示は現地の実測値です。'],
+  'locks.clouds': ['Lock cloud drift', '锁定云移动', '雲の移動を固定'],
+  'locks.cloudHelp': ['Stops whole-cloud drift while keeping the edges gently evolving.', '停止整片云的平移，保留云边缘的自然变化。', '雲全体の移動を止め、縁の自然な変化は残します。'],
   'app.title': ['花暦 · Hanagoyomi', '花暦 · Hanagoyomi', '花暦 · Hanagoyomi'],
   'app.pageTitle': ['en', 'zh', 'ja'].map(language => ABOUT_PAGES[language].title),
   'app.description': ['en', 'zh', 'ja'].map(language => ABOUT_PAGES[language].homeDescription),
@@ -104,7 +114,7 @@ const entries = {
   'time.title': ['Time', '时间', '時間'],
   'time.settings': ['Time settings', '时间设置', '時間の設定'],
   'time.close': ['Close time settings', '关闭时间设置', '時間の設定を閉じる'],
-  'time.local': ['Local time', '当地时刻', '現地の時刻'],
+  'time.local': ['Scene time', '场景时刻', '風景の時刻'],
   'time.speed': ['Time speed', '时间流速', '時間の速さ'],
   'time.sync': ['Follow now', '跟随现在', 'いまに合わせる'],
   'time.paused': ['Paused', '暂停', '一時停止'],

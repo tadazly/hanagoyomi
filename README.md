@@ -87,7 +87,7 @@ npm run preview   # Preview the production build at http://127.0.0.1:4173/
 
 Settings stay in the current browser. Moving the time slider or changing its speed enters simulated time; **Back to now** restores real local time. Weather continues to follow current observations, so changing the simulated clock does not retrieve historical weather.
 
-Open **Gallery** to browse a continuous horizontal strip of scenes. Drag the cards, swipe on touchscreens, or use the track below them. Previewing preserves your current world; close or choose **Restore** to return, and choose **Apply to world** to keep the scene. Time and weather can be held independently while grass, clouds and rain keep moving. **Save moment** stores the current scene and a small JPEG cover locally, with up to 24 saved scenes.
+Open **Gallery** to browse a continuous horizontal strip of scenes. Drag the cards, swipe on touchscreens, or use the track below them. Previewing preserves your current world; close or choose **Restore** to return, and choose **Apply to world** to keep the scene. Fourteen selected landscapes are arranged by light and weather. Lock scene time, weather or cloud drift independently; cloud edges, plants and precipitation stay animated. The clock and weather widget always show real local observations. Unlock scene controls before editing. **Save moment** stores the current scene and a small JPEG cover locally, with up to 24 saved scenes.
 
 On desktop, click the toolbar's time status to open a compact time panel. It shares its controls with World settings. Constellation lines and orientation are under **Visuals → Sky and stars**.
 

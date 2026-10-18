@@ -29,7 +29,7 @@ test('旧收藏和携带暗角字段的作品均不能覆盖本机显示偏好',
 test('稀疏场景得到稳定、可往返序列化的默认值', () => {
   const scene = validateScene({ version: 1 });
   assert.deepEqual(validateScene(JSON.parse(JSON.stringify(scene))), scene);
-  assert.deepEqual(scene.freeze, { time: true, weather: true });
+  assert.deepEqual(scene.freeze, { time: true, weather: true, clouds: false });
   assert.equal(scene.environment.time.followNow, false);
   assert.equal(scene.environment.time.speedIndex, 0);
 });
@@ -60,17 +60,17 @@ test('实际天气插值的浮点边界可捕获，并只校正1e-9相对误差'
 test('相机高度与天气积雪、湿地及两个定格开关可完整保存', () => {
   const scene = validateScene({ version: 1, camera: { x: 45, z: 80, y: 250, agl: 12, yaw: -4, pitch: -.2, roll: .1, fov: 76 },
     environment: { time: { ms: 1792303200000, speedIndex: 3, followNow: false }, weather: { type: 'snow', wet: .4, snowCover: .8 } },
-    freeze: { time: false, weather: true } });
+    freeze: { time: false, weather: true, clouds: false } });
   assert.equal(scene.camera.y, 250);
   assert.equal(scene.environment.weather.snowCover, .8);
   assert.equal(scene.environment.weather.wet, .4);
-  assert.deepEqual(scene.freeze, { time: false, weather: true });
+  assert.deepEqual(scene.freeze, { time: false, weather: true, clouds: false });
 });
 
 test('定格时间和天气分别停止环境时钟，同时保留自然视觉运动', () => {
-  assert.deepEqual(sceneFrameTiming(20, { time: true, weather: true }), { clockElapsed: 0, visualDt: .02, weatherDt: 0 });
+  assert.deepEqual(sceneFrameTiming(20, { time: true, weather: true, clouds: false }), { clockElapsed: 0, visualDt: .02, weatherDt: 0 });
   assert.deepEqual(sceneFrameTiming(20, { time: true, weather: false }), { clockElapsed: 0, visualDt: .02, weatherDt: .02 });
-  assert.deepEqual(sceneFrameTiming(20, { time: false, weather: true }), { clockElapsed: 20, visualDt: .02, weatherDt: 0 });
+  assert.deepEqual(sceneFrameTiming(20, { time: false, weather: true, clouds: false }), { clockElapsed: 20, visualDt: .02, weatherDt: 0 });
   assert.equal(sceneFrameTiming(90000).visualDt, .1);
   assert.equal(sceneFrameTiming(-100).clockElapsed, 0);
 });
@@ -90,7 +90,9 @@ test('窄而极高画布受独立高度限制，普通画布不额外降采样',
 });
 
 test('精选风景都是可导入的实际世界参数，三语目录完整', () => {
-  assert.deepEqual(GALLERY_SCENES.slice(0, 4).map(item => item.id), ['meadow', 'mist', 'sunset', 'stars']);
+  assert.equal(GALLERY_SCENES.length, 14);
+  assert.equal(GALLERY_SCENES[0].id, 'recommended-cloud-sea-dawn');
+  assert.equal(GALLERY_SCENES.at(-1).id, 'stars');
   assert.ok(GALLERY_SCENES.length >= 8);
   assert.equal(new Set(GALLERY_SCENES.map(item => item.id)).size, GALLERY_SCENES.length);
   for (const item of GALLERY_SCENES) {
@@ -107,8 +109,8 @@ test('精选风景都是可导入的实际世界参数，三语目录完整', ()
 test('精选午后与黄昏使用当前城市当地时刻，捕获收藏不重新解释绝对时间', () => {
   const now = Date.parse('2026-10-18T12:00:00Z');
   for (const timezone of ['America/New_York', 'Asia/Shanghai']) {
-    const meadow = resolveSceneTime(GALLERY_SCENES[0].scene, timezone, now);
-    const sunset = resolveSceneTime(GALLERY_SCENES[2].scene, timezone, now);
+    const meadow = resolveSceneTime(GALLERY_SCENES.find(item => item.id === 'meadow').scene, timezone, now);
+    const sunset = resolveSceneTime(GALLERY_SCENES.find(item => item.id === 'sunset').scene, timezone, now);
     assert.equal(zonedHours(timezone, meadow.environment.time.ms), 15);
     assert.equal(zonedHours(timezone, sunset.environment.time.ms), 17);
     assert.equal('localHour' in meadow.environment.time, false);
@@ -133,7 +135,7 @@ test('作品天空锚点独立保存受验证的经纬度和时区，不保存�
 });
 
 test('localHour 以作品天空锚点解析，接收者城市不会重新解释作品时刻', () => {
-  const input = structuredClone(GALLERY_SCENES[0].scene);
+  const input = structuredClone(GALLERY_SCENES.find(item => item.id === 'meadow').scene);
   input.environment.skyLocation = { lat: 35.6762, lon: 139.6503, tz: 'Asia/Tokyo' };
   const now = Date.parse('2026-10-18T06:00:00Z');
   const tokyo = resolveSceneTime(input, 'Asia/Tokyo', now), newYork = resolveSceneTime(input, 'America/New_York', now);
@@ -148,7 +150,7 @@ test('自然运动相位可选且完整保存精度，不改变独立视觉时�
   assert.deepEqual(scene.environment.motion, { time: motion.time, windAngle: motion.windAngle, windOffset: motion.windOffset });
   assert.deepEqual(validateScene(JSON.parse(JSON.stringify(scene))), scene);
   assert.equal(validateScene({ version: 1 }).environment.motion, undefined);
-  assert.equal(sceneFrameTiming(20, { time: true, weather: true }).visualDt, .02);
+  assert.equal(sceneFrameTiming(20, { time: true, weather: true, clouds: false }).visualDt, .02);
 });
 
 test('作品景深焦距可选且有界，旧作品不继承伪造默认焦距', () => {

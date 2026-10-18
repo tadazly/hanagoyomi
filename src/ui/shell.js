@@ -350,7 +350,7 @@ export function initShell() {
     if (open) {
       document.dispatchEvent(new CustomEvent('worldpanelopen', { detail: { panel: 'time' } }));
       positionTimePopover();
-      $('quick-time').focus({ preventScroll: true });
+      (document.querySelector('#quickTimeControls [data-time-action="lock"]') || $('quick-time')).focus({ preventScroll: true });
     } else if (restoreFocus) timeTrigger.focus({ preventScroll: true });
   };
   timeTrigger.addEventListener('click', () => setTimePopover(timePopover.hidden));
@@ -542,16 +542,16 @@ export function updateObservation(state) {
   $('observerDate').textContent = dateFormatter.format(ms);
   const condition = $('observerCondition'), group = $('observerWeatherGroup'), display = state.weatherDisplay || {};
   delete condition.dataset.i18n;
-  condition.textContent = t(`weather.${weather}`);
+  condition.textContent = weather ? t(`weather.${weather}`) : '—';
   group.hidden = display.show === false;
   group.querySelectorAll('[data-weather-field]').forEach(field => { field.hidden = display[field.dataset.weatherField] === false; });
-  $('observerClouds').textContent = Math.round(live?.cloud_cover ?? coverage * 100) + '%';
-  $('observerWind').textContent = Number(live?.wind_speed_10m ?? wind).toFixed(1) + ' m/s';
-  $('observerWind').parentElement.title = t(live ? 'weather.windValue' : 'weather.cloudSpeedValue', { value: Number(live?.wind_speed_10m ?? wind).toFixed(1) });
+  $('observerClouds').textContent = Number.isFinite(live?.cloud_cover) ? Math.round(live.cloud_cover) + '%' : '—';
+  $('observerWind').textContent = Number.isFinite(live?.wind_speed_10m) ? live.wind_speed_10m.toFixed(1) + ' m/s' : '—';
+  $('observerWind').parentElement.title = Number.isFinite(live?.wind_speed_10m) ? t('weather.windValue', { value: live.wind_speed_10m.toFixed(1) }) : t('weather.noData');
   updateWeatherDetails(group, { live, airQuality: state.airQuality, temperatureUnit: state.temperatureUnit, simulated: state.simulatedWeather, compact: true, hideUnavailable: state.hideUnavailableWeather, display });
   $('observerWeatherMetrics').hidden = ![...$('observerWeatherMetrics').children].some(field => !field.hidden);
   const source = $('weatherSource');
-  const sourceKey = `${getLocale()}|${loc.lat},${loc.lon}|${loc.tz}|${state.temperatureUnit}|${state.airQuality?.fetchedAt}|${live ? `live:${live.fetchedAt}` : state.weatherSource}`;
+  const sourceKey = `${getLocale()}|${loc.lat},${loc.lon}|${loc.tz}|${state.temperatureUnit}|${state.airQuality?.fetchedAt}|${live ? `live:${live.fetchedAt}:${Boolean(live.cached)}` : state.weatherSource}`;
   // 每半秒的观测刷新不重置隐藏计时，也不重建正在聚焦的来源链接。
   if (sourceKey !== lastSourceKey) {
     lastSourceKey = sourceKey;
@@ -585,9 +585,10 @@ export function updateObservation(state) {
     }
     revealWeatherSource();
   }
-  const timeState = followNow && speed === 1 ? 'time.live' : speed === 0 ? 'time.still' : 'time.roaming';
+  const sceneFollow = state.sceneFollowNow ?? followNow, sceneSpeed = state.sceneSpeed ?? speed;
+  const timeState = state.sceneTimeLocked ? 'locks.timeLocked' : sceneFollow && sceneSpeed === 1 ? 'time.live' : sceneSpeed === 0 ? 'time.still' : 'time.roaming';
   setMessage($('liveLabel'), timeState);
   $('liveStatus').setAttribute('aria-label', `${t(timeState)} · ${t('time.settings')}`);
-  $('liveStatus').dataset.live = String(followNow && speed === 1);
-  document.body.dataset.daylight = String(state.sunAltitude > 8);
+  $('liveStatus').dataset.live = String(!state.sceneTimeLocked && sceneFollow && sceneSpeed === 1);
+  document.body.dataset.daylight = String((state.sceneSunAltitude ?? state.sunAltitude) > 8);
 }

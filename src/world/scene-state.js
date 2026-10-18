@@ -32,7 +32,10 @@ function motionSnapshot(value) {
     || !Array.isArray(value.windOffset) || value.windOffset.length !== 2
     || ![0, 1].every(index => Number.isFinite(value.windOffset[index]) && Math.abs(value.windOffset[index]) <= 1e9)) throw new TypeError('无效的场景运动相位');
   // 秒、弧度、公里；上限覆盖多年持续运行，同时拒绝会破坏 GPU 运算的无界值。
-  return { time: value.time, windAngle: value.windAngle, windOffset: [...value.windOffset] };
+  const motion = { time: value.time, windAngle: value.windAngle, windOffset: [...value.windOffset] };
+  if (value.cloudAngle !== undefined) motion.cloudAngle = number(value.cloudAngle, undefined, -1000, 1000);
+  if (value.cloudY !== undefined) motion.cloudY = number(value.cloudY, undefined, -1e9, 1e9);
+  return motion;
 }
 function number(value, fallback, min, max) {
   if (value === undefined) return fallback;
@@ -78,7 +81,7 @@ export function validateScene(input) {
     const preset = wxPreset(type), current = {};
     for (const key of WX_KEYS) current[key] = number(w.current?.[key], preset[key], key === 'vis' ? 60 : 0, key === 'vis' ? 30000 : key === 'wind' ? 200 : key === 'dens' ? 2.5 : key === 'bolt' ? 4 : 1);
     const weather = { type, current, wet: number(w.wet, current.wet, 0, 1), snowCover: number(w.snowCover, current.snowCov, 0, 1) };
-    const freeze = { time: boolean(input.freeze?.time, true), weather: boolean(input.freeze?.weather, true) };
+    const freeze = { time: boolean(input.freeze?.time, true), weather: boolean(input.freeze?.weather, true), clouds: boolean(input.freeze?.clouds, false) };
     const environment = { time, weather };
     // 天空位置只服务作品的天文绘制，不包含城市名称或实时天气请求偏好。
     if (e.skyLocation !== undefined) environment.skyLocation = skyLocation(e.skyLocation);

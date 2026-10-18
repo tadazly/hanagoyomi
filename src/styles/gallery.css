@@ -249,3 +249,22 @@ body:has(#galleryIncoming:not([hidden])) #toolbarZone,body:has(.gallery-dialog[o
  .gallery-tabs .gallery-full-label { display: none; }
  .gallery-tabs .gallery-compact-label { display: inline; }
 }
+
+/* 展开与收起共用同一组三锁，避免状态不同步。 */
+.gallery-freeze { gap: 12px; }
+.gallery-freeze label { min-height: 44px; }
+.gallery-sheet.is-collapsed { width: min(960px,calc(100% - 24px)); }
+.gallery-dock .gallery-freeze { width: auto; flex-shrink: 0; }
+.gallery-dock .gallery-freeze label { font-size: 12px; }
+@media (max-width: 700px) {
+ .gallery-dock { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 8px; }
+ .gallery-dock-caption { grid-area: 1/1/2/3; }
+ .gallery-dock .gallery-freeze { grid-area: 2/1; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; margin: 0; min-width: 0; }
+ .gallery-dock .gallery-freeze label { min-width: 0; white-space: normal; gap: 5px; font-size: 11px; line-height: 1.35; }
+ .gallery-dock .gallery-freeze input { flex-shrink: 0; }
+ .gallery-dock .gallery-expand { grid-area: 2/2; width: auto; min-height: 44px; padding-inline: 9px; }
+ .gallery-dock .gallery-actions { grid-area: 3/1/4/3; display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin: 0; }
+ .gallery-footer .gallery-freeze { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+ .gallery-footer .gallery-freeze label { white-space: normal; font-size: 11px; line-height: 1.35; gap: 5px; }
+ .gallery-footer .gallery-freeze input { flex-shrink: 0; }
+}

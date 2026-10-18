@@ -12,18 +12,18 @@ const TOKYO = { lat: 35.6762, lon: 139.6503, tz: 'Asia/Tokyo' };
 const shared = scene => validateScene({ ...scene, environment: { ...scene.environment, skyLocation: TOKYO } });
 const tokenData = link => {
   const hash = new URL(link).hash, bytes = Buffer.from(hash.slice('#scene=v1.'.length), 'base64url');
-  return JSON.parse((hash.startsWith('#scene=v2.') ? inflateRawSync(bytes) : bytes).toString('utf8'));
+  return JSON.parse((!hash.startsWith('#scene=v1.') ? inflateRawSync(bytes) : bytes).toString('utf8'));
 };
 const dataLink = data => `https://example.test/#scene=v1.${Buffer.from(JSON.stringify(data)).toString('base64url')}`;
 const compressedLink = bytes => `https://example.test/#scene=v2.${Buffer.from(bytes).toString('base64url')}`;
 const expectInvalid = input => assert.throws(() => parseSceneLink(input), error => error instanceof SceneLinkError && error.code.startsWith('scene-link.'));
 
-test('八个精选风景无损往返，localHour 解析为固定 UTC，链接短小', () => {
+test('全部精选风景无损往返，localHour 解析为固定 UTC，链接短小', () => {
   for (const entry of GALLERY_SCENES) {
     const scene = shared(entry.scene);
     const link = createSceneLink(scene, { title: entry.title.zh, baseUrl: BASE, now: NOW, timeZone: 'America/New_York' });
     const expected = resolveSceneTime(scene, 'Asia/Tokyo', NOW);
-    assert.ok(new URL(link).hash.startsWith('#scene=v2.'));
+    assert.ok(new URL(link).hash.startsWith('#scene=v3.'));
     assert.deepEqual(parseSceneLink(link), { scene: expected, title: entry.title.zh });
     assert.equal('localHour' in parseSceneLink(link).scene.environment.time, false);
     assert.ok(link.length < 480, `${entry.id}: ${link.length}`);
@@ -49,7 +49,7 @@ test('捕获场景的双精度数值、可选高度、开关和天气全部保�
 });
 
 test('名称支持三语、emoji 与 NFC，同时剔除不可信附加字段', () => {
-  const source = shared(GALLERY_SCENES[0].scene);
+  const source = shared(GALLERY_SCENES.find(item => item.id === 'meadow').scene);
   source.settings.apiKey = 'private'; source.settings.language = 'zh'; source.settings.quality = 'ultra'; source.settings.vignette = false;
   source.environment.skyLocation.name = '不应分享真实城市名'; source.thumbnail = 'data:image/jpeg;base64,private';
   const link = createSceneLink(source, { title: '  花海 e\u0301 🌸\n晴れ  ', baseUrl: BASE, now: NOW });
@@ -60,7 +60,7 @@ test('名称支持三语、emoji 与 NFC，同时剔除不可信附加字段', (
 });
 
 test('没有锚点的旧场景保持兼容，不生成虚假位置或修改输入', () => {
-  const input = structuredClone(GALLERY_SCENES[0].scene), before = structuredClone(input);
+  const input = structuredClone(GALLERY_SCENES.find(item => item.id === 'meadow').scene), before = structuredClone(input);
   const link = createSceneLink(input, { baseUrl: BASE, timeZone: 'America/New_York', now: NOW });
   const result = parseSceneLink(link);
   assert.equal(result.title, ''); assert.equal(result.scene.environment.skyLocation, undefined);
@@ -69,7 +69,7 @@ test('没有锚点的旧场景保持兼容，不生成虚假位置或修改输�
 });
 
 test('支持 HTTPS 完整链接及同站相对链接，不访问网络或存储', () => {
-  const link = createSceneLink(GALLERY_SCENES[0].scene, { baseUrl: BASE, now: NOW });
+  const link = createSceneLink(GALLERY_SCENES.find(item => item.id === 'meadow').scene, { baseUrl: BASE, now: NOW });
   const hash = new URL(link).hash;
   const expected = parseSceneLink(link);
   assert.deepEqual(parseSceneLink(hash, { baseUrl: BASE }), expected);
@@ -82,7 +82,7 @@ test('支持 HTTPS 完整链接及同站相对链接，不访问网络或存储'
 });
 
 test('file 壁纸宿主可独立解析完整 HTTPS 链接，相对链接仍需公开基址', () => {
-  const link = createSceneLink(GALLERY_SCENES[0].scene, { baseUrl: BASE, now: NOW });
+  const link = createSceneLink(GALLERY_SCENES.find(item => item.id === 'meadow').scene, { baseUrl: BASE, now: NOW });
   const previous = globalThis.location;
   try {
     globalThis.location = { href: 'file:///wallpaper/index.html' };
@@ -108,25 +108,25 @@ test('限制链接、token、JSON 大小，禁止非 UTF8 和压缩载荷', () =
 });
 
 test('v2 同步压缩保留 v1 完整场景，旧链接仍可无损解析', () => {
-  const scene = shared(GALLERY_SCENES[0].scene);
+  const scene = shared(GALLERY_SCENES.find(item => item.id === 'meadow').scene);
   scene.environment.motion = { time: 123456.789012345, windAngle: -7.123456789012345, windOffset: [-1234.56789012345, 9876.54321098765] };
   scene.camera.focus = 123.456789012345;
   const modern = createSceneLink(scene, { title: '🌸'.repeat(80), baseUrl: BASE, now: NOW });
   const legacy = dataLink(tokenData(modern));
   assert.deepEqual(parseSceneLink(modern), parseSceneLink(legacy));
   assert.ok(modern.length < legacy.length * .65, `v2 ${modern.length} / v1 ${legacy.length}`);
-  assert.throws(() => parseSceneLink(modern.replace('#scene=v2.', '#scene=v3.')), error => error.code === 'scene-link.version');
+  assert.throws(() => parseSceneLink(modern.replace('#scene=v3.', '#scene=v4.')), error => error.code === 'scene-link.version');
 });
 
 test('v2 固定协议样本可读取且规范编码不随无关改动漂移', () => {
   const link = 'https://example.test/#scene=v2.XY7NDcJQDIN36dk8OT99SWap2KDixhSswRQcmAaJNXgUgSoUxT5Y8udlel5vj_tlgkgRi8MkwNbHy1sSksMMQhK_O2IhdPODJqXNFWIxV82p8CBbuLqnZUgYtCmslfYqpvTKUBcfxRyCTpzO67rJaJQoNZoO4oe50f4H2Tfdr7Jd0Qs';
   const scene = validateScene({ version: 1 });
   assert.deepEqual(parseSceneLink(link), { scene, title: '示例' });
-  assert.equal(createSceneLink(scene, { title: '示例', baseUrl: 'https://example.test/' }), link);
+  assert.deepEqual(parseSceneLink(createSceneLink(scene, { title: '示例', baseUrl: 'https://example.test/' })), parseSceneLink(link));
 });
 
 test('v2 拒绝损坏压缩、截断、非 UTF8 与越界解压输出，不接受被截断的合法 JSON 前缀', () => {
-  const link = createSceneLink(shared(GALLERY_SCENES[0].scene), { baseUrl: BASE, now: NOW });
+  const link = createSceneLink(shared(GALLERY_SCENES.find(item => item.id === 'meadow').scene), { baseUrl: BASE, now: NOW });
   const compressed = Buffer.from(new URL(link).hash.slice('#scene=v2.'.length), 'base64url');
   expectInvalid(compressedLink(compressed.subarray(0, -1)));
   expectInvalid(compressedLink([255, 255, 255, 255]));
@@ -140,7 +140,7 @@ test('v2 拒绝损坏压缩、截断、非 UTF8 与越界解压输出，不接�
 });
 
 test('v2 规范编码拒绝尾随垃圾、拼接流及不同压缩编码，不改变 v1 兼容', () => {
-  const link = createSceneLink(shared(GALLERY_SCENES[0].scene), { baseUrl: BASE, now: NOW });
+  const link = createSceneLink(shared(GALLERY_SCENES.find(item => item.id === 'meadow').scene), { baseUrl: BASE, now: NOW });
   const compressed = Buffer.from(new URL(link).hash.slice('#scene=v2.'.length), 'base64url');
   expectInvalid(compressedLink(Buffer.concat([compressed, Buffer.from([0, 1, 2, 3])])));
   expectInvalid(compressedLink(Buffer.concat([compressed, compressed])));
@@ -157,7 +157,7 @@ test('v2 高膨胀炸弹受固定输出缓冲与输入硬上限约束', () => {
 });
 
 test('严格核对元组结构、范围、标题及时间，不接受原型污染载荷', () => {
-  const link = createSceneLink(shared(GALLERY_SCENES[0].scene), { baseUrl: BASE, now: NOW });
+  const link = createSceneLink(shared(GALLERY_SCENES.find(item => item.id === 'meadow').scene), { baseUrl: BASE, now: NOW });
   const original = tokenData(link);
   const edits = [d => d.push(1), d => { d[0] = 'x'.repeat(81); }, d => { d[0] = '\u202ehello'; },
     d => { d[1] = 1 << 12; }, d => { d[2][0] = 1e100; }, d => { d[2][0] = null; }, d => { d[2].pop(); },
@@ -173,7 +173,7 @@ test('严格核对元组结构、范围、标题及时间，不接受原型污�
 });
 
 test('自然运动的起始相位完整往返，旧九字段链接与无相位场景保持兼容', () => {
-  const source = shared(GALLERY_SCENES[0].scene);
+  const source = shared(GALLERY_SCENES.find(item => item.id === 'meadow').scene);
   source.environment.motion = { time: 123456.789012345, windAngle: -7.123456789012345, windOffset: [-1234.56789012345, 9876.54321098765] };
   const link = createSceneLink(source, { title: '风吹花海', baseUrl: BASE, now: NOW });
   assert.deepEqual(parseSceneLink(link).scene, resolveSceneTime(source, 'Asia/Tokyo', NOW));
@@ -181,12 +181,12 @@ test('自然运动的起始相位完整往返，旧九字段链接与无相位�
   const data = tokenData(link); data.pop();
   const legacy = parseSceneLink(dataLink(data));
   assert.equal(legacy.scene.environment.motion, undefined);
-  const noMotion = createSceneLink(GALLERY_SCENES[0].scene, { baseUrl: BASE, now: NOW });
+  const noMotion = createSceneLink(GALLERY_SCENES.find(item => item.id === 'meadow').scene, { baseUrl: BASE, now: NOW });
   assert.equal(parseSceneLink(noMotion).scene.environment.motion, undefined);
 });
 
 test('可选景深焦距完整往返，旧八字段相机链接兼容且不造焦距', () => {
-  const scene = shared(GALLERY_SCENES[0].scene); scene.camera.focus = 123.456789012345;
+  const scene = shared(GALLERY_SCENES.find(item => item.id === 'meadow').scene); scene.camera.focus = 123.456789012345;
   const link = createSceneLink(scene, { baseUrl: BASE, now: NOW }), decoded = parseSceneLink(link);
   assert.equal(decoded.scene.camera.focus, scene.camera.focus);
   assert.deepEqual(decoded.scene, resolveSceneTime(scene, 'Asia/Tokyo', NOW));
@@ -197,7 +197,7 @@ test('可选景深焦距完整往返，旧八字段相机链接兼容且不造�
 });
 
 test('create 拒绝无效场景、无效基址与空白名称', () => {
-  const scene = GALLERY_SCENES[0].scene;
+  const scene = GALLERY_SCENES.find(item => item.id === 'meadow').scene;
   for (const options of [{ baseUrl: 'javascript:bad' }, { baseUrl: 'https://user:secret@example.test/' }, { baseUrl: BASE, title: '  ' }, { baseUrl: BASE, timeZone: 'bad/timezone' }]) {
     assert.throws(() => createSceneLink(scene, options), SceneLinkError);
   }
@@ -205,11 +205,22 @@ test('create 拒绝无效场景、无效基址与空白名称', () => {
 });
 
 test('副标题优先作品天空时区；旧场景可用调用方时区且安全降级', () => {
-  const scene = resolveSceneTime(shared(GALLERY_SCENES[0].scene), 'America/New_York', NOW);
+  const scene = resolveSceneTime(shared(GALLERY_SCENES.find(item => item.id === 'meadow').scene), 'America/New_York', NOW);
   assert.deepEqual(describeScene(scene, { timeZone: 'America/New_York' }), { weatherKey: 'clear', hour: 15, minute: 0, timeText: '15:00' });
-  const old = resolveSceneTime(GALLERY_SCENES[1].scene, 'Asia/Tokyo', NOW);
-  assert.deepEqual(describeScene(old, { timeZone: 'Asia/Tokyo' }), { weatherKey: 'mist', hour: 6, minute: 30, timeText: '06:30' });
-  assert.equal(describeScene(old, { timeZone: 'invalid/timezone' }).timeText, '21:30');
-  assert.equal(describeScene(GALLERY_SCENES[1].scene).timeText, '06:30');
+  const old = resolveSceneTime(GALLERY_SCENES.find(item => item.id === 'sunset').scene, 'Asia/Tokyo', NOW);
+  assert.deepEqual(describeScene(old, { timeZone: 'Asia/Tokyo' }), { weatherKey: 'fewcloud', hour: 17, minute: 0, timeText: '17:00' });
+  assert.equal(describeScene(old, { timeZone: 'invalid/timezone' }).timeText, '08:00');
+  assert.equal(describeScene(GALLERY_SCENES.find(item => item.id === 'sunset').scene).timeText, '17:00');
   assert.equal(describeScene({ version: 99 }), null);
+});
+
+test('v3 云锁与纵向云相位完整往返，旧 v1/v2 不能承载新增位或元组', () => {
+  const scene = validateScene({ version: 1, freeze: { clouds: true }, environment: { motion: { time: 200, windAngle: .3, windOffset: [1, 2], cloudY: .15 } } });
+  const link = createSceneLink(scene, { baseUrl: BASE });
+  assert.ok(link.includes('#scene=v3.'));
+  assert.deepEqual(parseSceneLink(link).scene, scene);
+  expectInvalid(dataLink(tokenData(link)));
+  expectInvalid(link.replace('#scene=v3.', '#scene=v2.'));
+  assert.equal(validateScene({ version: 1, freeze: { clouds: 'true' } }), null);
+  assert.equal(validateScene({ version: 1, environment: { motion: { time: 2, windAngle: .3, windOffset: [1,2], cloudY: Infinity } } }), null);
 });

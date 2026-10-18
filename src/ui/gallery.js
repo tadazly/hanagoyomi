@@ -57,11 +57,12 @@ export function initGallery(world, shell) {
       <div class="gallery-freeze">
         <label><input id="galleryFreezeTime" type="checkbox" checked><span></span></label>
         <label><input id="galleryFreezeWeather" type="checkbox" checked><span></span></label>
+        <label><input id="galleryFreezeClouds" type="checkbox"><span></span></label>
       </div>
       <div class="gallery-actions"><button class="gallery-restore" type="button"></button><button class="gallery-apply" type="button"></button></div>
     </footer>
     <div class="gallery-dock" hidden>
-      <div class="gallery-dock-caption"><strong></strong><span></span></div>
+      <div class="gallery-dock-caption"><strong></strong></div>
       <button class="gallery-expand" type="button"></button>
       <div class="gallery-actions"><button class="gallery-restore" type="button"></button><button class="gallery-apply" type="button"></button></div>
     </div>
@@ -74,7 +75,7 @@ export function initGallery(world, shell) {
   let renderedCollection = null;
   const cards = new Map();
   const items = () => collection === 'curated' ? GALLERY_SCENES : store.read();
-  const freezes = () => ({ freezeTime: $('#galleryFreezeTime').checked, freezeWeather: $('#galleryFreezeWeather').checked });
+  const freezes = () => ({ freezeTime: $('#galleryFreezeTime').checked, freezeWeather: $('#galleryFreezeWeather').checked, freezeClouds: $('#galleryFreezeClouds').checked });
   const summaryFor = item => {
     const details = describeScene(item.scene, { timeZone: getSavedLocation()?.tz || 'Asia/Tokyo' });
     return details ? `${t(`weather.${details.weatherKey}`)} · ${details.timeText}` : g('metadataUnknown');
@@ -92,9 +93,8 @@ export function initGallery(world, shell) {
     sheet.querySelectorAll('.gallery-restore,.gallery-apply').forEach(button => { button.disabled = !preview; });
     $('.gallery-collapse').hidden = !preview;
     $('.gallery-dock strong').textContent = `${g('previewLabel')} · ${textFor(selected?.title) || g('scene')}`;
-    $('.gallery-dock span').textContent = selected ? summaryFor(selected) : '';
     $('.gallery-freeze').inert = !preview;
-    $('#galleryFreezeTime').disabled = !preview; $('#galleryFreezeWeather').disabled = !preview;
+    for (const input of $('.gallery-freeze').querySelectorAll('input')) input.disabled = !preview;
   };
   const focusCard = (id, options = false) => {
     if (sheet.hidden) return;
@@ -105,13 +105,16 @@ export function initGallery(world, shell) {
   const setCollapsed = value => {
     refreshSwipe.cancel?.();
     if (value && !collapsed) scrollPositions[collection] = $('.gallery-content').scrollLeft;
+    const freezeOptions = $('.gallery-freeze');
+    (value ? $('.gallery-dock') : $('.gallery-footer')).insertBefore(freezeOptions, value ? $('.gallery-expand') : $('.gallery-footer .gallery-actions'));
     collapsed = value; sheet.classList.toggle('is-collapsed', value); $('.gallery-dock').hidden = !value;
     if (!value) { render(); requestAnimationFrame(() => { $('.gallery-content').scrollLeft = scrollPositions[collection]; refreshSwipe(); }); }
     else $('.gallery-expand').focus({ preventScroll: true });
   };
   const previewItem = item => {
     sharing?.dismissIncoming();
-    world.previewScene(item.scene, freezes()); selected = item;
+    world.previewScene(item.scene); selected = item;
+    syncFreezes(item.scene.freeze);
     if (sheet.hidden) open();
     render(); setCollapsed(true);
   };
@@ -209,16 +212,17 @@ export function initGallery(world, shell) {
     requestAnimationFrame(refreshSwipe);
     refreshFooter();
   };
-  const close = (restore = true) => {
+  const close = (restore = true, { focus = true } = {}) => {
     if (sheet.hidden) return;
     refreshSwipe.cancel?.();
     if (!collapsed) scrollPositions[collection] = $('.gallery-content').scrollLeft;
     actions.close();
-    if (restore) world.cancelPreview();
+    if (restore) { world.cancelPreview(); selected = null; }
+    $('.gallery-footer').insertBefore($('.gallery-freeze'), $('.gallery-footer .gallery-actions'));
     sheet.hidden = true; collapsed = false; sheet.classList.remove('is-collapsed'); $('.gallery-dock').hidden = true;
-    document.body.dataset.galleryOpen = 'false'; trigger.setAttribute('aria-expanded', 'false'); selected = null;
+    document.body.dataset.galleryOpen = 'false'; trigger.setAttribute('aria-expanded', 'false');
     document.dispatchEvent(new Event('galleryclose'));
-    trigger.focus({ preventScroll: true });
+    if (focus) trigger.focus({ preventScroll: true });
   };
   const open = () => {
     shell.setPanel(false);
@@ -291,9 +295,11 @@ export function initGallery(world, shell) {
     if (document.querySelector('dialog[open]')) return;
     if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close(); }
   }, true);
-  document.addEventListener('worldpanelopen', () => close());
-  document.addEventListener('timepopoveropen', () => close());
+  document.addEventListener('worldpanelopen', () => close(false, { focus: false }));
+  document.addEventListener('timepopoveropen', () => close(false, { focus: false }));
+  const syncFreezes = freeze => { if (!freeze) return; for (const [id, key] of [['Time','time'],['Weather','weather'],['Clouds','clouds']]) $('#galleryFreeze' + id).checked = Boolean(freeze[key]); };
   document.addEventListener('worldscenechange', event => {
+    syncFreezes(event.detail?.freeze);
     if (event.detail?.previewing === false && !sheet.hidden) { selected = null; render(); }
   });
   const localize = () => {
@@ -303,7 +309,7 @@ export function initGallery(world, shell) {
     $('.gallery-capture').setAttribute('aria-label', g('capture')); $('.gallery-capture').title = g('capture');
     $('.gallery-tabs').setAttribute('aria-label', g('title'));
     $('.gallery-empty h3').textContent = g('emptyTitle'); $('.gallery-empty p').textContent = g('empty');
-    $('#galleryFreezeTime + span').textContent = g('freezeTime'); $('#galleryFreezeWeather + span').textContent = g('freezeWeather');
+    $('#galleryFreezeTime + span').textContent = g('freezeTime'); $('#galleryFreezeWeather + span').textContent = g('freezeWeather'); $('#galleryFreezeClouds + span').textContent = g('freezeClouds');
     sheet.querySelectorAll('.gallery-restore').forEach(button => { button.textContent = g('restore'); });
     const responsiveLabel = (button, fullKey, shortKey) => {
       const full = document.createElement('span'), compact = document.createElement('span');

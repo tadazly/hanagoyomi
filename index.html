@@ -77,6 +77,9 @@
       </section>
       <section id="pane-weather" role="tabpanel" aria-labelledby="tab-weather" hidden>
         <h2 data-i18n="weather.mode">Weather mode</h2>
+        <label class="switch"><span id="weatherLockState"></span><input type="checkbox" id="sceneWeatherLock"><i></i></label>
+        <p class="settings-helper" data-i18n="locks.weatherHelp"></p>
+        <fieldset id="weatherControls" class="scene-controls">
         <div class="seg weather-modes" role="radiogroup" aria-label="Weather mode" data-i18n-aria-label="weather.mode">
           <label><input type="radio" name="wxMode" value="follow"><span data-i18n="weather.follow">Local weather</span></label>
           <label><input type="radio" name="wxMode" value="dynamic"><span data-i18n="weather.dynamic">Auto change</span></label>
@@ -97,7 +100,7 @@
         <label class="ctl"><span data-i18n="weather.lightning">Lightning frequency</span><output for="boltFreq"></output><input type="range" id="boltFreq" min="0" max="4" step="0.1"></label>
         <label class="ctl"><span data-i18n="weather.puddles">Puddle limit</span><output for="puddle"></output><input type="range" id="puddle" min="0" max="1" step="0.01"></label>
         <label class="ctl"><span data-i18n="weather.snowLimit">Snow cover limit</span><output for="snowMax"></output><input type="range" id="snowMax" min="0" max="1" step="0.01"></label></div></details></div>
-        <h2 data-i18n="settings.weatherData">Weather data</h2><dl class="weather-metrics" id="panelWeatherMetrics" hidden>
+        </fieldset><h2 data-i18n="settings.weatherData">Weather data</h2><dl class="weather-metrics" id="panelWeatherMetrics" hidden>
         <div><dt data-i18n="weather.temperature">Temperature</dt><dd><span data-weather-metric="temperature">—</span><small data-weather-metric="temperatureNote"></small></dd></div>
         <div><dt data-i18n="weather.precipitation">Precipitation</dt><dd><span data-weather-metric="precipitation">—</span><small data-weather-metric="precipitationNote"></small></dd></div>
         <div><dt data-i18n="weather.airQuality">Air quality</dt><dd><span class="air-quality-value" data-weather-metric="airQuality">—</span><small data-weather-metric="airQualityNote"></small></dd></div>
@@ -144,6 +147,8 @@
         <label class="switch"><span data-i18n="camera.sway">Camera motion</span><input type="checkbox" id="sway"><i></i></label>
         <label class="switch"><span data-i18n="weather.lensDrops">Lens raindrops</span><input type="checkbox" id="lensDrops"><i></i></label></div></details>
         <details class="advanced"><summary><span data-i18n="settings.skyDetails"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body"><label class="switch"><span data-i18n="astronomy.constellations">Constellation lines</span><input type="checkbox" id="constel"><i></i></label>
+        <label class="switch"><span data-i18n="locks.clouds"></span><input type="checkbox" id="cloudLock"><i></i></label>
+        <p class="settings-helper" data-i18n="locks.cloudHelp"></p>
         <label class="ctl"><span data-i18n="astronomy.orientation">Orientation</span><output for="sunAz"></output><input type="range" id="sunAz" min="0" max="360" step="1"></label>
         <label class="switch"><span data-i18n="quality.godRays">Volumetric light</span><input type="checkbox" id="god"><i></i></label></div></details>
         <details class="advanced"><summary><span data-i18n="rendering.title">Rendering info</span><span data-icon="chevron"></span></summary>

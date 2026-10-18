@@ -52,7 +52,7 @@ function decode(token, version) {
     if (binary.length > MAX_SCENE_JSON_BYTES) fail();
     if (btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') !== token) fail();
     let bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
-    if (version === 'v2') {
+    if (version === 'v2' || version === 'v3') {
       // out 模式只写入固定缓冲，不按解压后大小分配内存。
       // 多留一个哨兵字节，超长载荷即使被截断也无法伪装成合法前缀。
       bytes = inflateSync(bytes, { out: new Uint8Array(MAX_SCENE_JSON_BYTES + 1) });
@@ -73,11 +73,11 @@ function pack(scene, title) {
     NUMBER_KEYS.map(key => s[key]), Object.entries(ENUMS).map(([key, values]) => values.indexOf(s[key])),
     CAMERA_KEYS.map(key => c[key] ?? null), [e.time.ms, +e.time.followNow, e.time.speedIndex],
     [WEATHER_TYPES.indexOf(e.weather.type), ...WEATHER_KEYS.map(key => e.weather.current[key]), e.weather.wet, e.weather.snowCover],
-    +scene.freeze.time | (+scene.freeze.weather << 1),
+    +scene.freeze.time | (+scene.freeze.weather << 1) | (+scene.freeze.clouds << 2),
     e.skyLocation ? [e.skyLocation.lat, e.skyLocation.lon, e.skyLocation.tz] : null,
-    e.motion ? [e.motion.time, e.motion.windAngle, ...e.motion.windOffset] : null];
+    e.motion ? [e.motion.time, e.motion.windAngle, ...e.motion.windOffset, ...(e.motion.cloudAngle !== undefined ? [e.motion.cloudY ?? null, e.motion.cloudAngle] : e.motion.cloudY === undefined ? [] : [e.motion.cloudY])] : null];
 }
-function unpack(data) {
+function unpack(data, version) {
   if (!(tuple(data, 9) || tuple(data, 10))) fail();
   const [title, booleans, numbers, enums, camera, time, weather, freeze, location] = data;
   const motion = data.length === 9 ? null : data[9];
@@ -88,9 +88,9 @@ function unpack(data) {
     || !(tuple(camera, CAMERA_KEYS.length - 1) || tuple(camera, CAMERA_KEYS.length)) || !camera.slice(0, 7).every(finite) || !camera.slice(7).every(value => value === null || finite(value))
     || !tuple(time, 3) || !finite(time[0]) || !bit(time[1]) || !integer(time[2], 0, 7)
     || !tuple(weather, WEATHER_KEYS.length + 3) || !integer(weather[0], 0, WEATHER_TYPES.length - 1) || !weather.slice(1).every(finite)
-    || !integer(freeze, 0, 3)
+    || !integer(freeze, 0, version === 'v3' ? 7 : 3)
     || !(location === null || (tuple(location, 3) && finite(location[0]) && finite(location[1]) && typeof location[2] === 'string'))
-    || !(motion === null || (tuple(motion, 4) && motion.every(finite)))) fail();
+    || !(motion === null || ((tuple(motion, 4) || (version === 'v3' && (tuple(motion, 5) || tuple(motion, 6)))) && motion.every((v, i) => finite(v) || (motion.length === 6 && i === 4 && v === null))))) fail();
   const settings = Object.fromEntries(BOOLEAN_KEYS.map((key, index) => [key, Boolean(booleans & (1 << index))]));
   NUMBER_KEYS.forEach((key, index) => { settings[key] = numbers[index]; });
   Object.entries(ENUMS).forEach(([key, values], index) => { settings[key] = values[enums[index]]; });
@@ -99,10 +99,10 @@ function unpack(data) {
     weather: { type: WEATHER_TYPES[weather[0]], current: Object.fromEntries(WEATHER_KEYS.map((key, index) => [key, weather[index + 1]])), wet: weather.at(-2), snowCover: weather.at(-1) },
   };
   if (location) environment.skyLocation = { lat: location[0], lon: location[1], tz: location[2] };
-  if (motion) environment.motion = { time: motion[0], windAngle: motion[1], windOffset: motion.slice(2) };
+  if (motion) environment.motion = { time: motion[0], windAngle: motion[1], windOffset: motion.slice(2, 4), ...(motion.length >= 5 && motion[4] !== null ? { cloudY: motion[4] } : {}), ...(motion.length === 6 ? { cloudAngle: motion[5] } : {}) };
   const scene = validateScene({ version: 1, settings,
     camera: Object.fromEntries(CAMERA_KEYS.flatMap((key, index) => camera[index] == null ? [] : [[key, camera[index]]])),
-    environment, freeze: { time: Boolean(freeze & 1), weather: Boolean(freeze & 2) } });
+    environment, freeze: { time: Boolean(freeze & 1), weather: Boolean(freeze & 2), clouds: Boolean(freeze & 4) } });
   if (!scene) fail();
   return { scene, title };
 }
@@ -115,7 +115,7 @@ export function createSceneLink(input, { title = '', baseUrl: base, timeZone = '
     const name = title === '' ? '' : normalizeGalleryTitle(title);
     const url = baseUrl(base);
     // 本机模式、语言及其他查询偏好都不随作品传播；fragment 也不会发送到服务器。
-    url.search = ''; url.hash = `scene=v2.${encode(pack(scene, name))}`;
+    url.search = ''; url.hash = `scene=v3.${encode(pack(scene, name))}`;
     if (url.href.length > MAX_SCENE_LINK_LENGTH) fail();
     return url.href;
   } catch (error) { if (error instanceof SceneLinkError) throw error; fail(); }
@@ -135,8 +135,8 @@ export function parseSceneLink(input, { baseUrl: base } = {}) {
   if (!supportedUrl(url)) fail();
   if (!url.hash.startsWith('#scene=')) return null;
   const version = url.hash.slice('#scene='.length, '#scene=v1'.length);
-  if (!['v1', 'v2'].includes(version) || url.hash['#scene=v1'.length] !== '.') throw new SceneLinkError('scene-link.version');
-  try { return unpack(decode(url.hash.slice('#scene=v1.'.length), version)); }
+  if (!['v1', 'v2', 'v3'].includes(version) || url.hash['#scene=v1'.length] !== '.') throw new SceneLinkError('scene-link.version');
+  try { return unpack(decode(url.hash.slice('#scene=v1.'.length), version), version); }
   catch (error) { if (error instanceof SceneLinkError) throw error; fail(); }
 }
 
