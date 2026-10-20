@@ -4,6 +4,13 @@ export function weatherFogDensity(visibility) {
   return Math.max(0, 3.912 / Math.max(60, visibility) - 3.912 / 30000);
 }
 
+// 只补偿贴地雷暴的天空漏光；平滑退出后保留既有高空、大雾积分。
+export function groundStormFogBlend(type, altitude) {
+  if (type !== 'tstorm') return 0;
+  const t = Math.min(1, Math.max(0, (altitude - 5) / 10));
+  return 1 - t * t * (3 - 2 * t);
+}
+
 // Shared by sky, terrain and grass. Distances and heights are in metres.
 // uFogW packs extinction, scale height, camera altitude and camera air density.
 export const WEATHER_FOG_GLSL = `
@@ -11,6 +18,7 @@ uniform vec4 uFogW;
 // 帧常量：切线尺度、高斯柱系数、雾层上方权重、地平线俯角。
 uniform vec4 uFogSky;
 uniform vec3 uFogCol;
+uniform float uLowStormHorizon;
 float wxFogF(vec3 rel){
   if (uFogW.x <= 0.0) return 0.0;
   // 在本项目最大消光下，整段高于 28 个尺度高度且不超过 120 km 时，
@@ -48,9 +56,17 @@ float wxFogColumn(vec3 rd){
   if (rd.y >= 0.0) column *= rho0 * erfcx;
   else {
     float minHeight = uFogW.z / uFogW.y - x * x;
-    // 碰到地面时停在第一个交点；稀薄天气雾也不能被当作完全不透明。
-    if (minHeight <= 0.0) column *= max(0.0, wxErfcx(sqrt(-minHeight)) - rho0 * erfcx);
-    else column *= exp(-minHeight) * (2.0 - exp(-x * x) * erfcx);
+    // 高空和其他天气仍在球面地面停止积分，保留既有雾层修复。
+    if (minHeight <= 0.0){
+      float groundColumn = max(0.0, wxErfcx(sqrt(-minHeight)) - rho0 * erfcx);
+      if (uLowStormHorizon > 0.0){
+        // 贴地雷暴中，假定地面可能先于真实地形截断天空雾，漏出一行晚霞。
+        // 只对未被地形遮挡的远端积分补偿；指数有界，避免向下看时溢出。
+        float fullColumn = exp(clamp(-minHeight, -80.0, 50.0)) * (2.0 - exp(-x * x) * erfcx);
+        groundColumn = mix(groundColumn, fullColumn, uLowStormHorizon);
+      }
+      column *= groundColumn;
+    } else column *= exp(-minHeight) * (2.0 - exp(-x * x) * erfcx);
   }
   return column;
 }

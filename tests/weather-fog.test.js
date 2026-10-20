@@ -1,7 +1,27 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { weatherFogDensity } from '../src/rendering/weather-fog.js';
+import { weatherFogDensity, groundStormFogBlend } from '../src/rendering/weather-fog.js';
 import { wxPreset } from '../src/world/weather-presets.js';
+
+test('地平线补偿只作用于贴地雷暴，15米以上与其他天气完全禁用', () => {
+  assert.equal(groundStormFogBlend('tstorm', 1.2), 1);
+  assert.equal(groundStormFogBlend('tstorm', 5), 1);
+  assert.equal(groundStormFogBlend('tstorm', 10), .5);
+  for (const altitude of [15, 100, 1400, 1500, 2000, 4000, 50000]) assert.equal(groundStormFogBlend('tstorm', altitude), 0);
+  for (const type of ['fog', 'mist', 'cloudy', 'overcast', 'rain', 'snow', 'clear']) {
+    for (const altitude of [1.2, 5, 10, 1500]) assert.equal(groundStormFogBlend(type, altitude), 0);
+  }
+});
+
+test('雷暴补偿升降连续且有界，不在5米或15米处突然切换', () => {
+  let previous = 1;
+  for (let altitude = 0; altitude <= 20; altitude += .01) {
+    const weight = groundStormFogBlend('tstorm', altitude);
+    assert.ok(weight >= 0 && weight <= previous);
+    previous = weight;
+  }
+  for (const altitude of [5, 15]) assert.ok(Math.abs(groundStormFogBlend('tstorm', altitude - 1e-5) - groundStormFogBlend('tstorm', altitude + 1e-5)) < 1e-10);
+});
 
 test('晴朗不重复叠加雾，多云保留额外衰减，大雾仍能遮蔽远景', () => {
   assert.equal(weatherFogDensity(wxPreset('clear').vis), 0);

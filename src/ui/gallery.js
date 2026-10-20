@@ -7,6 +7,7 @@ import { getSavedLocation } from '../world/location.js';
 import { createGalleryActions } from './gallery-actions.js';
 import { initSceneSharing } from './gallery-sharing.js';
 import { bindGallerySwipe } from './gallery-swipe.js';
+import { createGalleryThumbnails } from './gallery-thumbnails.js';
 import { getLanguage, onLanguageChange, t } from '../i18n/index.js';
 import { g } from '../i18n/gallery-messages.js';
 
@@ -69,6 +70,7 @@ export function initGallery(world, shell) {
     <p class="gallery-feedback" role="status" hidden></p>`;
   document.body.append(sheet);
   const $ = selector => sheet.querySelector(selector);
+  const thumbnails = createGalleryThumbnails({ root: $('.gallery-content') });
   const refreshSwipe = bindGallerySwipe({ viewport: $('.gallery-content'), track: $('.gallery-scrollbar'), thumb: $('.gallery-scroll-thumb') });
   let collection = 'curated', selected = null, feedbackTimer, saving = false, collapsed = false;
   const scrollPositions = { curated: 0, saved: 0 };
@@ -104,11 +106,12 @@ export function initGallery(world, shell) {
   };
   const setCollapsed = value => {
     refreshSwipe.cancel?.();
+    thumbnails.setActive(false);
     if (value && !collapsed) scrollPositions[collection] = $('.gallery-content').scrollLeft;
     const freezeOptions = $('.gallery-freeze');
     (value ? $('.gallery-dock') : $('.gallery-footer')).insertBefore(freezeOptions, value ? $('.gallery-expand') : $('.gallery-footer .gallery-actions'));
     collapsed = value; sheet.classList.toggle('is-collapsed', value); $('.gallery-dock').hidden = !value;
-    if (!value) { render(); requestAnimationFrame(() => { $('.gallery-content').scrollLeft = scrollPositions[collection]; refreshSwipe(); }); }
+    if (!value) { render(); requestAnimationFrame(() => { $('.gallery-content').scrollLeft = scrollPositions[collection]; refreshSwipe(); thumbnails.setActive(!sheet.hidden && !collapsed); }); }
     else $('.gallery-expand').focus({ preventScroll: true });
   };
   const previewItem = item => {
@@ -168,16 +171,18 @@ export function initGallery(world, shell) {
     const source = thumbnail && (collection === 'curated' || /^data:image\/jpeg;base64,/.test(thumbnail))
       ? collection === 'curated' ? new URL(`${import.meta.env.BASE_URL}${thumbnail}`, location.href).href : thumbnail : '';
     if (card.imageSource !== source) {
+      if (card.image) thumbnails.unobserve(card.image);
       card.image?.remove(); card.image = null; card.imageSource = source;
       card.picture.classList.toggle('gallery-picture-fallback', !source);
       if (source) {
-        const image = document.createElement('img'); image.src = source;
+        const image = document.createElement('img');
         image.alt = ''; image.width = 480; image.height = 270; image.decoding = 'async';
         image.addEventListener('error', () => {
           if (card.image !== image) return;
           image.hidden = true; card.picture.classList.add('gallery-picture-fallback');
         });
         card.image = image; card.picture.prepend(image);
+        thumbnails.observe(image, source);
       }
     }
   };
@@ -185,13 +190,20 @@ export function initGallery(world, shell) {
     const all = items(), content = $('.gallery-content'), list = $('#galleryList'), left = resetScroll ? 0 : scrollPositions[collection];
     const active = document.activeElement, focused = [...cards.values()].find(card => card.tile.contains(active));
     const focusedCollection = renderedCollection, focusedControl = focused?.options === active ? 'options' : focused?.caption === active ? 'caption' : 'button';
-    if (renderedCollection !== collection) { list.replaceChildren(); cards.clear(); renderedCollection = collection; }
+    thumbnails.setActive(false);
+    if (renderedCollection !== collection) {
+      for (const card of cards.values()) if (card.image) thumbnails.unobserve(card.image);
+      list.replaceChildren(); cards.clear(); renderedCollection = collection;
+    }
     $('.gallery-empty').hidden = all.length > 0;
     list.hidden = !all.length;
     list.setAttribute('aria-labelledby', collection === 'curated' ? 'galleryCurated' : 'gallerySaved');
     list.dataset.collection = collection;
     const wanted = new Set(all.map(item => item.id)), previewing = world.isPreviewing();
-    for (const [id, card] of cards) if (!wanted.has(id)) { card.tile.remove(); cards.delete(id); }
+    for (const [id, card] of cards) if (!wanted.has(id)) {
+      if (card.image) thumbnails.unobserve(card.image);
+      card.tile.remove(); cards.delete(id);
+    }
     let next = list.firstElementChild;
     for (const item of all) {
       let card = cards.get(item.id);
@@ -209,11 +221,13 @@ export function initGallery(world, shell) {
     }
     scrollPositions[collection] = left;
     if (!collapsed) content.scrollLeft = left;
+    thumbnails.setActive(!sheet.hidden && !collapsed);
     requestAnimationFrame(refreshSwipe);
     refreshFooter();
   };
   const close = (restore = true, { focus = true } = {}) => {
     if (sheet.hidden) return;
+    thumbnails.setActive(false);
     refreshSwipe.cancel?.();
     if (!collapsed) scrollPositions[collection] = $('.gallery-content').scrollLeft;
     actions.close();

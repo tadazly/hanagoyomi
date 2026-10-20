@@ -20,9 +20,9 @@ Step into a changing natural world of clouds, meadows and petals, following real
 
 </div>
 
-<a href="https://hanagoyomi.luyilabs.com/"><img src="docs/images/hanagoyomi-desktop.jpg" alt="Actual WebGL2 rendering of the meadow at dusk with the world settings panel" width="100%"></a>
+<a href="https://hanagoyomi.luyilabs.com/"><img src="docs/images/hanagoyomi-gallery.jpg" alt="Current Chrome screenshot of the gallery with the Cloud Sea at Sunset scene previewed" width="100%"></a>
 
-> These screenshots show actual WebGL2 rendering with the English interface, using the app's time and weather controls to demonstrate dusk, day and night. The meadow and flowers are procedural; the terrain does not reproduce the selected city's geography.
+> Actual WebGL2 rendering with the English interface. The cover shows the current gallery previewing Cloud Sea at Sunset; the examples below show day and night. The meadow and flowers are procedural; the terrain does not reproduce the selected city's geography.
 
 ## A world that changes
 
@@ -32,6 +32,7 @@ Step into a changing natural world of clouds, meadows and petals, following real
 | **A moving sky** | Volumetric clouds, sunlight scattering, day and night palettes, about 5,000 catalog stars, constellation lines and five planets. |
 | **Weather taking shape** | Current weather, cloud cover and wind from Open-Meteo, plus 16 explorable weather presets from clear skies to thunderstorms, sleet and blizzards. |
 | **Where the wind passes** | Grass with multiple LOD levels, rolling waves, floating petals, opening flowers, fireflies and optional memory of flowers along your path. |
+| **A landscape to keep** | 18 curated scenes, local collections and scene sharing. Four scenes from the final V6 film preserve their camera, depth of field and low-saturation palette. Covers load near the visible part of the gallery. |
 | **A quiet interface** | Location and clock observations, four settings tabs, customizable component visibility and positions, fullscreen and immersive modes, adapted for desktop and touch. |
 | **Three languages** | Simplified Chinese, Japanese and English, selected automatically from browser preferences and time zone or changed manually. |
 
@@ -87,7 +88,7 @@ npm run preview   # Preview the production build at http://127.0.0.1:4173/
 
 Settings stay in the current browser. Moving the time slider or changing its speed enters simulated time; **Back to now** restores real local time. Weather continues to follow current observations, so changing the simulated clock does not retrieve historical weather.
 
-Open **Gallery** to browse a continuous horizontal strip of scenes. Drag the cards, swipe on touchscreens, or use the track below them. Previewing preserves your current world; close or choose **Restore** to return, and choose **Apply to world** to keep the scene. Fourteen selected landscapes are arranged by light and weather. Lock scene time, weather or cloud drift independently; cloud edges, plants and precipitation stay animated. The clock and weather widget always show real local observations. Unlock scene controls before editing. **Save moment** stores the current scene and a small JPEG cover locally, with up to 24 saved scenes.
+Open **Gallery** to browse a continuous horizontal strip of scenes. Drag the cards, swipe on touchscreens, or use the track below them. Previewing preserves your current world; close or choose **Restore** to return, and choose **Apply to world** to keep the scene. Eighteen selected landscapes are arranged by light and weather, including flowers in a thunderstorm, a sunset cloud sea, light snow and a clear night from the final V6 film. Covers load as they approach the viewport. Lock scene time, weather or cloud drift independently; cloud edges, plants and precipitation stay animated. The clock and weather widget always show real local observations. Unlock scene controls before editing. **Save moment** stores the current scene and a small JPEG cover locally, with up to 24 saved scenes. Saved scenes can be renamed and shared as a link or QR code; recipients can preview before adding one to their collection.
 
 On desktop, click the toolbar's time status to open a compact time panel. It shares its controls with World settings. Constellation lines and orientation are under **Visuals → Sky and stars**.
 
