@@ -1902,14 +1902,22 @@ function applySceneWeather(weather) {
     followOK: false, live: null, airQuality: null, src: '', });
   covEff = WP.cov; densEff = WP.dens;
 }
+function resumeWeatherTarget() {
+  if (sceneFreeze.weather) return;
+  if (S.wxMode === 'manual') wxSetTarget(S.wxType, manualParams(), 4);
+  else if (S.wxMode === 'off') wxSetTarget('clear', wxPreset('clear'), 15);
+}
+function applySceneCamera(camera) {
+  Object.assign(S, { x: camera.x, z: camera.z, agl: camera.agl, fovY: camera.fov });
+  Object.assign(cam, { y: camera.y ?? groundH(S.x, S.z) + S.agl, yaw: camera.yaw, pitch: camera.pitch,
+    yawT: camera.yaw, pitchT: camera.pitch, pitchBase: camera.pitch, roll: camera.roll, fov: camera.fov, vx: 0, vz: 0 });
+  cam.focus = camera.focus ?? clamp(focusDistance([S.x, cam.y, S.z], basis(cam.yaw, cam.pitch, cam.roll).f), 1.5, 600);
+}
 function loadScene(scene) {
   rejectThumbnail(new Error('场景已切换'));
   sceneSkyLocation = scene.environment.skyLocation ? { ...scene.environment.skyLocation } : null;
   Object.assign(S, scene.settings);
-  Object.assign(S, { x: scene.camera.x, z: scene.camera.z, agl: scene.camera.agl, fovY: scene.camera.fov });
-  Object.assign(cam, { y: scene.camera.y ?? groundH(S.x, S.z) + S.agl, yaw: scene.camera.yaw, pitch: scene.camera.pitch,
-    yawT: scene.camera.yaw, pitchT: scene.camera.pitch, pitchBase: scene.camera.pitch, roll: scene.camera.roll, fov: scene.camera.fov, vx: 0, vz: 0 });
-  cam.focus = scene.camera.focus ?? clamp(focusDistance([S.x, cam.y, S.z], basis(cam.yaw, cam.pitch, cam.roll).f), 1.5, 600);
+  applySceneCamera(scene.camera);
   simMs = scene.environment.time.ms; followNow = scene.environment.time.followNow; S.speed = scene.environment.time.speedIndex; S.time = cityHours(simMs);
   const motion = scene.environment.motion;
   if (motion) {
@@ -1918,6 +1926,8 @@ function loadScene(scene) {
   }
   sceneFreeze = { ...scene.freeze };
   applySceneWeather(scene.environment.weather);
+  // 快照可能在过渡途中写入；未锁定的手动或关闭模式仍需继续走向用户保存的目标。
+  resumeWeatherTarget();
   // 作品可恢复运动相位；旧作品保留当前相位，自然动画继续运行。
   keys.clear(); mouseFlight.reset(); frozenView = null; lastView = null;
   prev = null; needReset = true; lightKey = ''; skyKey = ''; expo = NaN;
@@ -1941,6 +1951,7 @@ function previewScene(input, options = {}) {
 }
 // 开关只改变当下状态的锁定，不重载作品或重置运动相位。
 function setPreviewFreeze({ freezeTime = sceneFreeze.time, freezeWeather = sceneFreeze.weather, freezeClouds = sceneFreeze.clouds } = {}) {
+  const weatherUnlocked = sceneFreeze.weather && !freezeWeather;
   if (sceneFreeze.time !== Boolean(freezeTime)) {
     followNow = false;
     if (!freezeTime) S.speed = Math.max(1, S.speed);
@@ -1950,8 +1961,9 @@ function setPreviewFreeze({ freezeTime = sceneFreeze.time, freezeWeather = scene
 
   }
   sceneFreeze = { time: Boolean(freezeTime), weather: Boolean(freezeWeather), clouds: Boolean(freezeClouds) };
+  if (weatherUnlocked) resumeWeatherTarget();
   syncSceneControls(); saveSettings();
-  if (!sceneFreeze.weather && S.wxMode === 'follow') { consumeObservedWeather(); void syncWeather(); }
+  if (weatherUnlocked && S.wxMode === 'follow') { consumeObservedWeather(); void syncWeather(); }
   return true;
 }
 function cancelPreview() {
@@ -2042,6 +2054,12 @@ return {
   hasRestoredSettings, captureScene, previewScene, setPreviewFreeze, cancelPreview, commitPreview, captureThumbnail,
   isPreviewing: () => Boolean(preview),
   save: saveSettings,
+  applyStartupPositionPreference(rememberPosition) {
+    if (rememberPosition && !restoredScene) return;
+    applySceneCamera(rememberPosition ? restoredScene.camera : startupCamera);
+    keys.clear(); mouseFlight.reset(); frozenView = null; lastView = null; prev = null; needReset = true;
+    syncSceneControls();
+  },
   resize: () => resize(true),
   setCity(name) {
     let city = CITIES.find(c => c[1] === name);

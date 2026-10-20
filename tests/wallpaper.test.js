@@ -39,6 +39,10 @@ test('壁纸默认高画质、关闭交互、自动飞行和避让图标布局',
   const props = project.general.properties;
   assert.equal(props.quality.value, 'high'); assert.equal(props.interaction.value, false);
   assert.equal(props.autoflight.value, true);
+  assert.equal(props.useworldsettings.value, true);
+  assert.equal(props.settingspanel, undefined);
+  assert.equal(props.temperatureunit.value, 'celsius');
+  assert.equal(props.rememberposition.value, true);
   assert.equal(props.logoposition.value, 'top-right'); assert.equal(props.clockposition.value, 'bottom-center');
   const preferences = componentPreferences({ logo: { position: 'bottom-left' } }, true);
   assert.equal(preferences.logo.position, 'bottom-left');
@@ -46,8 +50,26 @@ test('壁纸默认高画质、关闭交互、自动飞行和避让图标布局',
   for (const property of Object.values(props)) {
     assert.ok(project.general.localization['zh-chs'][property.text]);
     assert.ok(project.general.localization['en-us'][property.text]);
+    assert.ok(project.general.localization['ja-jp'][property.text]);
     if (property.type === 'combo') assert.ok(property.options.some(option => option.value === property.value));
   }
+});
+
+test('世界模式隐藏其他原生参数，子条件与总开关同时生效，三语说明覆盖两种模式', () => {
+  const props = project.general.properties;
+  for (const [key, property] of Object.entries(props)) {
+    if (key === 'useworldsettings') assert.equal(property.condition, undefined);
+    else if (key === 'worldabout') assert.equal(property.condition, 'useworldsettings.value == true');
+    else assert.match(property.condition, /useworldsettings.value == false/);
+  }
+  assert.match(props.weatherpreset.condition, /weathermode.value == "manual"/);
+  assert.match(props.timeofday.condition, /realtime.value == false/);
+  assert.match(props.temperatureunit.condition, /showclock.value == true/);
+  for (const language of ['zh-chs', 'en-us', 'ja-jp']) {
+    for (const key of ['useworldsettings', 'worldabout', 'about', 'temperatureunit']) assert.ok(project.general.localization[language][props[key].text]);
+  }
+  assert.match(project.general.localization['zh-chs'][props.about.text], /每次启动/);
+  assert.match(project.general.localization['zh-chs'][props.about.text], /单向/);
 });
 
 test('场景链接使用空默认原生文本输入，三语说明要求桌面画廊确认', () => {

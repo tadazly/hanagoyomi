@@ -498,10 +498,6 @@ export function initShell() {
     document.querySelector('.github-button').hidden = true;
     document.querySelector('.workshop-button').hidden = true;
     $('geoBtn').hidden = true;
-    if (window.hanagoyomiWallpaper) {
-      $('citySearch').closest('.search-field').hidden = true;
-      $('cityResults').hidden = true;
-    }
     // 仍保留署名和完整设置，去除桌面宿主无法可靠完成的页面跳转。
     document.querySelectorAll('[data-about-link]').forEach(link => {
       if (link.classList.contains('wordmark')) {

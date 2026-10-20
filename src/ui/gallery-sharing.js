@@ -7,7 +7,7 @@ import { bindDragScroll } from './drag-scroll.js';
 import { loadQRCode } from '#scene-qr';
 
 // 独立壁纸包运行在 file://，必须导向已部署且能解析作品的公开站。
-const PUBLIC_SHARE_URL = import.meta.env.VITE_SCENE_SHARE_URL || 'https://hanagoyomi-meadow-preview.kuyami.chatgpt.site/';
+const PUBLIC_SHARE_URL = import.meta.env.VITE_SCENE_SHARE_URL || 'https://hanagoyomi.luyilabs.com/';
 const shareBase = () => /^https?:$/.test(location.protocol) ? location.href : PUBLIC_SHARE_URL;
 
 export function initSceneSharing({ world, store, preview, onCollectionChange, feedback, saveThumbnail }) {
