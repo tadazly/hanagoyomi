@@ -1,5 +1,9 @@
 import { TN, tnData, tnSample, groundH } from './terrain.js';
-import { VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CLOUD_FS, TAA_FS, DISPLAY, SCENE, SCENE_FS, VPRE, TERRAIN_VS, TERRAIN_FS, GRASS_VS, GRASS_FS, FLOWER_VS, PETAL_VS, STREAM_VS, PETAL_FS, SKYPASS_FS, GOD_FS, POSTCOMMON, DOFPREP_FS, DOF_FS, BLOOMPRE_FS, DOWN_FS, UP_FS, FINAL_FS, SHELL_VS, SHELL_FS, STAR_VS, STAR_FS, LINE_VS, LINE_FS, FIREFLY_VS, FIREFLY_FS, FLY_COUNT, GLOW_VS, GLOW_FS, GLOW_N, TOUCH_FS, RESTAMP_VS, RESTAMP_FS, TOUCH_N, PUD_FS, PUD_N, RAIN_VS, RAIN_FS, BOLT_VS, BOLT_FS, RAIN_N, SNOW_VS, SNOW_FS, SNOW_N, DROP_VS, DROP_FS, GLOW_EXT, TOUCH_EXT, PUD_EXT, BOLT_MAX } from './shaders.js';
+import { VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CLOUD_FS, TAA_FS, DISPLAY, SCENE, SCENE_FS, VPRE, TERRAIN_VS, TERRAIN_FS, GRASS_VS, GRASS_FS, FLOWER_VS, PETAL_VS, STREAM_VS, PETAL_FS, SKYPASS_FS, GOD_FS, POSTCOMMON, DOFPREP_FS, DOF_FS, BLOOMPRE_FS, DOWN_FS, UP_FS, FINAL_FS, SHELL_VS, SHELL_FS, STAR_VS, STAR_FS, PLANET_VS, PLANET_FS, LINE_VS, LINE_FS, FIREFLY_VS, FIREFLY_FS, FLY_COUNT, GLOW_VS, GLOW_FS, GLOW_N, TOUCH_FS, RESTAMP_VS, RESTAMP_FS, TOUCH_N, PUD_FS, PUD_N, RAIN_VS, RAIN_FS, BOLT_VS, BOLT_FS, RAIN_N, SNOW_VS, SNOW_FS, SNOW_N, DROP_VS, DROP_FS, GLOW_EXT, TOUCH_EXT, PUD_EXT, BOLT_MAX } from './shaders.js';
+import { equatorialToWorld } from './celestial-coordinates.js';
+import { createGalaxyTexture } from './galaxy-texture.js';
+import { exposureKey } from './exposure.js';
+import { MOON_RADIUS, nightSkyAppearance, moonNorthDirection } from './night-sky.js';
 import { STAR_DATA, LINE_DATA } from '../data/stars.js';
 import { CITIES, COMMON_CITIES, cityName, locationName, searchCities } from '../data/cities.js';
 import { WX_TYPES, WX_KEYS, wxPreset, WX_NEXT } from '../world/weather-presets.js';
@@ -28,7 +32,7 @@ export function displayPreferences(saved) {
   return { vignette: typeof saved?.vignette === 'boolean' ? saved.vignette : true };
 }
 
-export function startWorld(onUpdate = () => {}) {
+export function startWorld(onUpdate = () => {}, celestialAssets = {}) {
 
 const canvas = document.getElementById('view');
 const $ = (id) => document.getElementById(id);
@@ -149,6 +153,7 @@ try {
     stream: makeProgram(STREAM_VS, PETAL_FS, 'stream'),
     shell: makeProgram(SHELL_VS, SHELL_FS, 'shell'),
     stars: makeProgram(STAR_VS, STAR_FS, 'stars'),
+    planets: makeProgram(PLANET_VS, PLANET_FS, 'planets'),
     flies: makeProgram(FIREFLY_VS, FIREFLY_FS, 'flies'),
     glow: makeProgram(GLOW_VS, GLOW_FS, 'glow'),
     touch: makeProgram(VS_FULL, TOUCH_FS, 'touch'),
@@ -217,6 +222,41 @@ const SKY_W = 192, SKY_H = 128;
 const skyTex = makeTex2D(SKY_W, SKY_H, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT, gl.LINEAR, gl.CLAMP_TO_EDGE);
 gl.bindTexture(gl.TEXTURE_2D, skyTex); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
 const skyFBO = makeFBO([skyTex]);
+// 小型本地贴图：立即绑定有效占位，解码后在同一纹理上传；不阻塞世界启动。
+function celestialTexture(url, fallback) {
+  const texture = makeTex2D(1, 1, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, gl.CLAMP_TO_EDGE);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(fallback));
+  let started = false;
+  function load(){
+    if (started || !url || contextLost) return;
+    started = true;
+    const image = new Image();
+    image.onload = () => {
+      if (contextLost) return;
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      let source = image;
+      const maxSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+      if (image.width > maxSize || image.height > maxSize) {
+        const ratio = Math.min(maxSize / image.width, maxSize / image.height), canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.width * ratio)); canvas.height = Math.max(1, Math.round(image.height * ratio));
+        canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height); source = canvas;
+      }
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, source);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      image.onload = null; image.onerror = null; image.removeAttribute('src');
+    };
+    image.onerror = () => console.warn('天体贴图加载失败，使用简化外观');
+    if (url) image.src = new URL(url, document.baseURI).href;
+  }
+  return { texture, load };
+}
+// 入口传入 Vite 的静态资源 URL，同时兼容 Web ES module 与壁纸 IIFE。
+const moonSurface = celestialTexture(celestialAssets.moonSurfaceUrl, [170, 165, 158, 255]);
+const galaxy = createGalaxyTexture(gl, celestialAssets.galaxyUrls);
+const galaxyTexture = galaxy.texture;
+
 const CSH_N = 256, CSH_EXT = 24;
 const cshTex = makeTex2D(CSH_N, CSH_N, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, gl.CLAMP_TO_EDGE);
 const cshFBO = makeFBO([cshTex]);
@@ -752,7 +792,10 @@ function updateLighting(){
   const La = lum(atGround.avg) * 2.0 + lum(lightGround) * Math.max(lightDir[1], 0.05) * 0.05;
   const rel = Math.max(La / 0.9, 1e-10), lg = Math.log10(rel);
   /* exposure compensation curve: day 1.0, twilight 0.8, deep night 0.42 of the daytime key */
-  const keyV = lg >= -0.6 ? 1 : lg >= -2.5 ? KEY_TWILIGHT + (1 - KEY_TWILIGHT) * smooth(-2.5, -0.6, lg) : KEY_NIGHT + (KEY_TWILIGHT - KEY_NIGHT) * smooth(-5.0, -2.5, lg);
+  const legacyKey = lg >= -0.6 ? 1 : lg >= -2.5 ? KEY_TWILIGHT + (1 - KEY_TWILIGHT) * smooth(-2.5, -0.6, lg) : KEY_NIGHT + (KEY_TWILIGHT - KEY_NIGHT) * smooth(-5.0, -2.5, lg);
+  // 写实夜间的低曝光目标，仅在太阳落入夜间范围后平滑启用。
+  const darkness = nightSkyAppearance(AST).darkness;
+  const keyV = legacyKey + (exposureKey(lg) - legacyKey) * darkness;
   const exposure = 0.66 / (0.9 * rel) * keyV, PE = exposure;
   const nightF = smooth(-1.8, -4.5, lg);
   for (let c = 0; c < 3; c++){ ambTop[c] *= 1 - 0.8 * nightF; ambBottom[c] *= 1 - 0.9 * nightF; }
@@ -1397,6 +1440,9 @@ function frame(now){
   const localRain = WXS.rain * localWeather.precipitation;
   const lightChanged = updateLighting();
   const L = light, sun = L.lightDir, q = QUALITY[S.quality];
+  const nightSky = nightSkyAppearance(AST);
+  if (nightSky.darkness > 0){ moonSurface.load(); galaxy.select(S.quality); }
+  equatorialToWorld(AST.lst, renderLocation().lat, S.sunAz, eqMat);
   expo = !isFinite(expo) ? L.exposure : Math.exp(Math.log(expo) + (Math.log(L.exposure) - Math.log(expo)) * (1 - Math.exp(-dt * 2.5)));
   const expoS = expo / L.pe, nightGlow = L.glowF * 0.45 / expoS;
   const B = basis(yaw, pitch, cam.roll), aspect = W / H;
@@ -1690,6 +1736,11 @@ function frame(now){
     set(Sk, 'uFogSky', fogSky[0], fogSky[1], fogSky[2], fogSky[3]);
     set(Sk, 'uFogW', fogW[0], fogW[1], fogW[2], fogW[3]); set(Sk, 'uFogCol', fogCol); set(Sk, 'uFlashSky', [0.8, 0.85, 1.0].map(v => v * flash * 1.4 * localWeather.skyFlash)); set(Sk, 'uFlashDir', flashTop.map(v => v / ftl));
     set(Sk, 'uSunTrue', L.sunT); set(Sk, 'uMoonDir', L.moonD); set(Sk, 'uMoonDisk', L.moonDisk);
+    set(Sk, 'uMoonRadius', MOON_RADIUS); set(Sk, 'uMoonNorth', moonNorthDirection(eqMat));
+    set(Sk, 'uEarthshine', nightSky.earthshine); set(Sk, 'uNightSky', nightSky.darkness);
+    set(Sk, 'uGalaxyI', L.starI * nightSky.galaxy);
+    gl.uniformMatrix3fv(Sk.u.uEq, false, eqMat);
+    tex(Sk, 'uMoonSurface', gl.TEXTURE_2D, moonSurface.texture); tex(Sk, 'uGalaxy', gl.TEXTURE_2D, galaxyTexture);
     const off = S.sunAz * Math.PI / 180, dirAE = (az, el) => [Math.cos(el) * Math.sin(az + off), Math.sin(el), Math.cos(el) * Math.cos(az + off)];
     const LATR = renderLocation().lat * RAD; set(Sk, 'uPole', dirAE(0, LATR)); set(Sk, 'uSouthEq', dirAE(Math.PI, Math.PI / 2 - LATR)); set(Sk, 'uWestEq', dirAE(Math.PI * 1.5, 0));
     set(Sk, 'uSidereal', AST.lst); set(Sk, 'uStarI', L.starI); set(Sk, 'uPixAngS', 2 * tanY / H); set(Sk, 'uTimeS', simTime);
@@ -1698,17 +1749,24 @@ function frame(now){
   }
   /* real stars, planets and optional constellation lines, added over the sky only (depth test at the far plane) */
   if (L.starCat > 2e-4){
-    const off = S.sunAz * RAD, LATR = renderLocation().lat * RAD, dae = (az, el) => [Math.cos(el) * Math.sin(az + off), Math.sin(el), Math.cos(el) * Math.cos(az + off)];
-    const Pv = dae(0, LATR), Sv = dae(Math.PI, Math.PI / 2 - LATR), Wv = dae(Math.PI * 1.5, 0), cl = Math.cos(AST.lst), sl = Math.sin(AST.lst);
-    eqMat.set([cl * Sv[0] + sl * Wv[0], cl * Sv[1] + sl * Wv[1], cl * Sv[2] + sl * Wv[2], sl * Sv[0] - cl * Wv[0], sl * Sv[1] - cl * Wv[1], sl * Sv[2] - cl * Wv[2], Pv[0], Pv[1], Pv[2]]);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR); gl.depthFunc(gl.LEQUAL); gl.depthMask(false);
-    const St = P.stars; use(St);
+    const St = nightSky.darkness > 0 ? P.stars : P.planets; use(St);
     gl.uniformMatrix3fv(St.u.uEq, false, eqMat);
     set(St, 'uR', B.r); set(St, 'uU', B.u); set(St, 'uF', B.f); set(St, 'uTan', tanX, tanY);
-    set(St, 'uStarI', L.starCat * (1 - 0.95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow))); set(St, 'uPxScale', W / Math.max(cssW, 1)); set(St, 'uTimeS', simTime);
+    set(St, 'uStarI', L.starCat * (nightSky.darkness > 0 ? 8 / 2.4 * nightSky.stars : 1) * (1 - 0.95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow))); set(St, 'uPxScale', W / Math.max(cssW, 1)); set(St, 'uTimeS', simTime);
     tex(St, 'uCloud', gl.TEXTURE_2D, hist[cur]);
+    if (nightSky.darkness > 0){
+      set(St, 'uMoonDir', L.moonD); set(St, 'uMoonRadius', MOON_RADIUS); set(St, 'uMoonWash', AST.moonBright * smooth(0, .2, L.moonD[1]));
+      set(St, 'uScintillation', reduceMotion ? 0 : 1); set(St, 'uPixAngle', 2 * tanY / H); set(St, 'uRes', W, H);
+      tex(St, 'uSkyLut', gl.TEXTURE_2D, skyTex);
+    }
     gl.bindVertexArray(starVAO); gl.drawArrays(gl.POINTS, 0, STAR_N);
     updatePlanets(simMs);
+    const Pl = P.planets; use(Pl);
+    gl.uniformMatrix3fv(Pl.u.uEq, false, eqMat);
+    set(Pl, 'uR', B.r); set(Pl, 'uU', B.u); set(Pl, 'uF', B.f); set(Pl, 'uTan', tanX, tanY);
+    set(Pl, 'uStarI', L.starCat * (1 - .95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow)));
+    set(Pl, 'uPxScale', W / Math.max(cssW, 1)); set(Pl, 'uTimeS', simTime); tex(Pl, 'uCloud', gl.TEXTURE_2D, hist[cur]);
     gl.bindVertexArray(planetVAO); gl.drawArrays(gl.POINTS, 0, 5);
     if (S.constel){
       const Ln = P.lines; use(Ln);
@@ -1832,7 +1890,7 @@ function frame(now){
     tex(Fi, 'uDof', gl.TEXTURE_2D, dofTex); tex(Fi, 'uBloom', gl.TEXTURE_2D, bloomOut);
     set(Fi, 'uSat', L.grade.sat); set(Fi, 'uShTint', L.grade.sh); set(Fi, 'uHiTint', L.grade.hi); set(Fi, 'uLift', L.grade.lift);
     set(Fi, 'uDrops', lensOn && LR.tex ? 1 : 0); set(Fi, 'uTimeD', simTime); if (LR.tex) tex(Fi, 'uLens', gl.TEXTURE_2D, LR.tex);
-    set(Fi, 'uDofOn', dofOn ? 1 : 0); set(Fi, 'uBloomI', S.lowSaturation ? 0.055 + 0.07 * L.glowF : 0.16 + 0.2 * L.glowF); set(Fi, 'uNight', L.night); set(Fi, 'uFrameN', frameNo % 997); set(Fi, 'uRes', W, H); setPost(Fi);
+    set(Fi, 'uDofOn', dofOn ? 1 : 0); set(Fi, 'uBloomI', S.lowSaturation ? 0.055 + 0.07 * L.glowF : 0.16 + 0.2 * L.glowF); set(Fi, 'uNight', L.night); set(Fi, 'uNightSky', nightSky.darkness); set(Fi, 'uFrameN', frameNo % 997); set(Fi, 'uRes', W, H); setPost(Fi);
     draw();
   }
 

@@ -33,6 +33,14 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 太阳与月亮的基础坐标计算参考 [SunCalc](https://github.com/mourner/suncalc) 的轻量公式及天文年历方法。SunCalc 使用 MIT License，Copyright (c) 2011–2015 Vladimir Agafonkin；[原始许可](https://github.com/mourner/suncalc/blob/master/LICENSE)。本项目保留来源署名。
 
+## 银河全天照片 — ESO/S. Brunier
+
+`src/assets/milky-way*.webp` 来自 [The Milky Way panorama，eso0932a](https://www.eso.org/public/images/eso0932a/)，署名 **ESO/S. Brunier**，使用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)，参见 [ESO 使用条款](https://www.eso.org/public/copyright/)。项目在公开的 6000×3000 JPEG 原片上处理：对相对 5×5 中值明显突出的亮点进行背景替代，其余局部残差保留 75%，以附近天空局部羽化替换一处固定大亮斑，再用 OpenCV fast non-local means（h=4、模板 7×7、搜索 21×21）抑制成像噪声。按画质输出 2048×1024、3072×1536、4096×2048、6000×3000 四种 WebP，品质分别为 90、92、94、95，移除元数据；不再叠加全图高斯低通，也未使用 AI 修改照片。渲染采用标准 sRGB 解码、亮度适配和低照度去色。照片按银道坐标投影，来自长曝光拼接，含拍摄时的恒星和部分行星，不作为精密星图或肉眼颜色标定。帮助界面保留可点击署名。
+
+## 月面颜色 — NASA LRO / CGI Moon Kit
+
+`src/assets/moon-albedo.webp` 来自 [NASA CGI Moon Kit](https://svs.gsfc.nasa.gov/4720/) 的 2025 年版本 `lroc_color_2k.jpg`，署名 **NASA's Scientific Visualization Studio**。资料基于 Lunar Reconnaissance Orbiter 的 LROC WAC 色彩拼图（Arizona State University）和 LOLA 数据，由 Ernie Wright 整理。项目缩小为 1024×512 WebP、移除元数据，并在渲染中转换到线性颜色。参见 [NASA 媒体使用政策](https://www.nasa.gov/nasa-brand-center/images-and-media/)；NASA 标志与机构背书不包含在授权内。该纹理本身已为视觉展示优化，不用于科学测量。
+
 ## 场景链接无损压缩 — fflate
 
 v2 场景分享链接使用 [fflate 0.8.3](https://github.com/101arrowz/fflate)，仅通过命名导入的 `deflateSync` 与 `inflateSync` 进行同步无损压缩和解压。以下保留分发包 `fflate/LICENSE` 原文：

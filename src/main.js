@@ -6,13 +6,19 @@ import { WALLPAPER_MODE } from './platform/environment.js';
 import { attachWallpaper } from './platform/wallpaper.js';
 import { initGallery } from './ui/gallery.js';
 
+import moonSurfaceUrl from './assets/moon-albedo.webp?url';
+import galaxyUrl from './assets/milky-way.webp?url';
+import galaxyLowUrl from './assets/milky-way-low.webp?url';
+import galaxyMediumUrl from './assets/milky-way-medium.webp?url';
+import galaxyUltraUrl from './assets/milky-way-ultra.webp?url';
+
 export let world;
 
 if (WALLPAPER_MODE) document.body.dataset.wallpaper = 'true';
 initI18n();
 const shell = initShell();
 try {
-  world = startWorld(updateObservation);
+  world = startWorld(updateObservation, { moonSurfaceUrl, galaxyUrls: { low: galaxyLowUrl, med: galaxyMediumUrl, high: galaxyUrl, ultra: galaxyUltraUrl } });
   initGallery(world, shell);
   attachWallpaper(world, shell);
 } catch (error) {
