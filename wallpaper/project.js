@@ -20,7 +20,7 @@ const add = (key, type, value, zh, en, extra = {}) => {
 };
 const option = (value, zh, en = zh, ja = en) => ({ value, label: label(`option_${String(value).replace(/\W/g, '')}`, zh, en, ja) });
 add('useworldsettings', 'bool', true, '使用世界设置（推荐）', 'Use built-in world settings (recommended)');
-add('worldabout', 'text', '', '已勾选：始终使用壁纸自带的世界设置，其他 WE 设置隐藏且不生效。世界设置和画廊应用的风景自动保存在本机，重启后恢复。<br>鼠标移到桌面右下角可打开世界设置与画廊。', 'Enabled: always use the wallpaper’s built-in world settings. Other WE settings are hidden and ignored. World settings and applied gallery scenes are saved on this device and restored after restart.<br>Move the mouse to the bottom-right corner to open world settings and the gallery.', { condition: 'useworldsettings.value == true' });
+add('worldabout', 'text', '', '已勾选：始终使用壁纸自带的世界设置，WE 中对应的场景设置隐藏且不生效，导入场景链接始终可用。世界设置和画廊应用的风景自动保存在本机，重启后恢复。<br>鼠标移到桌面右下角可打开世界设置与画廊。', 'Enabled: always use the wallpaper’s built-in world settings. Corresponding WE scene settings are hidden and ignored; scene link import remains available. World settings and applied gallery scenes are saved on this device and restored after restart.<br>Move the mouse to the bottom-right corner to open world settings and the gallery.', { condition: 'useworldsettings.value == true' });
 add('about', 'text', '', '未勾选：WE 中的选项会立即应用，并在每次启动时覆盖世界设置中的对应项。世界设置仍可编辑，但修改只能单向生效，无法同步回 WE 面板；画廊应用的对应项也会在下次启动被覆盖。<br>如需保留世界设置与画廊效果，请勾选上方选项。', 'Disabled: WE options apply immediately and overwrite their corresponding world settings on every startup. You can still edit world settings, but changes work in one direction and cannot update the WE panel. Corresponding values from applied gallery scenes are also overwritten on the next startup.<br>Enable the option above to retain world settings and gallery results.');
 add('sceneimportlink', 'textinput', '', '导入场景链接（粘贴后返回桌面画廊预览）', 'Import scene link (paste, then preview in the desktop gallery)');
 localization['ja-jp'][properties.sceneimportlink.text] = 'シーンの共有リンク（貼り付け後、デスクトップのギャラリーでプレビュー）';
@@ -54,7 +54,7 @@ function positions() {
 
 for (const [key, value] of Object.entries({
   useworldsettings: '内蔵の世界設定を使用（推奨）',
-  worldabout: 'オン：壁紙内蔵の世界設定を常に使用します。そのほかの WE 設定は非表示になり、適用されません。世界設定と適用したギャラリーの風景はこの端末に自動保存され、再起動後も復元されます。<br>右下にマウスを移動すると世界設定とギャラリーを開けます。',
+  worldabout: 'オン：壁紙内蔵の世界設定を常に使用します。対応する WE のシーン設定は非表示になり、適用されません。共有リンクの取り込みは常に利用できます。世界設定と適用したギャラリーの風景はこの端末に自動保存され、再起動後も復元されます。<br>右下にマウスを移動すると世界設定とギャラリーを開けます。',
   about: 'オフ：WE の項目はすぐに適用され、起動するたびに対応する世界設定を上書きします。世界設定は引き続き編集できますが、変更は一方向にのみ反映され、WE の表示には同期されません。ギャラリーで適用した対応項目も次回起動時に上書きされます。<br>世界設定やギャラリーの風景を保持するには、上の項目をオンにしてください。',
   quality: '画質', renderscale: '描画解像度の倍率', interaction: '手動のシーン操作', autoflight: '自動飛行',
   city: '観測地点', weathermode: '天気モード', weatherpreset: '手動の天気', realtime: '現地の実時刻に連動',
@@ -64,9 +64,10 @@ for (const [key, value] of Object.entries({
   language: '表示言語', temperatureunit: '温度の単位',
 })) localization['ja-jp'][properties[key].text] = value;
 
-// 总开关与子条件共同决定原生选项可见性；隐藏不是禁用，适配器还需忽略其回调。
+// 导入是独立工具，两种模式均可用；其余覆盖世界偏好的参数才受总开关约束。
+// 隐藏不是禁用，适配器还需忽略其回调。
 for (const [key, property] of Object.entries(properties)) {
-  if (key === 'useworldsettings' || key === 'worldabout') continue;
+  if (['useworldsettings', 'worldabout', 'sceneimportlink'].includes(key)) continue;
   property.condition = `useworldsettings.value == false${property.condition ? ` && (${property.condition})` : ''}`;
 }
 

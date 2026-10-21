@@ -10,7 +10,7 @@ import { loadQRCode } from '#scene-qr';
 const PUBLIC_SHARE_URL = import.meta.env.VITE_SCENE_SHARE_URL || 'https://hanagoyomi.luyilabs.com/';
 const shareBase = () => /^https?:$/.test(location.protocol) ? location.href : PUBLIC_SHARE_URL;
 
-export function initSceneSharing({ world, store, preview, onCollectionChange, feedback, saveThumbnail }) {
+export function initSceneSharing({ world, store, ready, canSave, preview, onCollectionChange, feedback, saveThumbnail, captureThumbnail }) {
   const dialog = document.createElement('dialog'); dialog.id = 'galleryShare';
   dialog.className = 'gallery-dialog gallery-share chrome'; dialog.setAttribute('aria-labelledby', 'galleryShareTitle');
   dialog.innerHTML = '<button type="button" class="gallery-dialog-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button><div class="gallery-share-intro"><h2 id="galleryShareTitle"></h2><p></p></div><div class="gallery-qr"><canvas role="img"></canvas><p role="status"></p></div><div class="gallery-share-link"><label class="sr-only" for="galleryShareLink"></label><input id="galleryShareLink" type="text" readonly><button type="button"></button></div><p class="gallery-dialog-status" id="galleryShareStatus" role="status"></p>';
@@ -60,10 +60,17 @@ export function initSceneSharing({ world, store, preview, onCollectionChange, fe
   const openArtwork = (artwork, hash) => {
     try {
       preview({ id: 'shared-link', title: artwork.title || g('untitled'), scene: artwork.scene });
-      showIncoming({ mode: 'preview', artwork, hash });
+      if (canSave()) showIncoming({ mode: 'preview', artwork, hash });
+      else { clearHash(hash); dismissIncoming(); }
     } catch { showIncoming({ mode: 'invalid', hash }); }
   };
-  const receive = (link, pending, hash) => {
+  let receiveGeneration = 0;
+  const receive = async (link, pending, hash) => {
+    const ticket = ++receiveGeneration;
+    await ready;
+    // 初始化回调先完成能力状态更新，再处理首发链接。
+    await Promise.resolve();
+    if (ticket !== receiveGeneration) return;
     try {
       const artwork = parseSceneLink(link, { baseUrl: shareBase() });
       if (!artwork) {
@@ -80,13 +87,14 @@ export function initSceneSharing({ world, store, preview, onCollectionChange, fe
     if (!incoming || acceptBusy) return;
     const { mode, artwork, hash } = incoming;
     if (mode === 'pending') { openArtwork(artwork, hash); return; }
-    if (mode !== 'preview') return;
+    if (mode !== 'preview' || !canSave()) return;
     acceptBusy = true; localize();
     try {
-      const entry = store.add(artwork.scene, artwork.title || g('untitled'));
+      const captured = captureThumbnail();
+      const entry = await store.add(artwork.scene, artwork.title || g('untitled'));
       // 写入场景成功即完成收藏，封面失败不撤销；回调只刷新列表。
-      dismissIncoming(); onCollectionChange(); feedback('captured');
-      await saveThumbnail(entry);
+      dismissIncoming(); await onCollectionChange(); feedback('captured');
+      await saveThumbnail(entry, captured);
     } catch (error) { feedback(error.message === 'gallery.full' ? 'full' : 'captureError'); }
     finally { acceptBusy = false; localize(); }
   });

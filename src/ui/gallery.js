@@ -1,6 +1,7 @@
 import '../styles/gallery.css';
 import { GALLERY_SCENES } from '../data/gallery-scenes.js';
-import { createGalleryStore } from '../world/gallery-store.js';
+import { createGalleryStore, GALLERY_DATABASE } from '../world/gallery-store.js';
+import { prepareGalleryStorage } from './gallery-migration.js';
 import { storageKey, WALLPAPER_MODE } from '../platform/environment.js';
 import { describeScene } from '../world/scene-share.js';
 import { getSavedLocation } from '../world/location.js';
@@ -26,9 +27,10 @@ const textFor = value => typeof value === 'string' ? value : value?.[getLanguage
 
 export function initGallery(world, shell) {
   if (!world) return;
-  // 存储访问本身可能被宿主拒绝，使用延迟访问以保留浏览和还原能力。
-  const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
-  const store = createGalleryStore({ storage, key: storageKey('hanagoyomi.gallery.v2') });
+  const store = createGalleryStore({ database: storageKey(GALLERY_DATABASE) });
+  let available = false, savedItems = [], readGeneration = 0, sceneGeneration = 0;
+  // 同步建立所有监听器；分享链接等初始化完成后再处理，避免丢失 WE 首发链接。
+  const ready = prepareGalleryStorage(store, storageKey('hanagoyomi.gallery.v2'));
   const trigger = document.createElement('button');
   trigger.id = 'galleryToggle'; trigger.className = 'icon-button'; trigger.type = 'button';
   trigger.innerHTML = icon('gallery'); trigger.setAttribute('aria-controls', 'gallery'); trigger.setAttribute('aria-expanded', 'false');
@@ -42,9 +44,9 @@ export function initGallery(world, shell) {
       <h2 id="galleryTitle"></h2>
       <div class="gallery-tabs" role="tablist" aria-label="Gallery categories">
         <button type="button" role="tab" id="galleryCurated" aria-controls="galleryList" data-collection="curated"></button>
-        <button type="button" role="tab" id="gallerySaved" aria-controls="galleryList" data-collection="saved"></button>
+        <button type="button" role="tab" id="gallerySaved" aria-controls="galleryList" data-collection="saved" hidden></button>
       </div>
-      <button class="gallery-capture" type="button">${icon('plus')}<span></span></button>
+      <button class="gallery-capture" type="button" hidden>${icon('plus')}<span></span></button>
       <button class="gallery-collapse gallery-icon" type="button" hidden>${icon('down')}</button>
       <button class="gallery-close gallery-icon" type="button">${icon('close')}</button>
     </header>
@@ -76,7 +78,12 @@ export function initGallery(world, shell) {
   const scrollPositions = { curated: 0, saved: 0 };
   let renderedCollection = null;
   const cards = new Map();
-  const items = () => collection === 'curated' ? GALLERY_SCENES : store.read();
+  const items = () => collection === 'curated' ? GALLERY_SCENES : savedItems;
+  const loadSaved = async () => {
+    if (!available) return;
+    const ticket = ++readGeneration, entries = await store.read();
+    if (ticket === readGeneration) { savedItems = entries; render(); }
+  };
   const freezes = () => ({ freezeTime: $('#galleryFreezeTime').checked, freezeWeather: $('#galleryFreezeWeather').checked, freezeClouds: $('#galleryFreezeClouds').checked });
   const summaryFor = item => {
     const details = describeScene(item.scene, { timeZone: getSavedLocation()?.tz || 'Asia/Tokyo' });
@@ -101,7 +108,7 @@ export function initGallery(world, shell) {
   const focusCard = (id, options = false) => {
     if (sheet.hidden) return;
     const card = cards.get(id), target = options && card?.options ? card.options : card?.button;
-    const fallback = $('.gallery-capture').disabled ? $('.gallery-close') : $('.gallery-capture');
+    const fallback = $('.gallery-capture').hidden || $('.gallery-capture').disabled ? $('.gallery-close') : $('.gallery-capture');
     (target || fallback).focus({ preventScroll: true });
   };
   const setCollapsed = value => {
@@ -134,7 +141,7 @@ export function initGallery(world, shell) {
     description.append(weather, moment);
     const captionRow = document.createElement('div'); captionRow.className = 'gallery-caption-row';
     caption.append(title, description); captionRow.append(caption); button.append(picture); tile.append(button, captionRow);
-    const card = { item, tile, button, picture, title, description, weather, moment, caption, image: null, imageSource: null };
+    const card = { item, tile, button, picture, title, description, weather, moment, caption, image: null, imageSource: null, thumbnailLoaded: false, objectURL: null, disposed: false };
     button.addEventListener('click', () => {
       try {
         previewItem(card.item);
@@ -167,9 +174,16 @@ export function initGallery(world, shell) {
     card.weather.textContent = metadata ? t(`weather.${metadata.weatherKey}`) : g('metadataUnknown');
     card.moment.textContent = metadata ? ` · ${metadata.timeText}` : '';
     card.description.title = summary;
-    const thumbnail = item.thumbnail;
-    const source = thumbnail && (collection === 'curated' || /^data:image\/jpeg;base64,/.test(thumbnail))
-      ? collection === 'curated' ? new URL(`${import.meta.env.BASE_URL}${thumbnail}`, location.href).href : thumbnail : '';
+    if (collection === 'saved' && item.hasThumbnail && !card.thumbnailLoaded) {
+      card.thumbnailLoaded = true;
+      void store.getThumbnail(item.id).then(blob => {
+        if (card.disposed || !blob) return;
+        card.objectURL = URL.createObjectURL(blob);
+        updateCard(card, card.item, world.isPreviewing());
+      }).catch(() => { card.thumbnailLoaded = false; });
+    }
+    const source = collection === 'curated' && item.thumbnail
+      ? new URL(`${import.meta.env.BASE_URL}${item.thumbnail}`, location.href).href : card.objectURL || '';
     if (card.imageSource !== source) {
       if (card.image) thumbnails.unobserve(card.image);
       card.image?.remove(); card.image = null; card.imageSource = source;
@@ -186,13 +200,18 @@ export function initGallery(world, shell) {
       }
     }
   };
+  const disposeCard = card => {
+    card.disposed = true;
+    if (card.image) thumbnails.unobserve(card.image);
+    if (card.objectURL) URL.revokeObjectURL(card.objectURL);
+  };
   const render = ({ resetScroll = false } = {}) => {
     const all = items(), content = $('.gallery-content'), list = $('#galleryList'), left = resetScroll ? 0 : scrollPositions[collection];
     const active = document.activeElement, focused = [...cards.values()].find(card => card.tile.contains(active));
     const focusedCollection = renderedCollection, focusedControl = focused?.options === active ? 'options' : focused?.caption === active ? 'caption' : 'button';
     thumbnails.setActive(false);
     if (renderedCollection !== collection) {
-      for (const card of cards.values()) if (card.image) thumbnails.unobserve(card.image);
+      for (const card of cards.values()) disposeCard(card);
       list.replaceChildren(); cards.clear(); renderedCollection = collection;
     }
     $('.gallery-empty').hidden = all.length > 0;
@@ -201,7 +220,7 @@ export function initGallery(world, shell) {
     list.dataset.collection = collection;
     const wanted = new Set(all.map(item => item.id)), previewing = world.isPreviewing();
     for (const [id, card] of cards) if (!wanted.has(id)) {
-      if (card.image) thumbnails.unobserve(card.image);
+      disposeCard(card);
       card.tile.remove(); cards.delete(id);
     }
     let next = list.firstElementChild;
@@ -242,6 +261,7 @@ export function initGallery(world, shell) {
     shell.setPanel(false);
     document.dispatchEvent(new Event('galleryopen'));
     sheet.hidden = false; document.body.dataset.galleryOpen = 'true'; trigger.setAttribute('aria-expanded', 'true'); render();
+    if (available) void loadSaved().catch(() => feedback('loadError'));
     $('.gallery-close').focus({ preventScroll: true });
   };
   trigger.addEventListener('click', () => sheet.hidden ? open() : collapsed ? setCollapsed(false) : close());
@@ -266,41 +286,48 @@ export function initGallery(world, shell) {
     try { world.commitPreview(); close(false); }
     catch { feedback('applyError'); }
   }));
-  sheet.querySelectorAll('[data-collection]').forEach(tab => tab.addEventListener('click', () => { refreshSwipe.cancel?.(); collection = tab.dataset.collection; render(); }));
+  sheet.querySelectorAll('[data-collection]').forEach(tab => tab.addEventListener('click', () => {
+    if (tab.hidden) return;
+    refreshSwipe.cancel?.(); collection = tab.dataset.collection; render();
+    if (collection === 'saved') void loadSaved().catch(() => feedback('loadError'));
+  }));
   $('.gallery-tabs').addEventListener('keydown', event => {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-    const tabs = [...sheet.querySelectorAll('[data-collection]')], current = tabs.indexOf(event.target);
+    const tabs = [...sheet.querySelectorAll('[data-collection]')].filter(tab => !tab.hidden), current = tabs.indexOf(event.target);
     if (current < 0) return;
     const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
       : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
     event.preventDefault(); event.stopPropagation(); tabs[next].click(); tabs[next].focus({ preventScroll: true });
   });
   for (const input of sheet.querySelectorAll('.gallery-freeze input')) input.addEventListener('change', () => world.setPreviewFreeze(freezes()));
-  const saveThumbnail = async entry => {
-    try {
-      const blob = await world.captureThumbnail();
-      const thumbnail = typeof blob === 'string' ? blob : await new Promise((resolve, reject) => {
-        const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob);
-      });
-      store.setThumbnail(entry.id, thumbnail);
-    } catch { /* 场景已持久化；封面失败不回滚收藏。 */ }
-    if (collection === 'saved' && !sheet.hidden) render();
+  const captureThumbnail = () => {
+    const generation = sceneGeneration;
+    return Promise.resolve(world.captureThumbnail()).then(blob => generation === sceneGeneration ? blob : null).catch(() => null);
   };
-  const actions = createGalleryActions({ store, onShare: entry => sharing.share(entry), onChange: ({ updated, removed, index }) => {
+  const saveThumbnail = async (entry, captured) => {
+    try {
+      const blob = await captured;
+      if (blob) await store.setThumbnail(entry.id, blob);
+    } catch { /* 场景已持久化；封面失败不回滚收藏。 */ }
+    await loadSaved().catch(() => feedback('loadError'));
+  };
+  const actions = createGalleryActions({ store, onShare: entry => sharing.share(entry), onChange: async ({ updated, removed, index }) => {
     if (updated && selected?.id === updated.id) selected = updated;
-    render();
+    await loadSaved();
     if (removed) { const remaining = items(); focusCard(remaining[Math.min(Math.max(0, index), remaining.length - 1)]?.id, true); }
   } });
-  const sharing = initSceneSharing({ world, store, preview: previewItem, onCollectionChange: () => render(), feedback, saveThumbnail });
+  const sharing = initSceneSharing({ world, store, ready, canSave: () => available, preview: previewItem,
+    onCollectionChange: loadSaved, feedback, saveThumbnail, captureThumbnail });
   $('.gallery-capture').addEventListener('click', async () => {
-    if (saving) return;
+    if (saving || !available) return;
     saving = true; $('.gallery-capture').disabled = true;
     let entry;
     try {
-      entry = store.add(world.captureScene(), g('untitled'));
+      const scene = world.captureScene(), captured = captureThumbnail();
+      entry = await store.add(scene, g('untitled'));
       feedback('captured');
-      if (collection === 'saved') render();
-      await saveThumbnail(entry);
+      await loadSaved();
+      await saveThumbnail(entry, captured);
     } catch (error) { feedback(error.message === 'gallery.full' ? 'full' : 'captureError'); }
     finally { saving = false; $('.gallery-capture').disabled = false; }
   });
@@ -313,6 +340,7 @@ export function initGallery(world, shell) {
   document.addEventListener('timepopoveropen', () => close(false, { focus: false }));
   const syncFreezes = freeze => { if (!freeze) return; for (const [id, key] of [['Time','time'],['Weather','weather'],['Clouds','clouds']]) $('#galleryFreeze' + id).checked = Boolean(freeze[key]); };
   document.addEventListener('worldscenechange', event => {
+    sceneGeneration++;
     syncFreezes(event.detail?.freeze);
     if (event.detail?.previewing === false && !sheet.hidden) { selected = null; render(); }
   });
@@ -339,5 +367,12 @@ export function initGallery(world, shell) {
     if (!sheet.hidden) render();
   };
   onLanguageChange(localize); localize();
+  void ready.then(async supported => {
+    available = supported;
+    $('#gallerySaved').hidden = !supported; $('.gallery-capture').hidden = !supported;
+    if (supported) await loadSaved();
+  }).catch(() => feedback('loadError'));
+  window.addEventListener('pagehide', () => { for (const card of cards.values()) disposeCard(card); cards.clear(); renderedCollection = null; });
+  window.addEventListener('pageshow', event => { if (event.persisted && available) void loadSaved().catch(() => feedback('loadError')); });
   return { close };
 }

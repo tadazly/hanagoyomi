@@ -132,6 +132,14 @@ body[data-wallpaper='true'] .gallery-sheet { bottom: calc(132px + env(safe-area-
  body[data-wallpaper='true'] .gallery-sheet { max-height: calc(100dvh - 148px); }
 }
 @media (prefers-reduced-motion: reduce) { .gallery-picture img { transition: none; } }
+.gallery-migration { text-align: center; width: min(400px,calc(100% - 40px)); padding: 32px 24px; }
+.gallery-migration h2 { margin: 18px 0 10px; font-size: 20px; }
+.gallery-migration h2:focus { outline: none; }
+.gallery-migration p { color: #687063; font-size: 14px; line-height: 1.6; }
+.gallery-spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid #74846a33; border-top-color: #536c45; border-radius: 50%; animation: gallery-spin .85s linear infinite; }
+.gallery-migration.has-error .gallery-spinner { display: none; }
+.gallery-migration button { margin-top: 12px; padding: 10px 24px; }
+@keyframes gallery-spin { to { transform: rotate(360deg); } }
 @media (max-height: 420px) and (orientation: landscape) {
  .gallery-sheet { width: min(1080px,calc(100% - 24px)); }
  .gallery-scene-description { display: none; }

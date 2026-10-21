@@ -55,10 +55,10 @@ test('壁纸默认高画质、关闭交互、自动飞行和避让图标布局',
   }
 });
 
-test('世界模式隐藏其他原生参数，子条件与总开关同时生效，三语说明覆盖两种模式', () => {
+test('世界模式保留导入工具，隐藏对应原生参数，子条件与总开关同时生效', () => {
   const props = project.general.properties;
   for (const [key, property] of Object.entries(props)) {
-    if (key === 'useworldsettings') assert.equal(property.condition, undefined);
+    if (key === 'useworldsettings' || key === 'sceneimportlink') assert.equal(property.condition, undefined);
     else if (key === 'worldabout') assert.equal(property.condition, 'useworldsettings.value == true');
     else assert.match(property.condition, /useworldsettings.value == false/);
   }
@@ -76,6 +76,7 @@ test('场景链接使用空默认原生文本输入，三语说明要求桌面�
   const property = project.general.properties.sceneimportlink;
   assert.equal(property.type, 'textinput');
   assert.equal(property.value, '');
+  assert.equal(property.condition, undefined);
   for (const language of ['zh-chs', 'en-us', 'ja-jp']) {
     assert.ok(project.general.localization[language][property.text]);
   }

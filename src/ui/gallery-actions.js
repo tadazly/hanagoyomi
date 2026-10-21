@@ -12,7 +12,12 @@ export function createGalleryActions({ store, onChange, onShare }) {
   rename.className = 'gallery-dialog gallery-rename chrome'; rename.setAttribute('aria-labelledby', 'galleryRenameTitle');
   rename.innerHTML = '<form><h2 id="galleryRenameTitle"></h2><label for="galleryName"></label><input id="galleryName" type="text" maxlength="160" autocomplete="off" aria-describedby="galleryRenameError"><p id="galleryRenameError" class="gallery-dialog-status" role="status"></p><div class="gallery-dialog-actions"><button type="button" data-action="cancel"></button><button type="submit" class="primary"></button></div></form>';
   document.body.append(actions, rename);
-  let current = null, confirmDelete = false;
+  let current = null, confirmDelete = false, busy = false;
+  const setBusy = value => {
+    busy = value;
+    for (const button of [...actions.querySelectorAll('button'), ...rename.querySelectorAll('button')]) button.disabled = value;
+  };
+  for (const dialog of [actions, rename]) dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
   const action = key => actions.querySelector(`[data-action="${key}"]`);
   const localize = () => {
     action('rename').textContent = g('rename'); action('rename').hidden = WALLPAPER_MODE;
@@ -28,20 +33,26 @@ export function createGalleryActions({ store, onChange, onShare }) {
   };
   action('rename').addEventListener('click', () => showRename(current));
   action('share').addEventListener('click', () => { const entry = current; actions.close(); onShare(entry); });
-  action('remove').addEventListener('click', () => {
+  action('remove').addEventListener('click', async () => {
+    if (busy) return;
     if (!confirmDelete) { confirmDelete = true; localize(); return; }
-    try { const index = store.read().findIndex(entry => entry.id === current.id); store.remove(current.id); const entry = current; actions.close(); onChange({ removed: entry, index }); }
+    const entry = current; setBusy(true);
+    try { const index = (await store.read()).findIndex(item => item.id === entry.id); await store.remove(entry.id); actions.close(); await onChange({ removed: entry, index }); }
     catch { actions.querySelector('[role="status"]').textContent = g('captureError'); }
+    finally { setBusy(false); }
   });
   action('cancel').addEventListener('click', () => actions.close());
   rename.querySelector('[data-action="cancel"]').addEventListener('click', () => rename.close());
-  rename.querySelector('form').addEventListener('submit', event => {
+  rename.querySelector('form').addEventListener('submit', async event => {
     event.preventDefault();
+    if (busy) return;
+    setBusy(true);
     try {
-      const entry = store.rename(current.id, rename.querySelector('input').value);
+      const entry = await store.rename(current.id, rename.querySelector('input').value);
       if (!entry) throw new Error('gallery.invalid');
-      rename.close(); onChange({ updated: entry });
+      rename.close(); await onChange({ updated: entry });
     } catch (error) { rename.querySelector('[role="status"]').textContent = g(error.message === 'gallery.invalidTitle' ? 'invalidTitle' : 'captureError'); }
+    finally { setBusy(false); }
   });
   onLanguageChange(localize); localize();
   return {

@@ -484,7 +484,7 @@ export function initShell() {
       setTimePopover(false, true);
       return;
     }
-    if (e.target.closest('input, textarea, select') || e.ctrlKey || e.metaKey || e.altKey || $('helpDialog').open) return;
+    if (e.target.closest('input, textarea, select') || e.ctrlKey || e.metaKey || e.altKey || document.querySelector('dialog[open]')) return;
     if (document.body.dataset.sceneInteractive === 'false' && e.key !== 'Escape') return;
     if (e.key === 'Escape') {
       if (document.body.dataset.immersive === 'true') setImmersive(false);
