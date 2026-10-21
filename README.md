@@ -66,7 +66,7 @@ Development checks: `npm test`, `npm run build`, `npm run check:seo`, `npm run b
 
 ## Data and license
 
-The landscape is procedural and does not recreate the selected location's terrain. Live weather uses [Open-Meteo](https://open-meteo.com/) and requires a connection; dynamic weather is used when it is unavailable. Coordinates are used to request weather only after choosing **Use my location** and granting permission. Settings and collections stay on the device.
+The landscape is procedural and does not recreate the selected location's terrain. Live weather uses [Open-Meteo](https://open-meteo.com/) and requires a connection; dynamic weather is used when it is unavailable. Choosing **Use my location** asks for permission to send your coordinates to the weather provider. Settings and collections stay on the device.
 
 Inspired by thatgamecompany's *Flower*, with no affiliation to the game or its team. Code is licensed under [MIT](LICENSE). See [third-party notices](THIRD_PARTY_NOTICES.md) for star data, weather services and other dependencies.
 
