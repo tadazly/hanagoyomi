@@ -45,6 +45,8 @@
 
 可从 [Steam 创意工坊](https://steamcommunity.com/sharedfiles/filedetails/?id=3815915459)订阅。源码构建使用 `npm run build:wallpaper`，将 `dist-wallpaper/index.html` 导入 Wallpaper Engine。
 
+v1.4.2 的工坊更新尚未发布，下述功能可先使用 [Release 中的独立壁纸包](https://github.com/tadazly/hanagoyomi/releases/tag/v1.4.2)体验。
+
 默认勾选“使用世界设置”，在桌面右下角打开壁纸内设置和画廊。取消勾选后，WE 原生选项会立即生效，并在启动时覆盖对应的世界设置。原生“导入场景链接”在两种模式下都可用；粘贴后返回桌面预览，再决定是否收藏或应用。
 
 浏览器壁纸布局和 Mac Plash 使用 [`?wallpaper=1`](https://hanagoyomi.luyilabs.com/?wallpaper=1)。Plash 中需开启 Browsing Mode 才能操作设置。详见[壁纸说明](docs/WALLPAPER_ENGINE.md)。

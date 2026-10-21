@@ -45,6 +45,8 @@ Scene inputs are inactive when manual controls are disabled. Full controls are a
 
 Subscribe on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3815915459), or run `npm run build:wallpaper` and import `dist-wallpaper/index.html`.
 
+The v1.4.2 Workshop update is pending. Use the [standalone release package](https://github.com/tadazly/hanagoyomi/releases/tag/v1.4.2) for the features below.
+
 **Use built-in world settings** is enabled by default. Move to the desktop's bottom-right corner to open settings and the gallery. When this option is disabled, WE properties apply immediately and overwrite corresponding world settings on startup. **Import scene link** remains available in either mode: paste a link, return to the desktop to preview it, then choose whether to save or apply it.
 
 Use [`?wallpaper=1`](https://hanagoyomi.luyilabs.com/?wallpaper=1) for the browser wallpaper layout or Mac Plash. Enable Plash's Browsing Mode to adjust settings. See the [wallpaper guide](docs/WALLPAPER_ENGINE.md).
