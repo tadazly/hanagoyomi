@@ -123,7 +123,7 @@ export function initGallery(world, shell) {
   };
   const previewItem = item => {
     sharing?.dismissIncoming();
-    world.previewScene(item.scene); selected = item;
+    world.previewScene(item.scene, { nightSkyStyle: item.nightSkyStyle }); selected = item;
     syncFreezes(item.scene.freeze);
     if (sheet.hidden) open();
     render(); setCollapsed(true);

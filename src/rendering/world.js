@@ -226,9 +226,9 @@ const skyFBO = makeFBO([skyTex]);
 function celestialTexture(url, fallback) {
   const texture = makeTex2D(1, 1, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, gl.CLAMP_TO_EDGE);
   gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(fallback));
-  let started = false;
+  let started = false, retryAt = 0, failures = 0;
   function load(){
-    if (started || !url || contextLost) return;
+    if (started || !url || contextLost || performance.now() < retryAt) return;
     started = true;
     const image = new Image();
     image.onload = () => {
@@ -247,7 +247,12 @@ function celestialTexture(url, fallback) {
       gl.generateMipmap(gl.TEXTURE_2D);
       image.onload = null; image.onerror = null; image.removeAttribute('src');
     };
-    image.onerror = () => console.warn('天体贴图加载失败，使用简化外观');
+    image.onerror = () => {
+      started = false;
+      retryAt = performance.now() + Math.min(60000, 1000 * 2 ** Math.min(failures++, 6));
+      image.onload = null; image.onerror = null; image.removeAttribute('src');
+      console.warn('天体贴图加载失败，暂用简化外观并稍后重试');
+    };
     if (url) image.src = new URL(url, document.baseURI).href;
   }
   return { texture, load };
@@ -683,6 +688,7 @@ function saveSettings(){
   const o = {};
   const original = preview?.original;
   for (const k of PERSIST_KEYS) if (S[k] !== undefined) o[k] = original && k in original.settings ? original.settings[k] : S[k];
+  if (preview) o.nightSkyStyle = preview.nightSkyStyle;
   if (original) { o.speed = original.environment.time.speedIndex; o.agl = original.camera.agl; o.heightSlider = sliderFromAgl(original.camera.agl); }
   o.world = original || captureScene();
   const j = JSON.stringify(o);
@@ -1119,6 +1125,7 @@ syncNightSkyControls();
 document.querySelectorAll('input[name="nightSkyStyle"]').forEach(r => r.addEventListener('change', () => {
   if (!r.checked || !['default', 'realistic'].includes(r.value)) return;
   S.nightSkyStyle = r.value;
+  if (preview) preview.nightSkyStyle = S.nightSkyStyle;
   lightKey = ''; skyKey = ''; expo = NaN; needReset = true;
   saveSettings();
 }));
@@ -2019,12 +2026,14 @@ function previewScene(input, options = {}) {
   if (!scene) throw new TypeError('无效的风景');
   const { freezeTime = scene.freeze.time, freezeWeather = scene.freeze.weather, freezeClouds = scene.freeze.clouds } = options;
   if (!scene.environment.skyLocation) { const { lat, lon, tz } = LOC; scene.environment.skyLocation = { lat, lon, tz }; }
-  if (!preview) preview = { original: captureScene(), weather: structuredClone(WXS), startedAt: performance.now() };
+  if (!preview) preview = { original: captureScene(), weather: structuredClone(WXS), nightSkyStyle: S.nightSkyStyle, startedAt: performance.now() };
   preview.selected = scene;
   const composed = structuredClone(scene);
   composed.freeze = { time: Boolean(freezeTime), weather: Boolean(freezeWeather), clouds: Boolean(freezeClouds) };
   if (!freezeTime) composed.environment.time = { ...scene.environment.time, followNow: false, speedIndex: Math.max(1, scene.environment.time.speedIndex) };
 
+  // 写实示例临时覆盖本机风格；普通作品沿用用户选择，取消时可还原。
+  S.nightSkyStyle = options.nightSkyStyle === 'realistic' ? 'realistic' : preview.nightSkyStyle;
   weatherRequest++; loadScene(composed);
   return captureScene();
 }
@@ -2048,6 +2057,7 @@ function setPreviewFreeze({ freezeTime = sceneFreeze.time, freezeWeather = scene
 function cancelPreview() {
   if (!preview) return false;
   const original = preview.original, weather = preview.weather;
+  S.nightSkyStyle = preview.nightSkyStyle;
   preview = null; weatherRequest++; loadScene(original); Object.assign(WXS, weather);
   saveSettings();
   if (S.wxMode === 'follow' && !sceneFreeze.weather) void syncWeather();
