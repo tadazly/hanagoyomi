@@ -1,11 +1,16 @@
 // 只控制夜间天体；日间光照、大气与太阳继续使用主干实现。
 export const MOON_RADIUS = .0115;
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-export function nightSkyAppearance(astronomy) {
-  const darkness = 1 - smooth(-18, -4, astronomy.sunAlt * 180 / Math.PI);
+export function nightSkyStyle(saved) {
+  return saved?.nightSkyStyle === 'realistic' ? 'realistic' : 'default';
+}
+export function nightSkyAppearance(astronomy, style = 'realistic') {
+  const darkness = style === 'default' ? 0 : 1 - smooth(-18, -4, astronomy.sunAlt * 180 / Math.PI);
   const moonWash = smooth(-.02, .35, astronomy.moon[1]) * astronomy.moonBright;
   return {
     darkness,
+    airglow: 1 - darkness * (.4 - .2 * moonWash),
+    groundNight: 1 - darkness * .4 * (1 - .5 * moonWash),
     stars: darkness * (1 - .38 * moonWash),
     galaxy: darkness * darkness * (1 - .88 * moonWash),
     earthshine: .0025 * darkness * (1 - astronomy.moonBright),

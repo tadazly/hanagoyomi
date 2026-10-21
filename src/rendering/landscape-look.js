@@ -6,6 +6,7 @@ const ORIGINAL_GRADE = [
   [6,   1.16, [0.92, 0.96, 1.08], [1.12, 1.00, 0.84], [0.035, 0.028, 0.025]],
   [20,  1.08, [0.95, 1.00, 1.05], [1.05, 1.01, 0.92], [0.03, 0.03, 0.03]],
 ];
+const DEFAULT_GRADE = [[-14, 0.92, [0.82, 0.92, 1.15], [0.92, 0.98, 1.10], [0.015, 0.025, 0.05]], ...ORIGINAL_GRADE.slice(1)];
 const LOW_SATURATION_GRADE = [
   [-14, 0.96, [0.94, 0.98, 1.05], [1.00, 1.00, 1.02], [0.004, 0.006, 0.011]],
   [-6,  0.99, [0.95, 0.98, 1.04], [1.02, 1.00, 0.98], [0.006, 0.008, 0.012]],
@@ -14,8 +15,8 @@ const LOW_SATURATION_GRADE = [
   [20,  1.00, [0.99, 1.00, 1.01], [1.01, 1.00, 0.99], [0.004, 0.004, 0.004]],
 ];
 
-export function gradeAt(altDeg, lowSaturation = false) {
-  const keys = lowSaturation ? LOW_SATURATION_GRADE : ORIGINAL_GRADE;
+export function gradeAt(altDeg, lowSaturation = false, realisticNight = true) {
+  const keys = lowSaturation ? LOW_SATURATION_GRADE : realisticNight ? ORIGINAL_GRADE : DEFAULT_GRADE;
   const grade = key => ({ sat: key[1], sh: [...key[2]], hi: [...key[3]], lift: [...key[4]] });
   if (altDeg <= keys[0][0]) return grade(keys[0]);
   for (let i = 1; i < keys.length; i++) {

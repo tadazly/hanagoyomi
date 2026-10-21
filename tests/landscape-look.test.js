@@ -45,3 +45,10 @@ test('日夜分界连续插值，极端太阳高度有界，返回值不会污�
     assert.deepEqual(gradeAt(-14, lowSaturation), expected);
   }
 });
+
+test('默认夜空恢复主干夜色，风格切换保持白天与晨昏调色一致', () => {
+  assert.deepEqual(gradeAt(-30, false, false), { sat: .92, sh: [.82, .92, 1.15], hi: [.92, .98, 1.1], lift: [.015, .025, .05] });
+  for (const altitude of [-6, 0, 6, 20, 90]) for (const low of [false, true]) assert.deepEqual(gradeAt(altitude, low, true), gradeAt(altitude, low, false));
+  const realistic = gradeAt(-30, false, true), original = gradeAt(-30, false, false);
+  assert.ok(realistic.lift.every((v, i) => v < original.lift[i]));
+});

@@ -3,7 +3,7 @@ import { VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CL
 import { equatorialToWorld } from './celestial-coordinates.js';
 import { createGalaxyTexture } from './galaxy-texture.js';
 import { exposureKey } from './exposure.js';
-import { MOON_RADIUS, nightSkyAppearance, moonNorthDirection } from './night-sky.js';
+import { MOON_RADIUS, nightSkyAppearance, moonNorthDirection, nightSkyStyle } from './night-sky.js';
 import { STAR_DATA, LINE_DATA } from '../data/stars.js';
 import { CITIES, COMMON_CITIES, cityName, locationName, searchCities } from '../data/cities.js';
 import { WX_TYPES, WX_KEYS, wxPreset, WX_NEXT } from '../world/weather-presets.js';
@@ -637,22 +637,24 @@ const S = {
   time: 0, speed: 1, wxSync: true, constel: false, flies: true, flowerGlow: false, bloom: true, streamDist: 'near', streamScale: false, infMem: false, bloomR: 4, wxMode: 'follow', wxType: 'cloudy', fogVisS: 1000, rainAmt: 0, snowAmt: 0, boltFreq: 0, puddle: 0, snowMax: 0, lensDrops: true, sunAz: 0, coverage: 0.58, density: 1.0, wind: 40, breeze: 0.65, petals: true,
   heightSlider: 0, dof: 0.6, sway: !reduceMotion, quality: WALLPAPER_MODE ? 'high' : coarse ? 'med' : 'high', god: !coarse, auto: WALLPAPER_MODE || !reduceMotion,
   fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: !WALLPAPER_MODE, lowSaturation: false,
+  nightSkyStyle: nightSkyStyle(),
   ...displayPreferences(),
   ...startupPreferences(),
   showWeather: true, showTemperature: true, showPrecipitation: false, showAirQuality: false, showClouds: false, showWind: false,
 };
 /* 本机偏好与完整世界分开保存，未应用的预览始终写回原世界。 */
 const SETTINGS_KEY = storageKey('meadow.settings.v1');
-const PERSIST_KEYS = ['auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof', 'lowSaturation', 'vignette',
+const PERSIST_KEYS = ['nightSkyStyle', 'auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof', 'lowSaturation', 'vignette',
   'heightSlider', 'agl', 'speed', 'streamDist', 'wxMode', 'wxType', 'coverage', 'density', 'wind', 'breeze', 'fogVisS', 'rainAmt', 'snowAmt', 'boltFreq',
   'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind', 'interactionEnabled', 'rememberPosition'];
 try {
   const sv = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
   if (sv && typeof sv === 'object' && !Array.isArray(sv)){
     Object.assign(S, displayPreferences(sv));
+    S.nightSkyStyle = nightSkyStyle(sv);
     Object.assign(S, startupPreferences(sv));
     for (const k of PERSIST_KEYS) {
-      if (!Object.hasOwn(sv, k)) continue;
+      if (!Object.hasOwn(sv, k) || k === 'nightSkyStyle') continue;
       const value = sv[k];
       if (Object.hasOwn(SCENE_SETTINGS, k)) {
         if (!validateScene({ version: 1, settings: { [k]: value } })) continue;
@@ -757,7 +759,8 @@ function updateLighting(){
   AST = astro(simMs);
   if (light && lightKey && SPEEDS[S.speed | 0] > 1 && performance.now() - lastLightAt < 40) return false;
   const sunT = AST.sun, moonD = AST.moon;
-  const key = sunT.map(v => v.toFixed(3)).join(',') + moonD.map(v => v.toFixed(3)).join(',') + '|' + covEff.toFixed(2) + '|' + densEff.toFixed(2) + '|' + Math.round(cam.y / 50);
+  const nightSky = nightSkyAppearance(AST, S.nightSkyStyle);
+  const key = sunT.map(v => v.toFixed(3)).join(',') + moonD.map(v => v.toFixed(3)).join(',') + '|' + covEff.toFixed(2) + '|' + densEff.toFixed(2) + '|' + Math.round(cam.y / 50) + '|' + S.nightSkyStyle;
   if (key === lightKey) return false;
   lightKey = key; lastLightAt = performance.now();
   const midH = (LAYER[0] + LAYER[1]) * 0.5, camKm = Math.max(cam.y / 1000, 0.002), Z = [0, 0, 0];
@@ -765,9 +768,13 @@ function updateLighting(){
   const sunCloud = tr(midH, sunT, SUN_I), sunGround = tr(0.05, sunT, SUN_I), sunCam = tr(camKm, sunT, SUN_I);
   const moonSky = SUN_I * MOON_PHYS * MOON_ART * AST.moonBright, moonUp = moonD[1] > -0.05 && moonSky > 0;
   /* night key light: the moon when it stands high enough, otherwise a soft high light from its bearing */
-  const nightI = SUN_I * MOON_PHYS * Math.max(MOON_ART * AST.moonBright, NIGHT_KEY_MIN);
-  const realMoon = moonD[1] > 0.1, nDir = realMoon ? moonD : azElDir(AST.moonAz, 1.1);
-  const cool = [0.82, 0.93, 1.12];
+  const legacyNightI = SUN_I * MOON_PHYS * Math.max(MOON_ART * AST.moonBright, NIGHT_KEY_MIN);
+  const nightI = legacyNightI + (moonSky - legacyNightI) * nightSky.darkness;
+  const realMoon = moonD[1] > 0.1, legacyDir = realMoon ? moonD : azElDir(AST.moonAz, 1.1);
+  const blendedDir = legacyDir.map((v, i) => v + (moonD[i] - v) * nightSky.darkness);
+  const nDir = nightSky.darkness > 0 ? blendedDir.map(v => v / Math.hypot(...blendedDir)) : legacyDir;
+  // 写实深夜只保留真实月光；不再把落到地下的月亮抬成近地定向补光。
+  const cool = [0.82, 0.93, 1.12].map(v => v + (1 - v) * nightSky.darkness);
   const nCloud = tr(midH, nDir, nightI).map((v, i) => v * cool[i] * (0.1 + 0.5 * AST.moonBright) * (realMoon ? 1.0 : 0.6)), nGround = tr(0.05, nDir, nightI).map((v, i) => v * cool[i] * (0.18 + 0.82 * AST.moonBright) * (realMoon ? 1.0 : 0.7)), nCam = tr(camKm, nDir, nightI).map((v, i) => v * cool[i] * (0.18 + 0.82 * AST.moonBright) * (realMoon ? 1.0 : 0.7));
   const sunWins = lum(sunCloud) >= lum(nCloud);
   const lightDir = sunWins ? sunT : nDir;
@@ -794,7 +801,7 @@ function updateLighting(){
   /* exposure compensation curve: day 1.0, twilight 0.8, deep night 0.42 of the daytime key */
   const legacyKey = lg >= -0.6 ? 1 : lg >= -2.5 ? KEY_TWILIGHT + (1 - KEY_TWILIGHT) * smooth(-2.5, -0.6, lg) : KEY_NIGHT + (KEY_TWILIGHT - KEY_NIGHT) * smooth(-5.0, -2.5, lg);
   // 写实夜间的低曝光目标，仅在太阳落入夜间范围后平滑启用。
-  const darkness = nightSkyAppearance(AST).darkness;
+  const darkness = nightSky.darkness;
   const keyV = legacyKey + (exposureKey(lg) - legacyKey) * darkness;
   const exposure = 0.66 / (0.9 * rel) * keyV, PE = exposure;
   const nightF = smooth(-1.8, -4.5, lg);
@@ -802,9 +809,9 @@ function updateLighting(){
   const pe = (v) => v.map(x => x * PE);
   /* at night the cloud deck as a whole thins the moonlight and skylight reaching the ground: thicker, darker */
   const overcast = nightF * smooth(0.2, 0.95, cov) * clamp(0.55 + 0.35 * densEff, 0.6, 1.2), dimN = 1 - 0.85 * Math.min(overcast, 1);
-  light = {lightDir, lightCloud: pe(lightCloud), lightGround: pe(lightGround).map(v => v * dimN), lightCam: pe(lightCam), sunT, moonD,
-    moonI: moonUp ? moonSky : 0, ms: pe(MS), ambTop: pe(ambTop), ambBottom: pe(ambBottom), skyIrr: pe(skyIrr).map(v => v * dimN), sunDisk: pe(sunDisk), moonDisk: pe(moonDisk),
-    exposure, pe: PE, night: nightF, glowF: Math.max(nightF, smooth(4, -5, AST.sunAlt / RAD)), fwd: sunWins ? 1 : (realMoon ? 0.8 : 0.3), ambOcc: 0.15 + 0.85 * nightF, cshAmt: 1, starCat: AIRGLOW * 2.4 * PE, starI: AIRGLOW * 14 * PE, grade: gradeAt(AST.sunAlt / RAD, S.lowSaturation)};
+  light = {lightDir, lightCloud: pe(lightCloud), lightGround: pe(lightGround).map(v => v * dimN * nightSky.groundNight), lightCam: pe(lightCam), sunT, moonD,
+    moonI: moonUp ? moonSky : 0, ms: pe(MS), ambTop: pe(ambTop), ambBottom: pe(ambBottom), skyIrr: pe(skyIrr).map(v => v * dimN * nightSky.groundNight), sunDisk: pe(sunDisk), moonDisk: pe(moonDisk),
+    exposure, pe: PE, night: nightF, glowF: Math.max(nightF, smooth(4, -5, AST.sunAlt / RAD)), fwd: sunWins ? 1 : (realMoon ? 0.8 : 0.3), ambOcc: 0.15 + 0.85 * nightF, cshAmt: 1, starCat: AIRGLOW * 2.4 * PE, starI: AIRGLOW * 14 * PE, grade: gradeAt(AST.sunAlt / RAD, S.lowSaturation, S.nightSkyStyle === 'realistic')};
   return true;
 }
 
@@ -1105,6 +1112,16 @@ $('rememberPosition').checked = S.rememberPosition;
 $('rememberPosition').addEventListener('change', event => { S.rememberPosition = event.target.checked; saveSettings(); });
 const toggles = {auto: 'auto', god: 'god', petals: 'petals', sway: 'sway', constel: 'constel', flies: 'flies', flowerGlow: 'flowerGlow', bloom: 'bloom', streamScale: 'streamScale', infMem: 'infMem', lensDrops: 'lensDrops', vignette: 'vignette'};
 for (const [id, key] of Object.entries(toggles)){ const el = $(id); el.checked = S[key]; el.addEventListener('change', () => { if (key === 'auto') setAuto(el.checked); else S[key] = el.checked; }); }
+function syncNightSkyControls(){
+  document.querySelectorAll('input[name="nightSkyStyle"]').forEach(r => { r.checked = r.value === S.nightSkyStyle; });
+}
+syncNightSkyControls();
+document.querySelectorAll('input[name="nightSkyStyle"]').forEach(r => r.addEventListener('change', () => {
+  if (!r.checked || !['default', 'realistic'].includes(r.value)) return;
+  S.nightSkyStyle = r.value;
+  lightKey = ''; skyKey = ''; expo = NaN; needReset = true;
+  saveSettings();
+}));
 $('lowSaturation').checked = S.lowSaturation;
 $('lowSaturation').addEventListener('change', e => {
   S.lowSaturation = e.target.checked;
@@ -1440,7 +1457,7 @@ function frame(now){
   const localRain = WXS.rain * localWeather.precipitation;
   const lightChanged = updateLighting();
   const L = light, sun = L.lightDir, q = QUALITY[S.quality];
-  const nightSky = nightSkyAppearance(AST);
+  const nightSky = nightSkyAppearance(AST, S.nightSkyStyle);
   if (nightSky.darkness > 0){ moonSurface.load(); galaxy.select(S.quality); }
   equatorialToWorld(AST.lst, renderLocation().lat, S.sunAz, eqMat);
   expo = !isFinite(expo) ? L.exposure : Math.exp(Math.log(expo) + (Math.log(L.exposure) - Math.log(expo)) * (1 - Math.exp(-dt * 2.5)));
@@ -1499,7 +1516,7 @@ function frame(now){
     skyKey = sk; use(P.skyLut);
     gl.bindFramebuffer(gl.FRAMEBUFFER, skyFBO); gl.viewport(0, 0, SKY_W, SKY_H);
     set(P.skyLut, 'uCamPos', camK); set(P.skyLut, 'uSunDir', L.sunT); set(P.skyLut, 'uSunI', SUN_I * L.pe);
-    set(P.skyLut, 'uMoonDir', L.moonD); set(P.skyLut, 'uMoonI', L.moonI * L.pe); set(P.skyLut, 'uGlow', GLOW.map(v => v * L.pe)); set(P.skyLut, 'uMS', L.ms);
+    set(P.skyLut, 'uMoonDir', L.moonD); set(P.skyLut, 'uMoonI', L.moonI * L.pe); set(P.skyLut, 'uGlow', GLOW.map(v => v * L.pe * nightSky.airglow)); set(P.skyLut, 'uMS', L.ms);
     draw();
   }
   /* cloud shadow map */
@@ -1762,11 +1779,14 @@ function frame(now){
     }
     gl.bindVertexArray(starVAO); gl.drawArrays(gl.POINTS, 0, STAR_N);
     updatePlanets(simMs);
-    const Pl = P.planets; use(Pl);
-    gl.uniformMatrix3fv(Pl.u.uEq, false, eqMat);
-    set(Pl, 'uR', B.r); set(Pl, 'uU', B.u); set(Pl, 'uF', B.f); set(Pl, 'uTan', tanX, tanY);
-    set(Pl, 'uStarI', L.starCat * (1 - .95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow)));
-    set(Pl, 'uPxScale', W / Math.max(cssW, 1)); set(Pl, 'uTimeS', simTime); tex(Pl, 'uCloud', gl.TEXTURE_2D, hist[cur]);
+    const Pl = P.planets;
+    if (Pl !== St){
+      use(Pl);
+      gl.uniformMatrix3fv(Pl.u.uEq, false, eqMat);
+      set(Pl, 'uR', B.r); set(Pl, 'uU', B.u); set(Pl, 'uF', B.f); set(Pl, 'uTan', tanX, tanY);
+      set(Pl, 'uStarI', L.starCat * (1 - .95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow)));
+      set(Pl, 'uPxScale', W / Math.max(cssW, 1)); set(Pl, 'uTimeS', simTime); tex(Pl, 'uCloud', gl.TEXTURE_2D, hist[cur]);
+    }
     gl.bindVertexArray(planetVAO); gl.drawArrays(gl.POINTS, 0, 5);
     if (S.constel){
       const Ln = P.lines; use(Ln);
@@ -1947,6 +1967,7 @@ function syncSceneControls() {
   for (const { el, paint, key } of rangeControls) { el.value = S[key]; paint(S[key]); }
   for (const [id, key] of Object.entries(toggles)) $(id).checked = S[key];
   $('lowSaturation').checked = S.lowSaturation;
+  syncNightSkyControls();
   for (const [name, key] of [['sdist', 'streamDist'], ['wxMode', 'wxMode']]) document.querySelectorAll(`input[name="${name}"]`).forEach(r => { r.checked = r.value === S[key]; });
   $('wxManual').hidden = S.wxMode !== 'manual'; markWxChips(); publishTimeControls(); wxStatus();
   document.dispatchEvent(new CustomEvent('worldscenechange', { detail: { previewing: Boolean(preview), freeze: { ...sceneFreeze } } }));

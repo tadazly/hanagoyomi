@@ -41,3 +41,13 @@ test('月面北向在南北半球及世界旋转后仍为单位向量，天球�
     assert.ok(Math.hypot(...a.map((v, i) => v - b[i])) < 1e-5);
   }
 });
+
+test('夜空风格缺省及无效旧值回到默认，明确写实选择保留', async () => {
+  const { nightSkyStyle } = await import('../src/rendering/night-sky.js');
+  for (const saved of [undefined, null, {}, { nightSkyStyle: 'bad' }, { nightSkyStyle: false }, { nightSkyStyle: 'default' }]) assert.equal(nightSkyStyle(saved), 'default');
+  assert.equal(nightSkyStyle({ nightSkyStyle: 'realistic' }), 'realistic');
+  const astro = { sunAlt: -Math.PI / 2, moon: [0, -1, 0], moonBright: 0 };
+  const normal = nightSkyAppearance(astro, 'default'), realistic = nightSkyAppearance(astro, 'realistic');
+  assert.equal(normal.darkness, 0); assert.equal(normal.groundNight, 1); assert.equal(normal.airglow, 1);
+  assert.equal(realistic.groundNight, .6); assert.equal(realistic.airglow, .6);
+});

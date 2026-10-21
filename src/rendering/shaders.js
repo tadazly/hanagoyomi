@@ -829,7 +829,7 @@ vec3 legacyMoonDiskCol(vec3 rd){
   vec3 mc = uMoonDisk * (min(ml, 4.0) / max(ml, 1e-6));
   return mc * (lit * mix(1.0, 0.62, smoothstep(0.45, 0.75, maria)) + 0.012) * edge;
 }
-vec3 starField(vec3 rd, float angularFootprint){
+vec3 starField(vec3 rd, float angularFootprint, float skyL){
   if (uGalaxyI < 1e-5) return vec3(0.0);
   vec3 eq = transpose(uEq) * rd;
   vec3 gal = vec3(dot(eq, vec3(-.05487556, -.87343709, -.48383502)),
@@ -861,7 +861,7 @@ vec3 starField(vec3 rd, float angularFootprint){
   float dark=1.0-smoothstep(-.26,-.07,uSunTrue.y);
   glow=mix(glow,vec3(dot(glow,vec3(.2126,.7152,.0722))),dark*.78);
   // pmndrs/sky 的局部天空对比：月晕和暮光从亮处冲淡银河。
-  float skyL=dot(skyLookup(rd),vec3(.2126,.7152,.0722));
+  // 使用当前像素已经采样的可见背景，避免重复天空投影和 LUT 读取。
   float ratio=dot(glow,vec3(.2126,.7152,.0722))/(.35*skyL+1e-9);
   return glow*smoothstep(-3.0,3.0,log2(max(ratio,1e-9)));
 }
@@ -892,7 +892,7 @@ void main(){
   if (rd.y >= 0.0){
     if (uNightSky > 0.0){
       float lunarMask = discMask(rd, uMoonDir, uMoonRadius, uPixAngS);
-      vec3 nightSky = starField(rd, galaxyFootprint) * (1.0 - lunarMask) + moonDiskCol(rd, lunarMask);
+      vec3 nightSky = starField(rd, galaxyFootprint, dot(baseSky, vec3(.2126,.7152,.0722))) * (1.0 - lunarMask) + moonDiskCol(rd, lunarMask);
       col = baseSky + nightSky;
       if (uNightSky < 1.0) col = baseSky + mix(legacyStarField(rd) + legacyMoonDiskCol(rd), nightSky, uNightSky);
     } else col = baseSky + legacyStarField(rd) + legacyMoonDiskCol(rd);
