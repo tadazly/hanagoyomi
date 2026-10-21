@@ -1085,7 +1085,7 @@ $('interactionEnabled').addEventListener('change', e => setInteractionEnabled(e.
 setInteractionEnabled(S.interactionEnabled);
 $('clearMem').addEventListener('click', () => {
   memPts = []; memGrid = new Map(); memLastX = NaN; memDirty = false;
-  try { localStorage.removeItem(MEM_KEY); } catch (e) {}
+  try { localStorage.setItem(MEM_KEY, '[]'); } catch (e) {}
   touchFBO.forEach(fb => { gl.bindFramebuffer(gl.FRAMEBUFFER, fb); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); });
 });
 window.addEventListener('pagehide', () => { if (S.infMem){ memDirty = true; memSave(true); } });

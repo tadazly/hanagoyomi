@@ -1,5 +1,7 @@
+import { wallpaperStorageKey } from '../platform/storage.js';
+
 export const WEATHER_CACHE_TTL = 3 * 60 * 60 * 1000;
-export const weatherCacheKey = loc => `wallpaper.weather.${loc.lat.toFixed(3)},${loc.lon.toFixed(3)}.${loc.tz}`;
+export const weatherCacheKey = loc => wallpaperStorageKey(`weather.${loc.lat.toFixed(3)},${loc.lon.toFixed(3)}.${loc.tz}`);
 export function readWeatherCache(storage, loc, now = Date.now()) {
   try {
     const value = JSON.parse(storage.getItem(weatherCacheKey(loc)));

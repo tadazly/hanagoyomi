@@ -91,8 +91,8 @@ export function setLanguage(preference) {
   automatic = preference === 'auto';
   currentLanguage = automatic ? browserLanguage() : preference;
   try {
-    if (automatic) globalThis.localStorage?.removeItem(LANGUAGE_KEY);
-    else globalThis.localStorage?.setItem(LANGUAGE_KEY, currentLanguage);
+    if (automatic && !WALLPAPER_MODE) globalThis.localStorage?.removeItem(LANGUAGE_KEY);
+    else globalThis.localStorage?.setItem(LANGUAGE_KEY, automatic ? 'auto' : currentLanguage);
   } catch {}
   refreshLanguage();
 }
