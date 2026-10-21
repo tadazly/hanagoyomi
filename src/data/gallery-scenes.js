@@ -31,4 +31,5 @@ const scenes = [
 const order = ['recommended-cloud-sea-dawn', 'recommended-mist-valley-dawn', 'snow', 'recommended-snowfield-blue', 'recommended-v6-snow-flowers',
   'recommended-rain-on-the-ridge', 'rain', 'recommended-v6-storm-flowers', 'meadow', 'recommended-film-gold-clear', 'recommended-wet-meadow-glow',
   'sunset', 'recommended-v6-cloudsea-dusk', 'recommended-rose-full', 'recommended-moon-cinema', 'recommended-v6-night-flowers', 'recommended-constel-cinema', 'recommended-milky-way-fireflies', 'recommended-southern-clouds', 'stars'];
-export const GALLERY_SCENES = Object.freeze(order.map(id => scenes.find(item => item.id === id)));
+// 推荐风景明确携带封面使用的夜空风格，避免继承本机偏好后与封面不一致。
+export const GALLERY_SCENES = Object.freeze(order.map(id => ({ nightSkyStyle: 'default', ...scenes.find(item => item.id === id) })));

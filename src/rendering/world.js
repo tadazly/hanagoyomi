@@ -2032,8 +2032,8 @@ function previewScene(input, options = {}) {
   composed.freeze = { time: Boolean(freezeTime), weather: Boolean(freezeWeather), clouds: Boolean(freezeClouds) };
   if (!freezeTime) composed.environment.time = { ...scene.environment.time, followNow: false, speedIndex: Math.max(1, scene.environment.time.speedIndex) };
 
-  // 写实示例临时覆盖本机风格；普通作品沿用用户选择，取消时可还原。
-  S.nightSkyStyle = options.nightSkyStyle === 'realistic' ? 'realistic' : preview.nightSkyStyle;
+  // 推荐风景按封面切换风格；没有指定风格的作品沿用用户选择，取消时可还原。
+  S.nightSkyStyle = ['default', 'realistic'].includes(options.nightSkyStyle) ? options.nightSkyStyle : preview.nightSkyStyle;
   weatherRequest++; loadScene(composed);
   return captureScene();
 }

@@ -103,6 +103,7 @@ test('精选风景都是可导入的实际世界参数，三语目录完整', ()
     assert.equal(metadata.weatherKey, item.scene.environment.weather.type);
     assert.match(metadata.timeText, /^\d{2}:\d{2}$/);
     assert.equal(item.thumbnail, `gallery/${item.id}.jpg`);
+    assert.equal(item.nightSkyStyle, ['recommended-milky-way-fireflies', 'recommended-southern-clouds'].includes(item.id) ? 'realistic' : 'default');
   }
 });
 
