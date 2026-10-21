@@ -24,13 +24,17 @@ A WebGL2 flower meadow and sky that follow local time and weather. Adjust the wo
     <td width="50%"><img src="docs/images/hanagoyomi-day.jpg" alt="Daytime meadow" width="100%"></td>
     <td width="50%"><img src="docs/images/hanagoyomi-night.jpg" alt="Night sky" width="100%"></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/hanagoyomi-realistic-sky.jpg" alt="Realistic night sky" width="100%"><p align="center">Realistic night sky</p></td>
+    <td width="50%"><img src="docs/images/hanagoyomi-milky-way-fireflies.jpg" alt="Milky Way and Fireflies" width="100%"><p align="center">Milky Way and Fireflies</p></td>
+  </tr>
 </table>
 
 ## Use
 
 Choose a location, time, weather and quality in World settings. Enable automatic flight or manual controls to explore. The interface supports Simplified Chinese, Japanese and English. Settings stay in the current browser or wallpaper host.
 
-The gallery includes 18 selected landscapes. Preview a scene, choose **Restore** to return, or **Apply to world** to keep it. Scene time, weather and cloud drift can be locked independently. **Save moment** keeps up to 100 local scenes, which you can share by link or QR code. Saving to your collection and applying a scene are separate actions; collections do not sync between devices.
+The gallery includes 20 selected landscapes. Preview a scene, choose **Restore** to return, or **Apply to world** to keep it. Scene time, weather and cloud drift can be locked independently. **Save moment** keeps up to 100 local scenes, which you can share by link or QR code. Saving to your collection and applying a scene are separate actions; collections do not sync between devices.
 
 | Action | Input |
 | --- | --- |
@@ -45,7 +49,7 @@ Scene inputs are inactive when manual controls are disabled. Full controls are a
 
 Subscribe on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3815915459), or run `npm run build:wallpaper` and import `dist-wallpaper/index.html`.
 
-The v1.4.2 Workshop update is pending. Use the [standalone release package](https://github.com/tadazly/hanagoyomi/releases/tag/v1.4.2) for the features below.
+The v1.4.3 Workshop update is pending. Use the [standalone release package](https://github.com/tadazly/hanagoyomi/releases/tag/v1.4.3) for the features below.
 
 **Use built-in world settings** is enabled by default. Move to the desktop's bottom-right corner to open settings and the gallery. When this option is disabled, WE properties apply immediately and overwrite corresponding world settings on startup. **Import scene link** remains available in either mode: paste a link, return to the desktop to preview it, then choose whether to save or apply it.
 

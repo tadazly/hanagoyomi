@@ -24,13 +24,17 @@
     <td width="50%"><img src="docs/images/hanagoyomi-day-zh-CN.jpg" alt="白昼花海" width="100%"></td>
     <td width="50%"><img src="docs/images/hanagoyomi-night-zh-CN.jpg" alt="夜间星空" width="100%"></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/hanagoyomi-realistic-sky.jpg" alt="写实夜空" width="100%"><p align="center">写实夜空</p></td>
+    <td width="50%"><img src="docs/images/hanagoyomi-milky-way-fireflies.jpg" alt="横河萤野" width="100%"><p align="center">横河萤野</p></td>
+  </tr>
 </table>
 
 ## 使用
 
 在世界设置中选择地点、时间、天气和画质，也可开启自动飞行或手动操纵。界面支持简体中文、日语和英语，设置保存在当前浏览器或壁纸宿主中。
 
-画廊包含 18 幅精选风景。点击作品可以预览，选择“还原”返回原世界，“应用到世界”保留当前风景；时刻、天气和云移动可分别锁定。“收藏此刻”可保存最多 100 个本机收藏，并通过链接或二维码分享。收藏与应用是独立操作，数据不会跨设备同步。
+画廊包含 20 幅精选风景。点击作品可以预览，选择“还原”返回原世界，“应用到世界”保留当前风景；时刻、天气和云移动可分别锁定。“收藏此刻”可保存最多 100 个本机收藏，并通过链接或二维码分享。收藏与应用是独立操作，数据不会跨设备同步。
 
 | 操作 | 输入 |
 | --- | --- |
@@ -45,7 +49,7 @@
 
 可从 [Steam 创意工坊](https://steamcommunity.com/sharedfiles/filedetails/?id=3815915459)订阅。源码构建使用 `npm run build:wallpaper`，将 `dist-wallpaper/index.html` 导入 Wallpaper Engine。
 
-v1.4.2 的工坊更新尚未发布，下述功能可先使用 [Release 中的独立壁纸包](https://github.com/tadazly/hanagoyomi/releases/tag/v1.4.2)体验。
+v1.4.3 的工坊更新尚未发布，下述功能可先使用 [Release 中的独立壁纸包](https://github.com/tadazly/hanagoyomi/releases/tag/v1.4.3)体验。
 
 默认勾选“使用世界设置”，在桌面右下角打开壁纸内设置和画廊。取消勾选后，WE 原生选项会立即生效，并在启动时覆盖对应的世界设置。原生“导入场景链接”在两种模式下都可用；粘贴后返回桌面预览，再决定是否收藏或应用。
 
