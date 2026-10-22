@@ -1,5 +1,6 @@
 import { TERRAIN_GLSL } from './terrain.js';
 import { WEATHER_FOG_GLSL } from './weather-fog.js';
+import { FLOWER_PETALS } from './flower-mesh.js';
 const VS_FULL = `#version 300 es
 out vec2 vUv;
 void main(){ vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)); vUv = p; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
@@ -433,8 +434,9 @@ vec2 rippleN(vec2 w, float t){
   return nn;
 }
 float petalMask(vec2 uv){
-  float half_ = 0.5 * pow(sin(PI * pow(saturate(uv.y), 0.72)), 0.75);
-  float d = abs(uv.x) - half_; float aa = fwidth(uv.x) * 1.3 + 1e-4;
+  // 浮点 sin(PI) 可能略小于零，不能直接作为非整数幂的底数。
+  float half_ = 0.5 * pow(max(sin(PI * pow(saturate(uv.y), 0.72)), 0.0), 0.75);
+  float d = abs(uv.x) - half_; float aa = fwidth(d) * 0.7 + 1e-4;
   return 1.0 - smoothstep(-aa, aa, d);
 }
 `;
@@ -621,10 +623,11 @@ void main(){
 
 const FLOWER_VS = VPRE + SCENE + `
 uniform float uFGrid, uFCell; uniform vec2 uFBase, uFOrig;
+uniform int uFSegs; uniform float uFRadius; uniform vec2 uFRange;
 out vec2 vUv; out vec3 vN; out vec3 vRel; out vec3 vAlb; out float vSh; out float vKind; out float vEmit; out float vGlowN;
-const int NP = 6;
+const int NP = ${FLOWER_PETALS};
 void cull(){ gl_Position = vec4(0.0, 0.0, -2.0, 1.0); vUv = vec2(0.0); vN = vec3(0.0, 1.0, 0.0); vRel = vec3(1.0); vAlb = vec3(0.0); vSh = 1.0; vKind = 0.0; vEmit = 0.0; vGlowN = 0.0; }
-vec2 corner(int i){ i = i - (i / 6) * 6; return i == 0 ? vec2(-0.5, 0.0) : i == 1 ? vec2(0.5, 0.0) : i == 2 ? vec2(0.5, 1.0) : i == 3 ? vec2(-0.5, 0.0) : i == 4 ? vec2(0.5, 1.0) : vec2(-0.5, 1.0); }
+vec2 corner(int i){ return vec2(float(i % 2) - 0.5, float(i / 2)); }
 void main(){
   float fi = float(gl_InstanceID);
   float iz = floor((fi + 0.5) / uFGrid); float ix = fi - iz * uFGrid;
@@ -632,8 +635,9 @@ void main(){
   vec4 h = hash42(cellW * 1.37 + 11.1), h2 = hash42(cellW + 53.7);
   vec2 rel = uFOrig + (vec2(ix, iz) + 0.15 + h.xy * 0.7) * uFCell;
   float d = length(rel);
+  if (d < uFRange.x || d >= uFRange.y){ cull(); return; }
   vec2 w = uCamM.xz + rel;
-  float R = uFGrid * uFCell * 0.5;
+  float R = uFRadius;
   float dens = (smoothstep(-0.15, 0.3, tn(w * (1.0 / 48.0) + vec2(0.83, 0.27))) * 0.85 + 0.05) * (1.0 - smoothstep(R * 0.75, R, d));
   if (h.z >= dens * (1.0 - smoothstep(0.45, 0.85, uSnowCov)) || puddleMask(w) > 0.8){ cull(); return; }
   float gy = terrainH(w, 0.0) - uCamM.y;
@@ -652,22 +656,32 @@ void main(){
   float kind = tn(w * (1.0 / 160.0) + vec2(0.05, 0.55)) * 0.55 + 0.5 + (h2.w - 0.5) * 0.3;
   vec3 col = paletteAt(saturate(kind)) * mix(0.8, 1.1, h2.z);
   col = mix(mix(col, vec3(dot(col, vec3(0.2126, 0.7152, 0.0722))), 0.35 * uSnowCov), SNOW_ALB, 0.3 * uSnowCov);
-  int v = gl_VertexID; vec2 q = corner(v); vec3 p;
-  if (v < 6){
+  int cols = uFSegs > 1 ? 3 : 2, petalN = cols * (uFSegs + 1), end = 4 + NP * petalN;
+  int v = gl_VertexID; vec2 q; vec3 p;
+  if (v < 4){
+    q = corner(v);
     vec3 sideB = normalize(vec3(-root.z, 0.0, root.x) + 1e-4);
     p = mix(root, head, q.y) + sideB * q.x * 0.011;
     vN = normalize(cross(sideB, head - root)); vAlb = mix(vec3(0.06, 0.18, 0.03), vec3(0.055, 0.115, 0.055), uLowSaturation); vKind = 0.0; vUv = q; vGlowN = 0.0;
-  } else if (v < 6 + 6 * NP){
-    int k = (v - 6) / 6;
+  } else if (v < end){
+    int k = (v - 4) / petalN, j = (v - 4) % petalN;
+    q = vec2(float(j % cols) / float(cols - 1) - 0.5, float(j / cols) / float(uFSegs));
     float a = float(k) * 6.2831853 / float(NP) + h.x * 6.2831853;
     vec3 dir = cos(a) * tx + sin(a) * ty; vec3 ex = cross(hn, dir);
     /* bud: petals folded up into a narrow cone; open: spread out and cupped (op overshoots a little past 1) */
     float PL = mix(0.07, 0.11, h2.z) * mix(0.72, 1.0, opc);
     float phi = mix(1.35, 0.22, op);
     vec3 axis = dir * cos(phi) + hn * sin(phi);
-    p = head + dir * 0.006 * opc + axis * (q.y * PL) + hn * (q.y * q.y * PL * 0.4 * opc) + ex * q.x * PL * mix(0.5, 0.85, opc);
-    vN = normalize(mix(dir + hn * 0.2, hn - dir * q.y * 0.5 + ex * q.x * 0.25 * uLowSaturation, opc)); vAlb = mix(col * vec3(0.62, 0.75, 0.55), col, opc); vKind = 1.0; vUv = q; vGlowN = lit;
+    // 近处形成双向曲面，靠近分界时连续回到远处四角的弦面。
+    float curve = uFSegs > 1 ? 1.0 - smoothstep(uFRange.y * 0.65, uFRange.y, d) : 0.0;
+    float t = q.y, cup = 4.0 * t * (1.0 - t), width = mix(0.5, 0.85, opc);
+    float rise = opc * (0.4 * (t + curve * t * (t - 1.0)) + 0.35 * curve * q.x * q.x * cup);
+    float du = opc * 0.7 * curve * q.x * cup;
+    float dt = opc * (0.4 * (1.0 + curve * (2.0 * t - 1.0)) + 1.4 * curve * q.x * q.x * (1.0 - 2.0 * t));
+    p = head + dir * 0.006 * opc + PL * (axis * t + hn * rise + ex * q.x * width);
+    vN = normalize(cross(axis + hn * dt, ex * width + hn * du)); vAlb = mix(col * vec3(0.62, 0.75, 0.55), col, opc); vKind = 1.0; vUv = q; vGlowN = lit;
   } else {
+    q = corner(v - end);
     p = head + hn * 0.008 + (tx * q.x + ty * (q.y - 0.5)) * 0.04 * opc;
     vN = hn; vAlb = mix(vec3(0.78, 0.48, 0.02), vec3(0.12, 0.06, 0.02), step(0.5, fract(kind * 7.0))); vKind = 2.0; vUv = vec2(q.x, q.y - 0.5); vGlowN = 0.7 * lit;
   }
@@ -696,7 +710,7 @@ void main(){
   vec2 q = corner(gl_VertexID);
   float L = mix(0.035, 0.06, h2.z) * fade;
   vec3 p = c + ax * (q.y - 0.4) * L + ay * q.x * L * 0.8;
-  vUv = q; vN = cross(ax, ay); vRel = p; vKind = 1.0; vEmit = 0.0; vGlowN = 0.8;
+  vUv = q; vN = cross(ay, ax); vRel = p; vKind = 1.0; vEmit = 0.0; vGlowN = 0.8;
   vAlb = paletteAt(h2.w) * 1.05; vSh = cshadow(w * 0.001);
   gl_Position = project(p);
 }`;
@@ -716,7 +730,7 @@ void main(){
   vec2 q = corner(gl_VertexID);
   float L = mix(0.08, 0.12, h2.z) * uStreamScale;
   vec3 p = tr.xyz + ax * (q.y - 0.4) * L + ay * q.x * L * 0.8;
-  vUv = q; vN = cross(ax, ay); vRel = p; vKind = 1.0; vEmit = mix(0.35, 0.12, uLowSaturation); vGlowN = 1.0;
+  vUv = q; vN = cross(ay, ax); vRel = p; vKind = 1.0; vEmit = mix(0.35, 0.12, uLowSaturation); vGlowN = 1.0;
   vAlb = paletteAt(fract(fk * 0.618 + 0.13)) * 1.05; vSh = 1.0;
   gl_Position = project(p);
 }`;
@@ -737,7 +751,7 @@ void main(){
   }
   a *= uOpacity;
   if (a < 0.02) discard;
-  vec3 V = -normalize(vRel); vec3 n = normalize(vN); if (dot(n, V) < 0.0) n = -n;
+  vec3 V = -normalize(vRel); vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
   vec3 c = vKind < 0.5 ? litGrass(alb, n, V, 0.6, vSh, 0.7) : litPetal(alb, n, V, vSh);
   vec3 ea = max(mix(vec3(dot(alb, vec3(0.2126, 0.7152, 0.0722))), alb, mix(1.45, 1.02, uLowSaturation)), 0.0);
   c += alb * vEmit * dot(uSkyIrr, vec3(0.2126, 0.7152, 0.0722)) * 0.6 + ea * vGlowN * uNightGlow * mix(2.1, 0.85, uLowSaturation);

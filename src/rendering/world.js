@@ -24,6 +24,7 @@ import { gradeAt } from './landscape-look.js';
 import { weatherFogDensity, groundStormFogBlend } from './weather-fog.js';
 import { CLOUD_LAYER_METRES, localWeatherAtHeight } from './weather-altitude.js';
 import { petalStreamOpacity } from './petal-stream.js';
+import { flowerMesh, FLOWER_CURVE_RADIUS, FLOWER_CURVE_GRID } from './flower-mesh.js';
 import { SCENE_SETTINGS, validateScene, resolveSceneTime, sceneFrameTiming, renderSize } from '../world/scene-state.js';
 import { DEFAULT_VIEW, HEIGHT_PRESETS, VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX, aglFromSlider, sliderFromAgl, startupPreferences, sceneForStartup } from '../world/view-preferences.js';
 
@@ -176,6 +177,13 @@ try {
 } catch (e){ fail('error.shader', { message: e.message.slice(0, 400) }); return; }
 const emptyVAO = gl.createVertexArray();
 const draw = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
+const flowerMeshes = [1, 4].map(segments => {
+  const mesh = flowerMesh(segments), vao = gl.createVertexArray(), buffer = gl.createBuffer();
+  gl.bindVertexArray(vao); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
+  return { vao, segments, count: mesh.indices.length };
+});
+gl.bindVertexArray(emptyVAO);
 
 /* ================================================================== */
 /*  Textures                                                           */
@@ -1675,9 +1683,16 @@ function frame(now){
     gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE);
     {
       const F = P.flower; use(F); setScene(F);
-      const G = q.flowers, cell = 1.0, bx = Math.floor(camM[0] / cell) - G / 2, bz = Math.floor(camM[2] / cell) - G / 2;
-      set(F, 'uFGrid', G); set(F, 'uFCell', cell); set(F, 'uFBase', bx, bz); set(F, 'uFOrig', bx * cell - camM[0], bz * cell - camM[2]);
-      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6 + 36 + 6, G * G);
+      set(F, 'uFCell', 1); set(F, 'uFRadius', q.flowers / 2);
+      for (const mesh of flowerMeshes) {
+        const near = mesh.segments > 1, G = near ? FLOWER_CURVE_GRID : q.flowers;
+        const bx = Math.floor(camM[0]) - G / 2, bz = Math.floor(camM[2]) - G / 2;
+        set(F, 'uFGrid', G); set(F, 'uFBase', bx, bz); set(F, 'uFOrig', bx - camM[0], bz - camM[2]);
+        set(F, 'uFRange', near ? 0 : FLOWER_CURVE_RADIUS, near ? FLOWER_CURVE_RADIUS : q.flowers / 2);
+        seti(F, 'uFSegs', mesh.segments); gl.bindVertexArray(mesh.vao);
+        gl.drawElementsInstanced(gl.TRIANGLES, mesh.count, gl.UNSIGNED_SHORT, 0, G * G);
+      }
+      gl.bindVertexArray(emptyVAO);
     }
     gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);
     /* grass: three LOD layers, only tiles inside the view frustum are drawn */
