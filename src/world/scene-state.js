@@ -1,6 +1,7 @@
 import { WX_TYPES, WX_KEYS, wxPreset } from './weather-presets.js';
 import { localTimeToUTC } from './clock.js';
 import { VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX } from './view-preferences.js';
+import { ANIMATION_TIME_PERIOD } from '../rendering/animation-time.js';
 
 // 作品只保存稳定的构图和风景；画质、语言、城市、组件及交互权限属于本机偏好。
 export const SCENE_VERSION = 1;
@@ -28,13 +29,18 @@ function skyLocation(value) {
 }
 function motionSnapshot(value) {
   if (!object(value) || !Number.isFinite(value.time) || !Number.isFinite(value.windAngle)
-    || value.time < 0 || value.time > 1e9 || Math.abs(value.windAngle) > 1000
+    || value.time < 0 || value.time > ANIMATION_TIME_PERIOD || Math.abs(value.windAngle) > 1000
     || !Array.isArray(value.windOffset) || value.windOffset.length !== 2
     || ![0, 1].every(index => Number.isFinite(value.windOffset[index]) && Math.abs(value.windOffset[index]) <= 1e9)) throw new TypeError('无效的场景运动相位');
   // 秒、弧度、公里；上限覆盖多年持续运行，同时拒绝会破坏 GPU 运算的无界值。
   const motion = { time: value.time, windAngle: value.windAngle, windOffset: [...value.windOffset] };
   if (value.cloudAngle !== undefined) motion.cloudAngle = number(value.cloudAngle, undefined, -1000, 1000);
   if (value.cloudY !== undefined) motion.cloudY = number(value.cloudY, undefined, -1e9, 1e9);
+  for (const [key, period] of [['flyOffset', 60], ['gustOffset', 1]]) if (value[key] !== undefined) {
+    if (!Array.isArray(value[key]) || value[key].length !== 2) throw new TypeError('无效的风位移');
+    motion[key] = [0, 1].map(i => number(value[key][i], undefined, 0, period));
+    if (!motion[key].every(Number.isFinite)) throw new TypeError('无效的风位移');
+  }
   return motion;
 }
 function number(value, fallback, min, max) {

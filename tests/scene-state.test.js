@@ -167,7 +167,7 @@ test('运动相位拒绝损坏结构、缺字段、非数值及超限值，容�
   const valid = { time: 1e9, windAngle: -1000, windOffset: [-1e9, 1e9] };
   assert.deepEqual(validateScene({ version: 1, environment: { motion: valid } }).environment.motion, valid);
   const original = { time: 100, windAngle: .6, windOffset: [1, 2] };
-  for (const invalid of [null, [], {}, { ...original, time: -1 }, { ...original, time: -1e-10 }, { ...original, time: 1e9 + 10 },
+  for (const invalid of [null, [], {}, { ...original, time: -1 }, { ...original, time: -1e-10 }, { ...original, time: 2 ** 32 + 10 },
     { ...original, time: NaN }, { ...original, time: '100' }, { ...original, windAngle: Infinity },
     { ...original, windAngle: 1001 }, { ...original, windOffset: [1] }, { ...original, windOffset: [1, 2, 3] },
     { ...original, windOffset: [NaN, 0] }, { ...original, windOffset: new Array(2) }, { ...original, windOffset: [1e9 + 10, 0] },

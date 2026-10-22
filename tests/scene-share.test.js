@@ -115,7 +115,7 @@ test('v2 同步压缩保留 v1 完整场景，旧链接仍可无损解析', () =
   const legacy = dataLink(tokenData(modern));
   assert.deepEqual(parseSceneLink(modern), parseSceneLink(legacy));
   assert.ok(modern.length < legacy.length * .65, `v2 ${modern.length} / v1 ${legacy.length}`);
-  assert.throws(() => parseSceneLink(modern.replace('#scene=v3.', '#scene=v4.')), error => error.code === 'scene-link.version');
+  assert.throws(() => parseSceneLink(modern.replace('#scene=v3.', '#scene=v5.')), error => error.code === 'scene-link.version');
 });
 
 test('v2 固定协议样本可读取且规范编码不随无关改动漂移', () => {
@@ -223,4 +223,34 @@ test('v3 云锁与纵向云相位完整往返，旧 v1/v2 不能承载新增位�
   expectInvalid(link.replace('#scene=v3.', '#scene=v2.'));
   assert.equal(validateScene({ version: 1, freeze: { clouds: 'true' } }), null);
   assert.equal(validateScene({ version: 1, environment: { motion: { time: 2, windAngle: .3, windOffset: [1,2], cloudY: Infinity } } }), null);
+});
+
+test('v4 无损保存萤火虫积分位移，旧版链接继续读取且拒绝新元组', () => {
+  for (const extra of [{}, { cloudY: .15 }, { cloudAngle: .6 }, { cloudY: .15, cloudAngle: .6 }]) {
+    const scene = validateScene({ version: 1, environment: { motion: {
+      time: 1e9 + .125, windAngle: .3, windOffset: [1, 2], flyOffset: [59.999123456789, .00123456789], ...extra,
+    } } });
+    const link = createSceneLink(scene, { baseUrl: BASE });
+    assert.ok(link.includes('#scene=v4.'));
+    assert.deepEqual(parseSceneLink(link).scene, scene);
+    expectInvalid(link.replace('#scene=v4.', '#scene=v3.'));
+  }
+  const base = { time: 100, windAngle: .6, windOffset: [1, 2] };
+  for (const flyOffset of [null, [], [0], [0, 1, 2], [NaN, 0], [-1, 0], [0, 61], ['1', 0], new Array(2)]) {
+    assert.equal(validateScene({ version: 1, environment: { motion: { ...base, flyOffset } } }), null);
+  }
+});
+
+test('v4 保留风浪平流位移及可选萤火虫位移，拒绝损坏的相位', () => {
+  for (const extra of [{}, { flyOffset: [12.3456789012, 59.99] }]) {
+    const scene = validateScene({ version: 1, environment: { motion: { time: 2 ** 32, windAngle: .6,
+      windOffset: [1, 2], gustOffset: [.7123456789012, .998], ...extra } } });
+    const link = createSceneLink(scene, { baseUrl: BASE });
+    assert.deepEqual(parseSceneLink(link).scene, scene);
+    expectInvalid(link.replace('#scene=v4.', '#scene=v3.'));
+  }
+  const base = { time: 100, windAngle: .6, windOffset: [1, 2] };
+  for (const gustOffset of [null, [], [0], [0, 1, 2], [NaN, 0], [-1, 0], [0, 1.1], ['1', 0], new Array(2)]) {
+    assert.equal(validateScene({ version: 1, environment: { motion: { ...base, gustOffset } } }), null);
+  }
 });

@@ -3,6 +3,8 @@ import { VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CL
 import { equatorialToWorld } from './celestial-coordinates.js';
 import { createGalaxyTexture } from './galaxy-texture.js';
 import { exposureKey } from './exposure.js';
+import { splitAnimationTime, animationPhase, advanceFireflyOffset, advanceWindOffset, ANIMATION_TIME_PERIOD, wrap } from './animation-time.js';
+import { createLightingTimeline } from './lighting-timeline.js';
 import { MOON_RADIUS, nightSkyAppearance, moonNorthDirection, nightSkyStyle } from './night-sky.js';
 import { STAR_DATA, LINE_DATA } from '../data/stars.js';
 import { CITIES, COMMON_CITIES, cityName, locationName, searchCities } from '../data/cities.js';
@@ -108,6 +110,11 @@ function set(P, name, ...v){
   else if (v.length === 4) gl.uniform4f(l, v[0], v[1], v[2], v[3]);
 }
 function seti(P, name, v){ const l = P.u[name]; if (l != null) gl.uniform1i(l, v); }
+function setAnimationTime(P){
+  const { whole, fraction } = splitAnimationTime(simTime);
+  if (P.u.uTimeWhole != null) gl.uniform1ui(P.u.uTimeWhole, whole);
+  set(P, 'uTimeFraction', fraction);
+}
 function use(P){ gl.useProgram(P.p); P.units = 0; }
 function tex(P, name, target, t){
   const l = P.u[name]; if (l == null) return;
@@ -144,6 +151,8 @@ try {
   P = {
     noise: makeProgram(VS_FULL, NOISE_FS, 'noise'),
     skyLut: makeProgram(VS_FULL, SKYLUT_FS, 'skylut'),
+    skyMix: makeProgram(VS_FULL, HEAD + `uniform sampler2D uA, uB; uniform float uMix; out vec4 o;
+      void main(){ o = mix(texture(uA, vUv), texture(uB, vUv), uMix); }`, 'skymix'),
     cshadow: makeProgram(VS_FULL, CSHADOW_FS, 'cshadow'),
     cloud: makeProgram(VS_FULL, CLOUD_FS, 'cloud'),
     taa: makeProgram(VS_FULL, TAA_FS, 'taa'),
@@ -230,6 +239,11 @@ const SKY_W = 192, SKY_H = 128;
 const skyTex = makeTex2D(SKY_W, SKY_H, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT, gl.LINEAR, gl.CLAMP_TO_EDGE);
 gl.bindTexture(gl.TEXTURE_2D, skyTex); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
 const skyFBO = makeFBO([skyTex]);
+// 高倍速共用光照采样时刻，只新增两个小型天空 LUT；中间帧做纹理混合。
+const skySamples = Array.from({ length: 2 }, () => {
+  const texture = makeTex2D(SKY_W, SKY_H, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT, gl.LINEAR, gl.CLAMP_TO_EDGE);
+  return { texture, fbo: makeFBO([texture]), key: '' };
+});
 // 小型本地贴图：立即绑定有效占位，解码后在同一纹理上传；不阻塞世界启动。
 function celestialTexture(url, fallback) {
   const texture = makeTex2D(1, 1, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, gl.CLAMP_TO_EDGE);
@@ -768,15 +782,30 @@ const riseSetText = (ms) => sunEventsText(ms, renderLocation());
    time-of-day compensation curve instead of full physical adaptation, and grading is keyframed on sun altitude. */
 const AIRGLOW = 5e-7, GLOW = [0.55, 0.7, 1.0].map(v => v * AIRGLOW);
 const MOON_PHYS = 2.5e-6, MOON_ART = 6.0, NIGHT_KEY_MIN = 1.4, KEY_NIGHT = 0.36, KEY_TWILIGHT = 0.8;
-let light = null, lightKey = '', lastLightAt = 0, AST = astro(simMs), expo = NaN;
+let light = null, lightKey = '', lightSamples = null, AST = astro(simMs), expo = NaN;
+const lightingTimeline = createLightingTimeline(ms => calculateLighting(astro(ms)));
 function updateLighting(){
   AST = astro(simMs);
-  if (light && lightKey && SPEEDS[S.speed | 0] > 1 && performance.now() - lastLightAt < 40) return false;
+  const environmentKey = [covEff.toFixed(2), densEff.toFixed(2), Math.round(cam.y / 50), S.nightSkyStyle, S.lowSaturation, S.sunAz, renderLocation().lat, renderLocation().lon].join('|');
+  const speed = sceneFreeze.time ? 0 : SPEEDS[S.speed | 0];
+  if (speed > 1) {
+    const sampled = lightingTimeline(simMs, Math.max(1000, speed * 40), environmentKey);
+    lightKey = 'accelerated';
+    lightSamples = sampled;
+    light = sampled.value;
+    // 日月位置始终对应当前帧，昂贵的天空积分在相邻采样间平滑衔接。
+    light.sunT = AST.sun; light.moonD = AST.moon;
+    return sampled.changed;
+  }
+  lightSamples = null;
+  const key = AST.sun.map(v => v.toFixed(3)).join(',') + AST.moon.map(v => v.toFixed(3)).join(',') + '|' + environmentKey;
+  if (key === lightKey) return false;
+  lightKey = key; light = calculateLighting(AST);
+  return true;
+}
+function calculateLighting(AST){
   const sunT = AST.sun, moonD = AST.moon;
   const nightSky = nightSkyAppearance(AST, S.nightSkyStyle);
-  const key = sunT.map(v => v.toFixed(3)).join(',') + moonD.map(v => v.toFixed(3)).join(',') + '|' + covEff.toFixed(2) + '|' + densEff.toFixed(2) + '|' + Math.round(cam.y / 50) + '|' + S.nightSkyStyle;
-  if (key === lightKey) return false;
-  lightKey = key; lastLightAt = performance.now();
   const midH = (LAYER[0] + LAYER[1]) * 0.5, camKm = Math.max(cam.y / 1000, 0.002), Z = [0, 0, 0];
   const tr = (h, dir, I) => transmittance(h, dir).map(v => v * I);
   const sunCloud = tr(midH, sunT, SUN_I), sunGround = tr(0.05, sunT, SUN_I), sunCam = tr(camKm, sunT, SUN_I);
@@ -823,10 +852,9 @@ function updateLighting(){
   const pe = (v) => v.map(x => x * PE);
   /* at night the cloud deck as a whole thins the moonlight and skylight reaching the ground: thicker, darker */
   const overcast = nightF * smooth(0.2, 0.95, cov) * clamp(0.55 + 0.35 * densEff, 0.6, 1.2), dimN = 1 - 0.85 * Math.min(overcast, 1);
-  light = {lightDir, lightCloud: pe(lightCloud), lightGround: pe(lightGround).map(v => v * dimN * nightSky.groundNight), lightCam: pe(lightCam), sunT, moonD,
+  return {lightDir, lightCloud: pe(lightCloud), lightGround: pe(lightGround).map(v => v * dimN * nightSky.groundNight), lightCam: pe(lightCam), sunT, moonD,
     moonI: moonUp ? moonSky : 0, ms: pe(MS), ambTop: pe(ambTop), ambBottom: pe(ambBottom), skyIrr: pe(skyIrr).map(v => v * dimN * nightSky.groundNight), sunDisk: pe(sunDisk), moonDisk: pe(moonDisk),
-    exposure, pe: PE, night: nightF, glowF: Math.max(nightF, smooth(4, -5, AST.sunAlt / RAD)), fwd: sunWins ? 1 : (realMoon ? 0.8 : 0.3), ambOcc: 0.15 + 0.85 * nightF, cshAmt: 1, starCat: AIRGLOW * 2.4 * PE, starI: AIRGLOW * 14 * PE, grade: gradeAt(AST.sunAlt / RAD, S.lowSaturation, S.nightSkyStyle === 'realistic')};
-  return true;
+    exposure, pe: PE, airglow: nightSky.airglow, night: nightF, glowF: Math.max(nightF, smooth(4, -5, AST.sunAlt / RAD)), fwd: sunWins ? 1 : (realMoon ? 0.8 : 0.3), ambOcc: 0.15 + 0.85 * nightF, cshAmt: 1, starCat: AIRGLOW * 2.4 * PE, starI: AIRGLOW * 14 * PE, grade: gradeAt(AST.sunAlt / RAD, S.lowSaturation, S.nightSkyStyle === 'realistic')};
 }
 
 /* ================================================================== */
@@ -1393,20 +1421,20 @@ function updateTrail(dt, t, camM, active, spd, height){
   streamAge = Math.min(TRAIL_N * TRAIL_DT, streamAge + dt);
   /* the lead petal flies streamD metres ahead; switching near/mid/far glides there over about a second */
   streamD += ((STREAM_DIST[S.streamDist] || 6.5) - streamD) * (1 - Math.exp(-dt * 4.5));
-  const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw), weave = Math.sin(t * 0.8) * (0.6 + 0.06 * streamD);
+  const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw), weave = Math.sin(animationPhase(t, .8, 2 * Math.PI)) * (0.6 + 0.06 * streamD);
   const lx = S.x + sy * streamD + cy * weave, lz = S.z + cy * streamD - sy * weave;
   /* the stream holds a steady height above the grass (the camera's own height above ground, a metre lower), so climbing
      and diving carry it along; the ground under it is low-passed (faster up than down) so bumps and steps ease in */
   const gl0 = groundH(lx, lz);
   if (!isFinite(streamG)) streamG = gl0;
   streamG += (gl0 - streamG) * (1 - Math.exp(-dt * (gl0 > streamG ? 5 : 2.5)));
-  const ly = Math.max(gl0 + 0.6, streamG + Math.max(0.9, height - 1.05)) + 0.3 * Math.sin(t * 1.25);
+  const ly = Math.max(gl0 + 0.6, streamG + Math.max(0.9, height - 1.05)) + 0.3 * Math.sin(animationPhase(t, 1.25, 2 * Math.PI));
   if (trailHist.length && t <= trailHist[trailHist.length - 1].t) trailHist[trailHist.length - 1] = {t, p: [lx, ly, lz]};
   else trailHist.push({t, p: [lx, ly, lz]});
   const maxAge = TRAIL_N * TRAIL_DT + 0.5;
   while (trailHist.length > 2 && t - trailHist[1].t > maxAge) trailHist.shift();
   for (let k = 0; k < TRAIL_N; k++){
-    const p = trailAt(t - k * TRAIL_DT), a = t * 2.4 + k * 0.95, rad = 0.15 + 0.28 * ((k * 0.618) % 1) + k * 0.006;
+    const p = trailAt(t - k * TRAIL_DT), a = animationPhase(t, 2.4, 2 * Math.PI, k * .95), rad = 0.15 + 0.28 * ((k * 0.618) % 1) + k * 0.006;
     trailUni[k * 4] = p[0] + cy * Math.cos(a) * rad - camM[0];
     trailUni[k * 4 + 1] = p[1] + Math.sin(a) * rad - camM[1];
     trailUni[k * 4 + 2] = p[2] - sy * Math.cos(a) * rad - camM[2];
@@ -1434,6 +1462,8 @@ function boxVisible(planes, x0, x1, y0, y1, z0, z1){
 /*  Frame                                                              */
 /* ================================================================== */
 let last = performance.now(), frameNo = 0, simTime = 0, prev = null, skyKey = '';
+const flyOffset = [0, 0];
+const gustOffset = [0, 0];
 let animationFrame = 0;
 const frameGate = createFrameGate();
 let statAcc = 0, statFrames = 0, statT = 0, perfFrames = 0, perfAcc = 0, downgrades = 0, bladeEst = 0;
@@ -1446,16 +1476,17 @@ function frame(now){
   const { clockElapsed, visualDt: dt, weatherDt } = sceneFrameTiming(elapsedMs, sceneFreeze); last = now;
   if (!noiseReady){ genStep(14); return; }
   resize(false);
-  // 极端但有效的导入相位也必须能继续运行和保存；正常运行数十年才会触及环绕。
-  simTime = (simTime + dt) % 1e9;
+  // uint 整秒自然环绕，小数秒精度不随累计运行时间下降。
+  if (simTime + dt >= ANIMATION_TIME_PERIOD) for (const point of trailHist) point.t -= ANIMATION_TIME_PERIOD;
+  simTime = (simTime + dt) % ANIMATION_TIME_PERIOD;
 
   const groundNow = updateCamera(dt);
   const cameraActive = !preview && (S.interactionEnabled || S.auto);
   const sw = S.sway && cameraActive ? 1 : 0;
   const view = cameraActive ? {
-    yaw: cam.yaw + sw * (0.004 * Math.sin(simTime * 0.53) + 0.003 * Math.sin(simTime * 1.31)),
-    pitch: cam.pitch + sw * 0.003 * Math.sin(simTime * 0.71 + 1),
-    position: [S.x, cam.y + sw * 0.06 * Math.sin(simTime * 0.9), S.z], fov: cam.fov,
+    yaw: cam.yaw + sw * (0.004 * Math.sin(animationPhase(simTime, .53, 2 * Math.PI)) + 0.003 * Math.sin(animationPhase(simTime, 1.31, 2 * Math.PI))),
+    pitch: cam.pitch + sw * 0.003 * Math.sin(animationPhase(simTime, .71, 2 * Math.PI, 1)),
+    position: [S.x, cam.y + sw * 0.06 * Math.sin(animationPhase(simTime, .9, 2 * Math.PI)), S.z], fov: cam.fov,
   } : (frozenView ||= {yaw: cam.yaw, pitch: cam.pitch, position: [S.x, cam.y, S.z], fov: cam.fov});
   lastView = view;
   const {yaw, pitch} = view, camM = view.position, camK = camM.map(v => v / 1000);
@@ -1465,6 +1496,8 @@ function frame(now){
   advanceCloudOffset(windOff, dt, WP.wind, WIND_ANGLE, sceneFreeze.clouds);
   cloudAngle = advanceCloudAngle(cloudAngle, WIND_ANGLE, dt, sceneFreeze.clouds);
   const windDir = [Math.cos(WIND_ANGLE), Math.sin(WIND_ANGLE)];
+  advanceFireflyOffset(flyOffset, dt, WIND_ANGLE, WP.breeze);
+  advanceWindOffset(gustOffset, dt, WIND_ANGLE, 1.8 / 230, 1);
 
   if (!sceneFreeze.time) simMs = advanceClock(simMs, clockElapsed, SPEEDS[S.speed | 0], followNow);
   S.time = cityHours(simMs);
@@ -1515,8 +1548,9 @@ function frame(now){
     set(Pp, 'uLowSaturation', S.lowSaturation ? 1 : 0);
     set(Pp, 'uCamPos', camK); set(Pp, 'uSunDir', sun); set(Pp, 'uLayer', LAYER[0], LAYER[1]);
     set(Pp, 'uCoverage', covEff); set(Pp, 'uDensity', densEff);
-    set(Pp, 'uWind', -windOff[0], -windOff[1], -windOff[2]);
-    set(Pp, 'uWindDetail', -windOff[0] * 1.6, -windOff[1] * 3.0 - simTime * 0.004, -windOff[2] * 1.6);
+    // 按纹理共同周期约简后再上传，保持长时间云体/侵蚀的小位移精度。
+    set(Pp, 'uWind', wrap(-windOff[0], 960), wrap(-windOff[1], 7.5), wrap(-windOff[2], 960));
+    set(Pp, 'uWindDetail', wrap(-windOff[0] * 1.6, .7), wrap(-windOff[1] * 3.0 - animationPhase(simTime, .004, .7), .7), wrap(-windOff[2] * 1.6, .7));
     set(Pp, 'uWindDir', Math.cos(cloudAngle), Math.sin(cloudAngle));
     set(Pp, 'uRight', B.r); set(Pp, 'uUp', B.u); set(Pp, 'uFwd', B.f); set(Pp, 'uTan', tanX, tanY);
   };
@@ -1525,14 +1559,25 @@ function frame(now){
     tex(Pp, 'uWeather', gl.TEXTURE_2D, weatherTex); tex(Pp, 'uSkyLut', gl.TEXTURE_2D, skyTex);
   };
 
-  /* sky LUT */
-  const sk = L.sunT.join(',') + L.moonD.join(',') + L.moonI + '|' + L.pe + '|' + Math.round(cam.y / 100);
-  if (sk !== skyKey){
-    skyKey = sk; use(P.skyLut);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, skyFBO); gl.viewport(0, 0, SKY_W, SKY_H);
-    set(P.skyLut, 'uCamPos', camK); set(P.skyLut, 'uSunDir', L.sunT); set(P.skyLut, 'uSunI', SUN_I * L.pe);
-    set(P.skyLut, 'uMoonDir', L.moonD); set(P.skyLut, 'uMoonI', L.moonI * L.pe); set(P.skyLut, 'uGlow', GLOW.map(v => v * L.pe * nightSky.airglow)); set(P.skyLut, 'uMS', L.ms);
-    draw();
+  /* sky LUT：光照与天空使用同一对端点，避免只平滑草地而天空仍阶梯跳变。 */
+  const skySampleKey = sample => sample.sunT.join(',') + sample.moonD.join(',') + sample.moonI + '|' + sample.pe + '|' + sample.airglow + '|' + Math.round(cam.y / 100);
+  const renderSkySample = (sample, fbo) => {
+    use(P.skyLut); gl.bindFramebuffer(gl.FRAMEBUFFER, fbo); gl.viewport(0, 0, SKY_W, SKY_H);
+    set(P.skyLut, 'uCamPos', camK); set(P.skyLut, 'uSunDir', sample.sunT); set(P.skyLut, 'uSunI', SUN_I * sample.pe);
+    set(P.skyLut, 'uMoonDir', sample.moonD); set(P.skyLut, 'uMoonI', sample.moonI * sample.pe);
+    set(P.skyLut, 'uGlow', GLOW.map(v => v * sample.pe * sample.airglow)); set(P.skyLut, 'uMS', sample.ms); draw();
+  };
+  if (lightSamples) {
+    const [a, b] = lightSamples.samples, ka = skySampleKey(a), kb = skySampleKey(b);
+    let ia = skySamples.findIndex(sample => sample.key === ka), ib = skySamples.findIndex(sample => sample.key === kb);
+    if (ia < 0) { ia = ib === 0 ? 1 : 0; renderSkySample(a, skySamples[ia].fbo); skySamples[ia].key = ka; }
+    if (ib < 0) { ib = 1 - ia; renderSkySample(b, skySamples[ib].fbo); skySamples[ib].key = kb; }
+    use(P.skyMix); gl.bindFramebuffer(gl.FRAMEBUFFER, skyFBO); gl.viewport(0, 0, SKY_W, SKY_H);
+    tex(P.skyMix, 'uA', gl.TEXTURE_2D, skySamples[ia].texture); tex(P.skyMix, 'uB', gl.TEXTURE_2D, skySamples[ib].texture);
+    set(P.skyMix, 'uMix', lightSamples.fraction); draw(); skyKey = '';
+  } else {
+    const sk = skySampleKey(L);
+    if (sk !== skyKey) { skyKey = sk; renderSkySample(L, skyFBO); }
   }
   /* cloud shadow map */
   const cshTexel = CSH_EXT / CSH_N;
@@ -1649,7 +1694,7 @@ function frame(now){
     tex(Pp, 'uTerr', gl.TEXTURE_2D, terrTex); tex(Pp, 'uSkyLut', gl.TEXTURE_2D, skyTex); tex(Pp, 'uCShadow', gl.TEXTURE_2D, cshTex);
     set(Pp, 'uCamM', camM); set(Pp, 'uR', B.r); set(Pp, 'uU', B.u); set(Pp, 'uF', B.f);
     set(Pp, 'uTanS', tanX, tanY); set(Pp, 'uDepthAB', depthAB[0], depthAB[1]);
-    set(Pp, 'uTime', simTime); set(Pp, 'uWindDirG', windDir[0], windDir[1]); set(Pp, 'uWindStr', WP.breeze);
+    setAnimationTime(Pp); set(Pp, 'uFlyOffset', flyOffset); set(Pp, 'uGustOffset', gustOffset); set(Pp, 'uWindDirG', windDir[0], windDir[1]); set(Pp, 'uWindStr', WP.breeze);
     set(Pp, 'uShadowP', cshP); set(Pp, 'uSunDir', sun); set(Pp, 'uSunGround', L.lightGround); set(Pp, 'uSkyIrr', L.skyIrr);
     set(Pp, 'uFogKG', 1 / 13); set(Pp, 'uFogSky', fogSky[0], fogSky[1], fogSky[2], fogSky[3]); set(Pp, 'uExposure', expoS); set(Pp, 'uRes', W, H); set(Pp, 'uNightGlow', nightGlow);
     set(Pp, 'uCShadowAmt', L.cshAmt); tex(Pp, 'uTouch', gl.TEXTURE_2D, touchTex[touchIdx]); set(Pp, 'uTouchP', tcx, tcz, TOUCH_EXT, S.flowerGlow ? 1 : 0); set(Pp, 'uBloomAnim', S.bloom ? 1 : 0); set(Pp, 'uWet', WXS.wet); set(Pp, 'uPudTh', pudThreshold(WXS.wet)); set(Pp, 'uSnowCov', WXS.snowCov); tex(Pp, 'uPud', gl.TEXTURE_2D, pudTex); set(Pp, 'uPudP', pudCx, pudCz, PUD_EXT); set(Pp, 'uRainNow', WXS.rain); set(Pp, 'uFlashAmb', flashAmb); set(Pp, 'uFogW', fogW[0], fogW[1], fogW[2], fogW[3]); set(Pp, 'uFogCol', fogCol); set(Pp, 'uStreamScale', S.streamScale ? 1 + (streamD - 6.5) * 0.05 : 1); tex(Pp, 'uGlowMap', gl.TEXTURE_2D, glowTex); set(Pp, 'uGlowP4', gcx, gcz, GLOW_EXT, glowAmt);
@@ -1666,7 +1711,7 @@ function frame(now){
     const GF = q.flowers, fbx = Math.floor(camM[0]) - GF / 2, fbz = Math.floor(camM[2]) - GF / 2;
     set(Gw, 'uFGrid', GF); set(Gw, 'uFCell', 1.0); set(Gw, 'uFBase', fbx, fbz); set(Gw, 'uFOrig', fbx - camM[0], fbz - camM[2]);
     seti(Gw, 'uMode', 0); gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, GF * GF);
-    const flyG = S.flies && aglReal < 30 ? smooth(0.2, 0.7, L.night) : 0;
+    const flyG = S.flies && aglReal < 30 ? smooth(0.2, 0.7, L.night) * (1 - Math.min(1, WXS.rain + WXS.snow)) : 0;
     if (flyG > 0.01){ seti(Gw, 'uMode', 1); set(Gw, 'uFBox', 60); set(Gw, 'uFlyMul', flyG); gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, FLY_COUNT[S.quality] || 240); }
     if (S.petals){
       seti(Gw, 'uMode', 2); set(Gw, 'uPBox', 70); gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, q.petals);
@@ -1782,7 +1827,7 @@ function frame(now){
     tex(Sk, 'uMoonSurface', gl.TEXTURE_2D, moonSurface.texture); tex(Sk, 'uGalaxy', gl.TEXTURE_2D, galaxyTexture);
     const off = S.sunAz * Math.PI / 180, dirAE = (az, el) => [Math.cos(el) * Math.sin(az + off), Math.sin(el), Math.cos(el) * Math.cos(az + off)];
     const LATR = renderLocation().lat * RAD; set(Sk, 'uPole', dirAE(0, LATR)); set(Sk, 'uSouthEq', dirAE(Math.PI, Math.PI / 2 - LATR)); set(Sk, 'uWestEq', dirAE(Math.PI * 1.5, 0));
-    set(Sk, 'uSidereal', AST.lst); set(Sk, 'uStarI', L.starI); set(Sk, 'uPixAngS', 2 * tanY / H); set(Sk, 'uTimeS', simTime);
+    set(Sk, 'uSidereal', AST.lst); set(Sk, 'uStarI', L.starI); set(Sk, 'uPixAngS', 2 * tanY / H); setAnimationTime(Sk);
     draw();
     gl.depthMask(true);
   }
@@ -1792,7 +1837,7 @@ function frame(now){
     const St = nightSky.darkness > 0 ? P.stars : P.planets; use(St);
     gl.uniformMatrix3fv(St.u.uEq, false, eqMat);
     set(St, 'uR', B.r); set(St, 'uU', B.u); set(St, 'uF', B.f); set(St, 'uTan', tanX, tanY);
-    set(St, 'uStarI', L.starCat * (nightSky.darkness > 0 ? 8 / 2.4 * nightSky.stars : 1) * (1 - 0.95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow))); set(St, 'uPxScale', W / Math.max(cssW, 1)); set(St, 'uTimeS', simTime);
+    set(St, 'uStarI', L.starCat * (nightSky.darkness > 0 ? 8 / 2.4 * nightSky.stars : 1) * (1 - 0.95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow))); set(St, 'uPxScale', W / Math.max(cssW, 1)); setAnimationTime(St);
     tex(St, 'uCloud', gl.TEXTURE_2D, hist[cur]);
     if (nightSky.darkness > 0){
       set(St, 'uMoonDir', L.moonD); set(St, 'uMoonRadius', MOON_RADIUS); set(St, 'uMoonWash', AST.moonBright * smooth(0, .2, L.moonD[1]));
@@ -1807,7 +1852,7 @@ function frame(now){
       gl.uniformMatrix3fv(Pl.u.uEq, false, eqMat);
       set(Pl, 'uR', B.r); set(Pl, 'uU', B.u); set(Pl, 'uF', B.f); set(Pl, 'uTan', tanX, tanY);
       set(Pl, 'uStarI', L.starCat * (1 - .95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow)));
-      set(Pl, 'uPxScale', W / Math.max(cssW, 1)); set(Pl, 'uTimeS', simTime); tex(Pl, 'uCloud', gl.TEXTURE_2D, hist[cur]);
+      set(Pl, 'uPxScale', W / Math.max(cssW, 1)); setAnimationTime(Pl); tex(Pl, 'uCloud', gl.TEXTURE_2D, hist[cur]);
     }
     gl.bindVertexArray(planetVAO); gl.drawArrays(gl.POINTS, 0, 5);
     if (S.constel){
@@ -1931,7 +1976,7 @@ function frame(now){
     tex(Fi, 'uScene', gl.TEXTURE_2D, sceneTex); tex(Fi, 'uDepth', gl.TEXTURE_2D, depthTex);
     tex(Fi, 'uDof', gl.TEXTURE_2D, dofTex); tex(Fi, 'uBloom', gl.TEXTURE_2D, bloomOut);
     set(Fi, 'uSat', L.grade.sat); set(Fi, 'uShTint', L.grade.sh); set(Fi, 'uHiTint', L.grade.hi); set(Fi, 'uLift', L.grade.lift);
-    set(Fi, 'uDrops', lensOn && LR.tex ? 1 : 0); set(Fi, 'uTimeD', simTime); if (LR.tex) tex(Fi, 'uLens', gl.TEXTURE_2D, LR.tex);
+    set(Fi, 'uDrops', lensOn && LR.tex ? 1 : 0); if (LR.tex) tex(Fi, 'uLens', gl.TEXTURE_2D, LR.tex);
     set(Fi, 'uDofOn', dofOn ? 1 : 0); set(Fi, 'uBloomI', S.lowSaturation ? 0.055 + 0.07 * L.glowF : 0.16 + 0.2 * L.glowF); set(Fi, 'uNight', L.night); set(Fi, 'uNightSky', nightSky.darkness); set(Fi, 'uFrameN', frameNo % 997); set(Fi, 'uRes', W, H); setPost(Fi);
     draw();
   }
@@ -1977,7 +2022,7 @@ function captureScene() {
   const value = validateScene({ version: 1, settings,
     camera: { x: S.x, z: S.z, y: cam.y, agl: S.agl, yaw: cam.yaw, pitch: cam.pitch, roll: cam.roll, fov: S.fovY, focus: cam.focus },
     environment: { time: { ms: simMs, followNow, speedIndex: S.speed }, skyLocation: skyLocation(),
-      motion: { time: simTime, windAngle: WIND_ANGLE, windOffset: [windOff[0], windOff[2]], cloudY: windOff[1], cloudAngle },
+      motion: { time: simTime, windAngle: WIND_ANGLE, windOffset: [windOff[0], windOff[2]], cloudY: windOff[1], cloudAngle, flyOffset: [...flyOffset], gustOffset: [...gustOffset] },
       weather: { type: WXS.type, current: { ...WP }, wet: WXS.wet, snowCover: WXS.snowCov } },
     freeze: { ...sceneFreeze },
   });
@@ -2023,6 +2068,10 @@ function loadScene(scene) {
   const motion = scene.environment.motion;
   if (motion) {
     simTime = motion.time; WIND_ANGLE = motion.windAngle;
+    const savedFly = motion.flyOffset ?? [Math.cos(WIND_ANGLE) * simTime * .12 * scene.environment.weather.current.breeze, Math.sin(WIND_ANGLE) * simTime * .12 * scene.environment.weather.current.breeze];
+    flyOffset[0] = wrap(savedFly[0], 60); flyOffset[1] = wrap(savedFly[1], 60);
+    const savedGust = motion.gustOffset ?? [Math.cos(WIND_ANGLE) * simTime * 1.8 / 230, Math.sin(WIND_ANGLE) * simTime * 1.8 / 230];
+    gustOffset[0] = wrap(savedGust[0], 1); gustOffset[1] = wrap(savedGust[1], 1);
     windOff[0] = motion.windOffset[0]; windOff[1] = motion.cloudY ?? simTime * 0.0025; windOff[2] = motion.windOffset[1]; cloudAngle = motion.cloudAngle ?? WIND_ANGLE;
   }
   sceneFreeze = { ...scene.freeze };

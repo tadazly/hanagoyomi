@@ -1,6 +1,7 @@
 import { TERRAIN_GLSL } from './terrain.js';
 import { WEATHER_FOG_GLSL } from './weather-fog.js';
 import { FLOWER_PETALS } from './flower-mesh.js';
+import { ANIMATION_GLSL } from './animation-time.js';
 const VS_FULL = `#version 300 es
 out vec2 vUv;
 void main(){ vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)); vUv = p; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
@@ -302,22 +303,22 @@ vec3 toDisplay(vec3 c){
 }`;
 
 /* ---------- scene helpers (vertex + fragment) ---------- */
-const SCENE = TERRAIN_GLSL + WEATHER_FOG_GLSL + `
+const SCENE = TERRAIN_GLSL + WEATHER_FOG_GLSL + ANIMATION_GLSL + `
 uniform vec3 uCamM;
 uniform vec3 uR, uU, uF; uniform vec2 uTanS; uniform vec2 uDepthAB;
-uniform float uTime; uniform vec2 uWindDirG; uniform float uWindStr;
+uniform vec2 uWindDirG, uGustOffset; uniform float uWindStr;
 uniform sampler2D uCShadow; uniform vec3 uShadowP;
 vec4 project(vec3 p){ vec3 v = vec3(dot(p, uR), dot(p, uU), dot(p, uF)); return vec4(v.x / uTanS.x, v.y / uTanS.y, v.z * uDepthAB.x + uDepthAB.y, v.z); }
 /* travelling gust bands across the field: 0 calm .. 1 crest of a wave */
 float windWave(vec2 w){
   vec2 d = uWindDirG, dp = vec2(-d.y, d.x);
   float along = dot(w, d), across = dot(w, dp);
-  float warp = tn(vec2(along * (1.0 / 75.0), across * (1.0 / 170.0)) + vec2(0.2, 0.9));
-  float mask = smoothstep(-0.45, 0.3, tn(w * (1.0 / 230.0) + vec2(0.5, 0.5)));
-  float band = 0.5 + 0.5 * sin((along - uTime * 9.0) * (6.2831853 / 32.0) + warp * 3.2);
+  float warp = tn(vec2(along / 75.0 - animationPhase(2.4 / 75.0, 1.0, 0.0), across * (1.0 / 170.0)) + vec2(0.2, 0.9));
+  float mask = smoothstep(-0.40, 0.45, tn(w / 230.0 - uGustOffset + vec2(0.5, 0.5)));
+  float band = 0.5 + 0.5 * sin(animationAngle(-9.0 * (6.2831853 / 32.0), along * (6.2831853 / 32.0) + warp * 3.2));
   band *= band * band;
-  float rip = 0.5 + 0.5 * sin((along * 0.7 + across * 0.3 - uTime * 6.5) * (6.2831853 / 11.0) + warp * 2.0);
-  return saturate(band * mask * 1.15 + rip * rip * 0.22 * mask);
+  float rip = 0.5 + 0.5 * sin(animationAngle(-6.5 * (6.2831853 / 11.0), (along * 0.7 + across * 0.3) * (6.2831853 / 11.0) + warp * 2.0));
+  return saturate(band * mask * 0.78 + rip * rip * 0.12 * mask);
 }
 uniform float uCShadowAmt;
 float cshadow(vec2 wKm){ return mix(1.0, textureLod(uCShadow, (wKm - uShadowP.xy) / uShadowP.z + 0.5, 0.0).r, uCShadowAmt); }
@@ -420,14 +421,14 @@ vec3 applyFog(vec3 c, vec3 rel, float distant, out vec3 haze){
 }
 vec3 applyFog(vec3 c, vec3 rel){ vec3 haze; return applyFog(c, rel, 0.0, haze); }
 /* raindrop rings on puddles: expanding ripples in two jittered cell layers */
-vec2 rippleN(vec2 w, float t){
+vec2 rippleN(vec2 w){
   vec2 nn = vec2(0.0);
   for (int k = 0; k < 2; k++){
     float sc = k == 0 ? 2.0 : 3.3;
     vec2 g = w * sc + float(k) * 7.31;
     vec2 id = floor(g), f = fract(g) - 0.5;
     vec4 h = hash42(mod(id, 4096.0) + float(k) * 13.7);
-    float ph = fract(t * (0.8 + 0.5 * h.x) + h.y);
+    float ph = animationPhase(0.8 + 0.5 * h.x, 1.0, h.y);
     vec2 d = f - (h.zw - 0.5) * 0.4; float r = length(d) + 1e-4, rr = r - ph * 0.42;
     nn += d / r * sin(rr * 55.0) * exp(-rr * rr * 300.0) * (1.0 - ph) * 0.35;
   }
@@ -516,7 +517,7 @@ void main(){
   /* puddles: Fresnel mirror of the sky and the cloud buffer (projected reflected ray), rain ripples on top */
   float pm = puddleMask(vW) * smoothstep(0.8, 0.95, n.y);
   if (pm > 0.001){
-    vec2 rp = rippleN(vW, uTime) * uRainNow;
+    vec2 rp = rippleN(vW) * uRainNow;
     vec3 Nw = normalize(vec3(rp.x, 1.0, rp.y));
     vec3 Rr = reflect(-V, Nw);
     vec3 refl = skyLookup(normalize(vec3(Rr.x, max(Rr.y, 0.01), Rr.z)));
@@ -568,14 +569,15 @@ void main(){
   float vz = dot(c0, uF), m = 0.9 + uCell * 2.0;
   if (vz < -m || abs(dot(c0, uR)) > vz * uTanS.x + m || abs(dot(c0, uU)) > vz * uTanS.y + m){ cull(); return; }
   float p1 = tn(w * (1.0 / 310.0) + vec2(0.37, 0.11));
-  float H = mix(0.45, 0.92, h.z) * (0.86 + 0.3 * tn(w * (1.0 / 120.0) + vec2(0.23, 0.61)));
+  float H = 0.72 * mix(0.75, 1.5, h.z) * (0.86 + 0.3 * tn(w * (1.0 / 120.0) + vec2(0.23, 0.61)));
   H *= 1.0 - 0.85 * smoothstep(0.15, 0.97, pmG);   /* submerged: only the tips stand out of the water */
   if (H < 0.55 * uSnowCov * 0.85){ cull(); return; }
   float Wd = mix(0.026, 0.046, h.w) * uWidthMul;
   float face = h2.y * 6.2831853; vec2 fdir = vec2(cos(face), sin(face)); vec2 sideV = vec2(-fdir.y, fdir.x);
   float wave = windWave(w);
-  float flutter = sin(uTime * (2.2 + h2.z) + h.x * 6.28 + dot(w, uWindDirG) * 0.4);
-  vec2 bend = uWindDirG * uWindStr * (0.1 + 1.25 * wave) + uWindDirG * flutter * 0.09 * uWindStr + (h2.zw - 0.5) * 0.38;
+  float flutter = sin(animationAngle(2.2 + h2.z, h.x * 6.28 + dot(w, uWindDirG) * 0.4));
+  vec2 bend = fdir * mix(0.10, 0.42, h2.z) + uWindDirG * uWindStr * (0.08 + 0.85 * wave);
+  bend += (uWindDirG * flutter + sideV * sin(animationAngle(1.3, h.w * 6.28)) * 0.35) * 0.055 * uWindStr;
   /* the petal stream combs the grass apart as it passes low over it */
   for (int i = 0; i < 6; i++){
     vec2 dv = rel - uPush[i].xy; float d2 = dot(dv, dv);
@@ -594,6 +596,7 @@ void main(){
   vN = normalize(normalize(cross(sv3, tang)) + sv3 * (side - 0.5) * 1.4);
   vT = t; vRel = p;
   vAlb = waveSheen(grassAlbedo(p1, (h.w - 0.5) * 1.2, t), wave * t);
+  vAlb *= mix(0.60, 1.0, h2.z);
   /* far LODs: shade toward the canopy colour the terrain shows, fully converged where they thin out, so nothing pops */
   float gz = 1.0 - saturate(abs(normalize(p).y));
   vec3 can = waveSheen(grassTip(p1, tn(w * (1.0 / 85.0) + vec2(0.71, 0.43))), wave) * mix(0.8, 0.95, gz);
@@ -647,7 +650,7 @@ void main(){
   float lit = touchLit(w), op = bloomOpen(w), opc = saturate(op);
   float stemH = mix(0.74, 1.08, h.w);
   float wave = windWave(w);
-  float flutter = sin(uTime * (2.2 + h2.z) + h.x * 6.28 + dot(w, uWindDirG) * 0.4);
+  float flutter = sin(animationAngle(2.2 + h2.z, h.x * 6.28 + dot(w, uWindDirG) * 0.4));
   vec2 bend = uWindDirG * uWindStr * (0.08 + 0.7 * wave) + uWindDirG * flutter * 0.07 * uWindStr + (h2.xy - 0.5) * 0.25;
   vec3 root = vec3(rel.x, gy, rel.y);
   vec3 head = root + vec3(bend.x * stemH, stemH * (1.0 - 0.3 * min(dot(bend, bend), 1.0)), bend.y * stemH);
@@ -696,17 +699,17 @@ void main(){
   float id = float(gl_InstanceID);
   vec4 h = hash42(vec2(id * 1.731, 17.17)), h2 = hash42(vec2(id * 0.917 + 5.3, 3.1));
   float spd = (1.6 + 2.6 * h.w) * (0.35 + uWindStr);
-  vec2 wp = (h.xy - 0.5) * uPBox + uWindDirG * uTime * spd + vec2(sin(uTime * 0.5 + h2.x * 30.0), cos(uTime * 0.43 + h2.y * 30.0)) * 3.0;
+  vec2 wp = (h.xy - 0.5) * uPBox + vec2(animationPhase(uWindDirG.x * spd, uPBox, 0.0), animationPhase(uWindDirG.y * spd, uPBox, 0.0)) + vec2(sin(animationAngle(0.5, h2.x * 30.0)), cos(animationAngle(0.43, h2.y * 30.0))) * 3.0;
   vec2 rel = mod(wp - uCamM.xz + 0.5 * uPBox, uPBox) - 0.5 * uPBox;
   float edge = min(0.5 * uPBox - abs(rel.x), 0.5 * uPBox - abs(rel.y));
   float fade = smoothstep(0.0, 6.0, edge);
   vec2 w = uCamM.xz + rel;
-  float y = terrainH(w, 0.0) - uCamM.y + 0.5 + h.z * h.z * 4.5 + sin(uTime * (0.9 + h2.z) + h2.w * 20.0) * 0.5;
+  float y = terrainH(w, 0.0) - uCamM.y + 0.5 + h.z * h.z * 4.5 + sin(animationAngle(0.9 + h2.z, h2.w * 20.0)) * 0.5;
   vec3 c = vec3(rel.x, y, rel.y);
-  float a1 = uTime * (1.2 + 2.2 * h2.x) + h.x * 30.0, a2 = uTime * (0.8 + 1.6 * h2.y) + h.y * 30.0;
+  float a1 = animationAngle(1.2 + 2.2 * h2.x, h.x * 30.0), a2 = animationAngle(0.8 + 1.6 * h2.y, h.y * 30.0);
   vec3 ax = vec3(cos(a1), sin(a1) * cos(a2), sin(a1) * sin(a2));
   vec3 ay = normalize(cross(ax, abs(ax.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
-  float a3 = a2 * 1.3; ay = ay * cos(a3) + cross(ax, ay) * sin(a3);
+  float a3 = animationAngle((0.8 + 1.6 * h2.y) * 1.3, h.y * 39.0); ay = ay * cos(a3) + cross(ax, ay) * sin(a3);
   vec2 q = corner(gl_VertexID);
   float L = mix(0.035, 0.06, h2.z) * fade;
   vec3 p = c + ax * (q.y - 0.4) * L + ay * q.x * L * 0.8;
@@ -723,10 +726,10 @@ void main(){
   vec4 tr = uTrail[gl_InstanceID];
   float fk = tr.w;
   vec4 h = hash42(vec2(fk * 1.37 + 3.1, 9.7)), h2 = hash42(vec2(fk * 0.71 + 1.9, 4.3));
-  float a1 = uTime * (1.6 + 2.0 * h2.x) + h.x * 30.0, a2 = uTime * (1.1 + 1.4 * h2.y) + h.y * 30.0;
+  float a1 = animationAngle(1.6 + 2.0 * h2.x, h.x * 30.0), a2 = animationAngle(1.1 + 1.4 * h2.y, h.y * 30.0);
   vec3 ax = vec3(cos(a1), sin(a1) * cos(a2), sin(a1) * sin(a2));
   vec3 ay = normalize(cross(ax, abs(ax.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
-  float a3 = a2 * 1.3; ay = ay * cos(a3) + cross(ax, ay) * sin(a3);
+  float a3 = animationAngle((1.1 + 1.4 * h2.y) * 1.3, h.y * 39.0); ay = ay * cos(a3) + cross(ax, ay) * sin(a3);
   vec2 q = corner(gl_VertexID);
   float L = mix(0.08, 0.12, h2.z) * uStreamScale;
   vec3 p = tr.xyz + ax * (q.y - 0.4) * L + ay * q.x * L * 0.8;
@@ -772,11 +775,11 @@ float stellarExtinction(float altitude){
   return exp(-.20 * airMass) * smoothstep(0.0, .025, altitude);
 }
 `;
-const SKYPASS_FS = HEAD + COMMON + DISPLAY + WEATHER_FOG_GLSL + CELESTIAL_GLSL + `
+const SKYPASS_FS = HEAD + COMMON + DISPLAY + WEATHER_FOG_GLSL + CELESTIAL_GLSL + ANIMATION_GLSL + `
 uniform sampler2D uCloud, uCloudDepth; uniform vec2 uCloudSize;
 uniform vec3 uRight, uUp, uFwd; uniform vec2 uTan;
 uniform vec3 uSunTrue, uMoonDir, uSunDisk, uMoonDisk;
-uniform vec3 uPole, uSouthEq, uWestEq; uniform float uSidereal, uStarI, uPixAngS, uTimeS;
+uniform vec3 uPole, uSouthEq, uWestEq; uniform float uSidereal, uStarI, uPixAngS;
 uniform sampler2D uMoonSurface, uGalaxy;
 uniform mat3 uEq; uniform vec3 uMoonNorth;
 uniform float uMoonRadius, uEarthshine, uNightSky, uGalaxyI;
@@ -817,7 +820,7 @@ vec3 legacyStarField(vec3 rd){
     vec2 dv = vec2(dRa * 6.2831853 * cos(dec), dec - sDec);
     float rad = max(uPixAngS * 0.9, 0.0005);
     float g = exp(-dot(dv, dv) / (rad * rad));
-    float tw = 0.7 + 0.3 * sin(uTimeS * (2.0 + 6.0 * hs.x) + hs.y * 50.0);
+    float tw = 0.7 + 0.3 * sin(animationAngle(2.0 + 6.0 * hs.x, hs.y * 50.0));
     c = mix(vec3(1.0, 0.8, 0.62), vec3(0.72, 0.84, 1.0), hs.x) * g * (0.05 + pow(hs.w, 7.0) * 4.0) * tw;
   }
   vec3 cd = vec3(cos(dec) * cos(ra), sin(dec), cos(dec) * sin(ra));
@@ -1021,7 +1024,7 @@ void main(){
 }`;
 const FINAL_FS = HEAD + POSTCOMMON + `
 uniform sampler2D uScene, uDepth, uDof, uBloom;
-uniform float uDofOn, uBloomI, uNight, uFrameN, uSat, uDrops, uTimeD, uVignette, uNightSky;
+uniform float uDofOn, uBloomI, uNight, uFrameN, uSat, uDrops, uVignette, uNightSky;
 uniform sampler2D uLens; uniform vec2 uRes; uniform vec3 uShTint, uHiTint, uLift;
 out vec4 o;
 float ign(vec2 p){ return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
@@ -1106,7 +1109,7 @@ void main(){
   float h = terrainH(w, sp);
   float e = max(sp * 0.5, 0.25);
   vec3 n = normalize(vec3(h - terrainH(w + vec2(e, 0.0), sp), e, h - terrainH(w + vec2(0.0, e), sp)));
-  float Hc = 0.68 * (0.86 + 0.3 * tn(w * (1.0 / 120.0) + vec2(0.23, 0.61)));
+  float Hc = 0.81 * (0.86 + 0.3 * tn(w * (1.0 / 120.0) + vec2(0.23, 0.61)));
   vec3 p = vec3(rel.x, h - uCamM.y + Hc * uShellS, rel.y);
   float d = length(rel);
   vFade = smoothstep(uShellR.x * 0.5, uShellR.x, d) * (1.0 - smoothstep(uShellR.y * 0.65, uShellR.y, d)) * (1.0 - smoothstep(0.15, 0.9, puddleMask(w)));
@@ -1122,7 +1125,7 @@ void main(){
   vec3 hzF = textureLod(uSkyLut, skyUVv(normalize(vec3(rd.x, max(rd.y, 0.0) + 0.012, rd.z))), 0.0).rgb;
   float eF = exp(-dist * 0.001 * uFogKG), fw = wxFogF(p), aN = eF * (1.0 - fw);
   vFog = vec4((hzF * (1.0 - eF) * (1.0 - fw) + wxFogRadiance(hzF, rd) * fw) / max(1.0 - aN, 1e-4), aN);
-  vOff = uWindDirG * uWindStr * (0.1 + 1.25 * wave) * 0.45 * uShellS * uShellS;
+  vOff = uWindDirG * uWindStr * (0.08 + 0.85 * wave) * Hc * uShellS * uShellS;
   vRel = p; vW = w;
   gl_Position = project(p);
 }`;
@@ -1153,12 +1156,13 @@ void main(){
 
 /* real sky: naked-eye stars (mag <= 6.0), planets, constellation lines, all in J2000 equatorial coordinates */
 const PLANET_VS = `#version 300 es
-precision highp float; precision highp sampler2D;
+precision highp float; precision highp int; precision highp sampler2D;
 layout(location = 0) in vec4 aStar;
 layout(location = 1) in vec3 aCol;
 uniform mat3 uEq; uniform vec3 uR, uU, uF; uniform vec2 uTan;
-uniform float uStarI, uPxScale, uTimeS;
+uniform float uStarI, uPxScale;
 uniform sampler2D uCloud;
+` + ANIMATION_GLSL + `
 out vec3 vCol; out float vI;
 void main(){
   vec3 d = uEq * aStar.xyz;
@@ -1170,7 +1174,7 @@ void main(){
   float mag = aStar.w;
   float ext = exp(-0.28 / max(d.y, 0.035));
   float low = 1.0 - smoothstep(0.05, 0.45, d.y);
-  float tw = 1.0 + 0.45 * low * sin(uTimeS * (6.0 + fract(mag * 13.7) * 10.0) + aStar.x * 97.0 + aStar.y * 53.0);
+  float tw = 1.0 + 0.45 * low * sin(animationAngle(6.0 + fract(mag * 13.7) * 10.0, aStar.x * 97.0 + aStar.y * 53.0));
   vI = uStarI * pow(10.0, -0.248 * (mag - 6.0)) * ext * T * tw;
   gl_PointSize = uPxScale * clamp(1.5 + 0.5 * (6.0 - mag), 1.5, 7.0);
 }`;
@@ -1184,13 +1188,14 @@ void main(){
   o = vec4(1.0 - exp(-vCol * vI * a), 1.0);
 }`;
 const STAR_VS = `#version 300 es
-precision highp float; precision highp sampler2D;
+precision highp float; precision highp int; precision highp sampler2D;
 layout(location = 0) in vec4 aStar;
 layout(location = 1) in vec3 aCol;
 uniform mat3 uEq; uniform vec3 uR, uU, uF; uniform vec2 uTan;
-uniform float uStarI, uPxScale, uTimeS;
+uniform float uStarI, uPxScale;
 uniform vec3 uMoonDir; uniform float uMoonRadius, uMoonWash, uScintillation, uPixAngle;
 uniform sampler2D uCloud, uSkyLut;
+` + ANIMATION_GLSL + `
 out vec3 vEnergy; out float vSigma;
 ` + CELESTIAL_GLSL + `
 vec2 stellarSkyUV(vec3 d){
@@ -1209,8 +1214,8 @@ void main(){
   float phase = dot(aStar.xyz, vec3(97.0, 53.0, 179.0));
   float seed = fract(sin(phase * 1.37) * 43758.5453);
   // pmndrs SkyStars 的独立相位与按高度闪烁；星位及 PSF 宽度不随闪烁改变。
-  float t=uTimeS*(1.5+2.5*seed);
-  float shimmer=sin(t+phase)*sin(t*.61+phase*1.7);
+  float rate = 1.5 + 2.5 * seed;
+  float shimmer = sin(animationAngle(rate, phase)) * sin(animationAngle(rate * .61, phase * 1.7));
   float tw=1.0+uScintillation*.35*mix(.3,1.0,pow(1.0-max(d.y,0.0),2.0))*shimmer;
   float moonDistance = length(d - uMoonDir);
   float glare = 1.0 - .8 * uMoonWash * exp(-moonDistance * moonDistance / .012);
@@ -1264,27 +1269,33 @@ void main(){ o = vec4(vec3(0.45, 0.6, 0.95) * uLineA * vA, 1.0); }`;
 /* 743 constellation line segments (d3-celestial), endpoints as RA u16 / Dec u16 */
 
 
-/* fireflies: drifting, clustered over the meadow, each flashing on its own Photinus-like rhythm */
-const FIREFLY_VS = VPRE + SCENE + `
-uniform float uFBox, uFlyI, uPxScale;
+/* 萤火虫与地面辉光共用完整运动和明暗；风位移由 CPU 每帧积分。 */
+const FIREFLY_MOTION = `
+uniform float uFBox; uniform vec2 uFlyOffset;
+void fireflyMotion(float id, out vec2 rel, out float hgt, out vec3 col, out float intensity){
+  vec4 h = hash42(vec2(id * 3.17 + 1.3, 7.7)), h2 = hash42(vec2(id * 1.91 + 9.1, 2.3));
+  vec2 wander = vec2(sin(animationAngle(0.21 + 0.17 * h2.x, h.z * 30.0)) + 0.5 * sin(animationAngle(0.53 + 0.3 * h2.y, h.w * 20.0)),
+                     cos(animationAngle(0.19 + 0.15 * h2.y, h.w * 25.0)) + 0.5 * cos(animationAngle(0.47 + 0.3 * h2.x, h.z * 17.0))) * 2.2;
+  vec2 wp = (h.xy - 0.5) * uFBox + wander + uFlyOffset;
+  rel = mod(wp - uCamM.xz + 0.5 * uFBox, uFBox) - 0.5 * uFBox;
+  float edge = min(0.5 * uFBox - abs(rel.x), 0.5 * uFBox - abs(rel.y));
+  hgt = 0.35 + h2.z * h2.z * 2.2 + 0.25 * sin(animationAngle(0.7 + h.x, h2.w * 40.0));
+  float period = 2.2 + 3.5 * h2.x, ph = animationPhase(1.0, period, h.z * period) / period;
+  float flash = smoothstep(0.0, 0.06, ph) * (1.0 - smoothstep(0.06, 0.06 + 0.7 / period, ph));
+  float breathe = 0.3 + 0.12 * sin(animationAngle(1.3 + h2.y, h.x * 40.0));
+  float patchy = smoothstep(-0.25, 0.35, tn((uCamM.xz + rel) / 60.0 + vec2(0.3, 0.8)));
+  intensity = (breathe + flash) * smoothstep(0.0, 5.0, edge) * patchy;
+  col = mix(vec3(0.62, 1.0, 0.28), vec3(1.0, 0.88, 0.35), h.w);
+}
+`;
+const FIREFLY_VS = VPRE + SCENE + FIREFLY_MOTION + `
+uniform float uFlyI, uPxScale;
 out vec3 vCol; out float vI;
 void main(){
-  float id = float(gl_InstanceID), t = uTime;
-  vec4 h = hash42(vec2(id * 3.17 + 1.3, 7.7)), h2 = hash42(vec2(id * 1.91 + 9.1, 2.3));
-  vec2 wander = vec2(sin(t * (0.21 + 0.17 * h2.x) + h.z * 30.0) + 0.5 * sin(t * (0.53 + 0.3 * h2.y) + h.w * 20.0),
-                     cos(t * (0.19 + 0.15 * h2.y) + h.w * 25.0) + 0.5 * cos(t * (0.47 + 0.3 * h2.x) + h.z * 17.0)) * 2.2;
-  vec2 wp = (h.xy - 0.5) * uFBox + wander + uWindDirG * t * 0.12 * uWindStr;
-  vec2 rel = mod(wp - uCamM.xz + 0.5 * uFBox, uFBox) - 0.5 * uFBox;
-  float edge = min(0.5 * uFBox - abs(rel.x), 0.5 * uFBox - abs(rel.y));
-  vec2 w = uCamM.xz + rel;
-  float hgt = 0.35 + h2.z * h2.z * 2.2 + 0.25 * sin(t * (0.7 + h.x) + h2.w * 40.0);
-  vec3 p = vec3(rel.x, terrainH(w, 0.0) - uCamM.y + hgt, rel.y);
-  float period = 2.2 + 3.5 * h2.x, ph = fract(t / period + h.z);
-  float flash = smoothstep(0.0, 0.06, ph) * (1.0 - smoothstep(0.06, 0.06 + 0.7 / period, ph));
-  float breathe = 0.3 + 0.12 * sin(t * (1.3 + h2.y) + h.x * 40.0);
-  float patchy = smoothstep(-0.25, 0.35, tn(w * (1.0 / 60.0) + vec2(0.3, 0.8)));
-  vI = uFlyI * (breathe + flash) * smoothstep(0.0, 5.0, edge) * patchy * (1.0 - 0.8 * wxFogF(p));
-  vCol = mix(vec3(0.62, 1.0, 0.28), vec3(1.0, 0.88, 0.35), h.w);
+  vec2 rel; float hgt, intensity;
+  fireflyMotion(float(gl_InstanceID), rel, hgt, vCol, intensity);
+  vec3 p = vec3(rel.x, terrainH(uCamM.xz + rel, 0.0) - uCamM.y + hgt, rel.y);
+  vI = uFlyI * intensity * (1.0 - 0.8 * wxFogF(p));
   gl_Position = project(p);
   float dist = length(p);
   gl_PointSize = vI < 1e-3 ? 0.0 : clamp(uPxScale * 70.0 / max(dist, 0.5), 3.0 * uPxScale, 28.0 * uPxScale);
@@ -1301,14 +1312,14 @@ void main(){
 const FLY_COUNT = {low: 160, med: 280, high: 450, ultra: 600};
 
 /* splats each light-emitting thing as a soft disc into the top-down glow map (same placement/motion as its visible shader) */
-const GLOW_VS = VPRE + SCENE + `
+const GLOW_VS = VPRE + SCENE + FIREFLY_MOTION + `
 uniform int uMode; uniform float uGlowI, uFlyMul, uStreamOpacity;
 uniform float uFGrid, uFCell; uniform vec2 uFBase, uFOrig;
-uniform float uFBox, uPBox; uniform vec4 uTrail[40];
+uniform float uPBox; uniform vec4 uTrail[40];
 out vec2 vQ; out vec3 vC;
 vec2 cornerG(int i){ return i == 0 ? vec2(-1.0, -1.0) : i == 1 ? vec2(1.0, -1.0) : i == 2 ? vec2(1.0, 1.0) : i == 3 ? vec2(-1.0, -1.0) : i == 4 ? vec2(1.0, 1.0) : vec2(-1.0, 1.0); }
 void main(){
-  float id = float(gl_InstanceID), t = uTime;
+  float id = float(gl_InstanceID);
   vec2 rel = vec2(0.0); vec3 col = vec3(0.0); float I = 0.0, R = 1.0;
   if (uMode == 0){
     float iz = floor((id + 0.5) / uFGrid); float ix = id - iz * uFGrid;
@@ -1317,29 +1328,18 @@ void main(){
     rel = uFOrig + (vec2(ix, iz) + 0.15 + h.xy * 0.7) * uFCell;
     vec2 w = uCamM.xz + rel; float Rr = uFGrid * uFCell * 0.5;
     float dens = (smoothstep(-0.15, 0.3, tn(w * (1.0 / 48.0) + vec2(0.83, 0.27))) * 0.85 + 0.05) * (1.0 - smoothstep(Rr * 0.75, Rr, length(rel)));
-    if (h.z < dens){
+    if (h.z < dens * (1.0 - smoothstep(0.45, 0.85, uSnowCov)) && puddleMask(w) <= 0.8){
       float kind = tn(w * (1.0 / 160.0) + vec2(0.05, 0.55)) * 0.55 + 0.5 + (h2.w - 0.5) * 0.3;
       col = paletteAt(saturate(kind)) * mix(0.8, 1.1, h2.z); I = mix(1.4, 0.48, uLowSaturation) * touchLit(w); R = mix(1.5, 0.62, uLowSaturation);
     }
   } else if (uMode == 1){
-    vec4 h = hash42(vec2(id * 3.17 + 1.3, 7.7)), h2 = hash42(vec2(id * 1.91 + 9.1, 2.3));
-    vec2 wander = vec2(sin(t * (0.21 + 0.17 * h2.x) + h.z * 30.0) + 0.5 * sin(t * (0.53 + 0.3 * h2.y) + h.w * 20.0),
-                       cos(t * (0.19 + 0.15 * h2.y) + h.w * 25.0) + 0.5 * cos(t * (0.47 + 0.3 * h2.x) + h.z * 17.0)) * 2.2;
-    vec2 wp = (h.xy - 0.5) * uFBox + wander + uWindDirG * t * 0.12 * uWindStr;
-    rel = mod(wp - uCamM.xz + 0.5 * uFBox, uFBox) - 0.5 * uFBox;
-    float edge = min(0.5 * uFBox - abs(rel.x), 0.5 * uFBox - abs(rel.y));
-    vec2 w = uCamM.xz + rel;
-    float hgt = 0.35 + h2.z * h2.z * 2.2;
-    float period = 2.2 + 3.5 * h2.x, ph = fract(t / period + h.z);
-    float flash = smoothstep(0.0, 0.06, ph) * (1.0 - smoothstep(0.06, 0.06 + 0.7 / period, ph));
-    float breathe = 0.3 + 0.12 * sin(t * (1.3 + h2.y) + h.x * 40.0);
-    float patchy = smoothstep(-0.25, 0.35, tn(w * (1.0 / 60.0) + vec2(0.3, 0.8)));
-    col = mix(vec3(0.62, 1.0, 0.28), vec3(1.0, 0.88, 0.35), h.w);
-    I = uFlyMul * 1.6 * (breathe + flash) * smoothstep(0.0, 5.0, edge) * patchy / (1.0 + hgt * hgt * 0.6); R = 1.2 + hgt * 0.5;
+    float hgt, intensity;
+    fireflyMotion(id, rel, hgt, col, intensity);
+    I = uFlyMul * 1.6 * intensity / (1.0 + hgt * hgt * 0.6); R = 1.2 + hgt * 0.5;
   } else if (uMode == 2){
     vec4 h = hash42(vec2(id * 1.731, 17.17)), h2 = hash42(vec2(id * 0.917 + 5.3, 3.1));
     float spd = (1.6 + 2.6 * h.w) * (0.35 + uWindStr);
-    vec2 wp = (h.xy - 0.5) * uPBox + uWindDirG * t * spd + vec2(sin(t * 0.5 + h2.x * 30.0), cos(t * 0.43 + h2.y * 30.0)) * 3.0;
+    vec2 wp = (h.xy - 0.5) * uPBox + vec2(animationPhase(uWindDirG.x * spd, uPBox, 0.0), animationPhase(uWindDirG.y * spd, uPBox, 0.0)) + vec2(sin(animationAngle(0.5, h2.x * 30.0)), cos(animationAngle(0.43, h2.y * 30.0))) * 3.0;
     rel = mod(wp - uCamM.xz + 0.5 * uPBox, uPBox) - 0.5 * uPBox;
     float edge = min(0.5 * uPBox - abs(rel.x), 0.5 * uPBox - abs(rel.y)), y = 0.5 + h.z * h.z * 4.5;
     col = paletteAt(h2.w); I = 0.7 * smoothstep(0.0, 6.0, edge) / (1.0 + y * y * 0.35); R = 0.8 + 0.3 * y;
@@ -1423,8 +1423,8 @@ void main(){
   float fallV = 8.5 * (0.85 + 0.3 * h.z);
   vec2 wv = uWindDirG * (1.0 + 4.0 * uWindStr);
   vec3 vel = vec3(wv.x, -fallV, wv.y);
-  float y = uRainH * 0.7 - mod(uTime * fallV + h.w * uRainH, uRainH);
-  vec2 rel = mod((h.xy - 0.5) * uRainBox + wv * uTime - uCamM.xz + 0.5 * uRainBox, uRainBox) - 0.5 * uRainBox;
+  float y = uRainH * 0.7 - animationPhase(fallV, uRainH, h.w * uRainH);
+  vec2 rel = mod((h.xy - 0.5) * uRainBox + vec2(animationPhase(wv.x, uRainBox, 0.0), animationPhase(wv.y, uRainBox, 0.0)) - uCamM.xz + 0.5 * uRainBox, uRainBox) - 0.5 * uRainBox;
   vec3 p = vec3(rel.x, y, rel.y), dir = normalize(vel);
   vec3 side = normalize(cross(dir, normalize(p + 1e-4))) * 0.008 * (0.7 + 0.6 * h2.x) * max(1.0, length(p) * 0.05);
   int v = gl_VertexID;
@@ -1482,9 +1482,9 @@ void main(){
   vec4 h = hash42(vec2(id * 0.913 + 0.3, 5.1)), h2 = hash42(vec2(id * 1.71 + 0.2, 7.7));
   float fallV = 1.0 + 0.7 * h.z;
   vec2 wv = uWindDirG * (0.5 + 7.0 * uWindStr * uWindStr);
-  float y = uSnowH * 0.7 - mod(uTime * fallV + h.w * uSnowH, uSnowH);
-  vec2 sw = vec2(sin(uTime * (0.7 + h2.x) + h.x * 40.0), cos(uTime * (0.6 + h2.y) + h.y * 40.0)) * 0.35;
-  vec2 rel = mod((h.xy - 0.5) * uSnowBox + wv * uTime + sw - uCamM.xz + 0.5 * uSnowBox, uSnowBox) - 0.5 * uSnowBox;
+  float y = uSnowH * 0.7 - animationPhase(fallV, uSnowH, h.w * uSnowH);
+  vec2 sw = vec2(sin(animationAngle(0.7 + h2.x, h.x * 40.0)), cos(animationAngle(0.6 + h2.y, h.y * 40.0))) * 0.35;
+  vec2 rel = mod((h.xy - 0.5) * uSnowBox + vec2(animationPhase(wv.x, uSnowBox, 0.0), animationPhase(wv.y, uSnowBox, 0.0)) + sw - uCamM.xz + 0.5 * uSnowBox, uSnowBox) - 0.5 * uSnowBox;
   vec3 p = vec3(rel.x, y, rel.y);
   float dist = length(p), sz = mix(0.014, 0.034, h2.z * h2.z) * max(1.0, dist * 0.04);
   int v = gl_VertexID;
