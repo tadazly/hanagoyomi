@@ -49,7 +49,7 @@ Scene inputs are inactive when manual controls are disabled. Full controls are a
 
 Subscribe on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3815915459), or run `npm run build:wallpaper` and import `dist-wallpaper/index.html`.
 
-The v1.4.3 Workshop update is pending. Use the [standalone release package](https://github.com/tadazly/hanagoyomi/releases/tag/v1.4.3) for the features below.
+The v1.4.5 Workshop update is pending. Use the [standalone release package](https://github.com/tadazly/hanagoyomi/releases/tag/v1.4.5) for the features below.
 
 **Use built-in world settings** is enabled by default. Move to the desktop's bottom-right corner to open settings and the gallery. When this option is disabled, WE properties apply immediately and overwrite corresponding world settings on startup. **Import scene link** remains available in either mode: paste a link, return to the desktop to preview it, then choose whether to save or apply it.
 
