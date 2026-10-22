@@ -1294,7 +1294,7 @@ out vec3 vCol; out float vI;
 void main(){
   vec2 rel; float hgt, intensity;
   fireflyMotion(float(gl_InstanceID), rel, hgt, vCol, intensity);
-  vec3 p = vec3(rel.x, terrainH(uCamM.xz + rel, 0.0) - uCamM.y + hgt, rel.y);
+  vec3 p = vec3(rel.x, terrainContinuousH(uCamM.xz + rel, 0.0) - uCamM.y + hgt, rel.y);
   vI = uFlyI * intensity * (1.0 - 0.8 * wxFogF(p));
   gl_Position = project(p);
   float dist = length(p);

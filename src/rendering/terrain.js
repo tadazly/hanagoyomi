@@ -47,16 +47,28 @@ function groundH(x, z){
   return h;
 }
 const f = (v) => { const s = Number(v).toPrecision(8); return /[.e]/.test(s) ? s : s + '.0'; };
+const terrainFunction = (name, sample) => `
+float ${name}(vec2 w, float sp){
+  float h = 0.0;
+${OCT.map(o => `  h += ${f(o[0])} * ${sample}(rot2(w, ${f(o[2])}, ${f(o[3])}) * ${f(1 / o[1])} + vec2(${f(o[4])}, ${f(o[5])})) * octFade(${f(o[6])}, sp);`).join('\n')}
+  return h;
+}`;
 const TERRAIN_GLSL = `
 uniform sampler2D uTerr;
 float tn(vec2 p){ return textureLod(uTerr, p, 0.0).r; }
+// 部分 GPU 的 R16F 硬件过滤会量化插值结果；飞行粒子的地面高度需要连续的 highp 插值。
+// 保留原始纹理与地形，只对萤火虫用 texelFetch 取四角后以完整精度混合。
+float tnContinuous(vec2 p){
+  vec2 q = fract(p) * ${f(TN)} - 0.5, t = fract(q);
+  ivec2 i = ivec2(floor(q)), a = i & ivec2(${TN - 1}), b = (i + 1) & ivec2(${TN - 1});
+  float lo = mix(texelFetch(uTerr, a, 0).r, texelFetch(uTerr, ivec2(b.x, a.y), 0).r, t.x);
+  float hi = mix(texelFetch(uTerr, ivec2(a.x, b.y), 0).r, texelFetch(uTerr, b, 0).r, t.x);
+  return mix(lo, hi, t.y);
+}
 float octFade(float feat, float sp){ return 1.0 - smoothstep(feat * 0.2, feat * 0.5, sp); }
 vec2 rot2(vec2 w, float c, float s){ return vec2(c * w.x - s * w.y, s * w.x + c * w.y); }
-float terrainH(vec2 w, float sp){
-  float h = 0.0;
-${OCT.map(o => `  h += ${f(o[0])} * tn(rot2(w, ${f(o[2])}, ${f(o[3])}) * ${f(1 / o[1])} + vec2(${f(o[4])}, ${f(o[5])})) * octFade(${f(o[6])}, sp);`).join('\n')}
-  return h;
-}`;
+${terrainFunction('terrainH', 'tn')}
+${terrainFunction('terrainContinuousH', 'tnContinuous')}`;
 
 
 export { TN, tnData, tnSample, groundH, TERRAIN_GLSL };
