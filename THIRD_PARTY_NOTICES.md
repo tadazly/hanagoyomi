@@ -21,6 +21,14 @@ Redistribution and use in source and binary forms, with or without modification,
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
+## 写实弱星星表 — ESA Hipparcos / NASA HEASARC
+
+写实夜空使用 [ESA 1997 Hipparcos Main Catalogue（I/239）](https://heasarc.gsfc.nasa.gov/W3Browse/catalog/hipparcos.html) 的真实测量，数据由 NASA HEASARC TAP 提供。筛选 Johnson V ≤ 7.3，排除 8 条缺失可靠坐标的记录，保留 21,107 颗恒星；其中 8,870 颗 V ≤ 6.5，另外 12,237 颗弱星只在静止观察的有限短曝光模拟中逐渐显现。默认风格继续使用上方的 d3-celestial 星表。
+
+位置按实测自行从 J1991.25 推进到 J2000.0，与项目天球坐标保持一致；颜色采用实测 B-V 的近似显示，缺测时回退中性白。恒星相对能量遵循 Pogson 关系 `F ∝ 10^(-0.4 V)`；整体显示曝光、PSF 和观测过渡属于 SDR 渲染适配，不作为绝对测光校准。约 6.5 等的肉眼基准参考 [NOAA 的星等说明](https://www.noaa.gov/stories/see-more-than-stars-spotting-noaa-satellites-in-sky)。参考照片包含长曝光和拼接，不将其全部星点当成肉眼可见目标。
+
+二进制资源为 `src/assets/hipparcos-v7.3.bin`；精确查询、来源 SHA-256、记录数量、坐标历元和参考亮星记录见 `src/data/hipparcos-catalog.json`。用 `node scripts/prepare-hipparcos.mjs <原始 VOTable.xml>` 可重新生成。引用：ESA, 1997, *The Hipparcos and Tycho Catalogues*, ESA SP-1200；Perryman et al., 1997, A&A 323, L49。
+
 ## 天气数据 — Open-Meteo
 
 “跟随天气”模式从 [Open-Meteo](https://open-meteo.com/) 获取当前天气。数据由 Open-Meteo.com 提供，遵循 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)，界面保留来源链接。免费 API 面向非商业用途；商业使用需依据其服务条款选择适当接口。天气数据会映射为场景参数，云形、降水、积水和积雪为艺术化表达。

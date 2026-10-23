@@ -2,6 +2,7 @@ import { TERRAIN_GLSL } from './terrain.js';
 import { WEATHER_FOG_GLSL } from './weather-fog.js';
 import { FLOWER_PETALS } from './flower-mesh.js';
 import { ANIMATION_GLSL } from './animation-time.js';
+import { MAGNITUDE_EXPONENT } from './stellar-photometry.js';
 const VS_FULL = `#version 300 es
 out vec2 vUv;
 void main(){ vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)); vUv = p; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
@@ -287,8 +288,7 @@ void main(){
 }`;
 
 /* ---------- display transform used by every scene shader (grading + vignette happen in post) ---------- */
-const DISPLAY = `
-uniform float uExposure; uniform vec2 uRes;
+const DISPLAY_TRANSFORM = `
 vec3 aces(vec3 x){
   const mat3 I = mat3(0.59719, 0.07600, 0.02840, 0.35458, 0.90834, 0.13383, 0.04823, 0.01566, 0.83777);
   const mat3 O = mat3(1.60475, -0.10208, -0.00327, -0.53108, 1.10813, -0.07276, -0.07367, -0.00605, 1.07602);
@@ -296,10 +296,18 @@ vec3 aces(vec3 x){
   return clamp(O * (a / b), 0.0, 1.0);
 }
 vec3 srgbOut(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
+`;
+const DISPLAY = `
+uniform float uExposure; uniform vec2 uRes;
+` + DISPLAY_TRANSFORM + `
 vec3 toDisplay(vec3 c){
   c *= uExposure;
   c *= mix(vec3(0.96, 1.0, 1.05), vec3(1.0), uLowSaturation);
+#ifdef NIGHT_HDR
+  return max(c, vec3(0.0));
+#else
   return srgbOut(aces(c)) + (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) - 0.5) / 255.0;
+#endif
 }`;
 
 /* ---------- scene helpers (vertex + fragment) ---------- */
@@ -946,7 +954,11 @@ void main(){
   acc /= ws;
   float fall = exp(-length(dv * vec2(uAspect, 1.0)) * 2.2);
   vec3 rays = uSunCam * acc * acc * fall * uGod * (0.0035 + 0.01 * hg(0.7, dot(rd, uSunDir)));
+#ifdef NIGHT_HDR
+  o = vec4(max(rays * uExposure * 0.9, vec3(0.0)), 1.0);
+#else
   o = vec4(1.0 - exp(-rays * uExposure * 0.9), 1.0);
+#endif
 }`;
 
 /* ---------- post: depth of field, bloom, grading ---------- */
@@ -993,12 +1005,20 @@ void main(){
   o = vec4(col / tot, spread);
 }`;
 const BLOOMPRE_FS = HEAD + `
+#ifdef TWILIGHT_HDR
+` + DISPLAY_TRANSFORM + `
+uniform float uHdrBlend;
+#endif
 uniform sampler2D uSrc; uniform vec2 uSrcTexel; uniform float uThresh;
 out vec4 o;
 void main(){
   vec2 e = uSrcTexel * 0.5;
   vec3 c = (texture(uSrc, vUv + vec2(-e.x, -e.y)).rgb + texture(uSrc, vUv + vec2(e.x, -e.y)).rgb
           + texture(uSrc, vUv + vec2(-e.x, e.y)).rgb + texture(uSrc, vUv + vec2(e.x, e.y)).rgb) * 0.25;
+#ifdef TWILIGHT_HDR
+  // 暮光保留旧泛光的连续观感；太阳降到 -10° 后仅使用线性 HDR 泛光。
+  c = mix(srgbOut(aces(max(c, vec3(0.0)))), c, uHdrBlend);
+#endif
   float l = max(max(c.r, c.g), c.b);
   float k = 0.18, s = clamp(l - uThresh + k, 0.0, 2.0 * k); s = s * s / (4.0 * k);
   o = vec4(c * max(s, l - uThresh) / max(l, 1e-4), 1.0);
@@ -1022,10 +1042,13 @@ void main(){
            + texture(uSrc, vUv + vec2(-e.x, e.y)).rgb + texture(uSrc, vUv + vec2(e.x, e.y)).rgb) * 0.0833;
   o = vec4(texture(uBase, vUv).rgb + up, 1.0);
 }`;
-const FINAL_FS = HEAD + POSTCOMMON + `
+const FINAL_FS = HEAD + POSTCOMMON + DISPLAY_TRANSFORM + `
 uniform sampler2D uScene, uDepth, uDof, uBloom;
 uniform float uDofOn, uBloomI, uNight, uFrameN, uSat, uDrops, uVignette, uNightSky;
 uniform sampler2D uLens; uniform vec2 uRes; uniform vec3 uShTint, uHiTint, uLift;
+#ifdef TWILIGHT_HDR
+uniform float uHdrBlend, uLegacyBloomI;
+#endif
 out vec4 o;
 float ign(vec2 p){ return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
 vec4 hashD(vec2 p){ vec4 p4 = fract(vec4(p.xyxy) * vec4(0.1031, 0.1030, 0.0973, 0.1099)); p4 += dot(p4, p4.wzxy + 33.33); return fract((p4.xxyz + p4.yzzw) * p4.zywx); }
@@ -1055,8 +1078,20 @@ void main(){
     vec4 dof = texture(uDof, uv);
     col = mix(col, dof.rgb, smoothstep(0.35, 1.3, max(cf, dof.a)));
   }
-  col += texture(uBloom, uv).rgb * uBloomI;
+  vec3 bloom = texture(uBloom, uv).rgb;
+#ifdef TWILIGHT_HDR
+  col += bloom * uBloomI * uHdrBlend;
+#else
+  col += bloom * uBloomI;
+#endif
   col = col * (1.0 - 0.32 * dropShade) + glint * 0.5;
+#ifdef NIGHT_HDR
+  // 景深、透明合成及泛光均在线性 HDR 中完成；只在这里映射到 SDR。
+  col = srgbOut(aces(max(col, vec3(0.0))));
+#endif
+#ifdef TWILIGHT_HDR
+  col += bloom * uLegacyBloomI * (1.0 - uHdrBlend);
+#endif
   /* 两套配色都随太阳高度变化；低饱和方案以材质配色为主。 */
   float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
   col = mix(vec3(l), col, uSat + (1.3 - uSat) * smoothstep(0.5, 0.85, l) * uNight * (1.0 - uLowSaturation));
@@ -1185,14 +1220,18 @@ void main(){
   vec2 q = gl_PointCoord * 2.0 - 1.0;
   float a = exp(-dot(q, q) * 3.5);
   if (vI * a < 2e-4) discard;
+#ifdef NIGHT_HDR
+  o = vec4(vCol * vI * a, 1.0);
+#else
   o = vec4(1.0 - exp(-vCol * vI * a), 1.0);
+#endif
 }`;
 const STAR_VS = `#version 300 es
 precision highp float; precision highp int; precision highp sampler2D;
 layout(location = 0) in vec4 aStar;
 layout(location = 1) in vec3 aCol;
 uniform mat3 uEq; uniform vec3 uR, uU, uF; uniform vec2 uTan;
-uniform float uStarI, uPxScale;
+uniform float uStarI, uPxScale, uStellarLimit;
 uniform vec3 uMoonDir; uniform float uMoonRadius, uMoonWash, uScintillation, uPixAngle;
 uniform sampler2D uCloud, uSkyLut;
 ` + ANIMATION_GLSL + `
@@ -1208,6 +1247,9 @@ void main(){
   clip.z = clip.w;
   gl_Position = clip; vEnergy = vec3(0); vSigma = 1.0; gl_PointSize = 1.0;
   if (d.y < 0.0 || clip.w <= 0.0) return;
+#ifdef NIGHT_HDR
+  if (aStar.w >= uStellarLimit) return;
+#endif
   float T = textureLod(uCloud, clamp(clip.xy / clip.w * 0.5 + 0.5, 0.0, 1.0), 0.0).a;
   float mag = aStar.w;
   vec3 ext = vec3(stellarExtinction(d.y));
@@ -1220,13 +1262,19 @@ void main(){
   float moonDistance = length(d - uMoonDir);
   float glare = 1.0 - .8 * uMoonWash * exp(-moonDistance * moonDistance / .012);
   float occultation = 1.0 - discMask(d, uMoonDir, uMoonRadius, uPixAngle);
-  float sigma=.7,energy=uStarI*pow(10.0,-.30*(mag-6.0))*1.9;
-  // 显示动态范围软压缩在云透射之前完成，亮星仍有紧实亮核，薄云不会变成大亮斑。
+  float sigma=.7;
+#ifdef NIGHT_HDR
+  // 使用实测 V 星等的 Pogson 通量比；眼睛/短曝光的弱星上限连续过渡。
+  float energy=uStarI*pow(10.0,${MAGNITUDE_EXPONENT.toFixed(1)}*(mag-6.0))*.855;
+  float visible=1.0-smoothstep(uStellarLimit-.25,uStellarLimit,mag);
+#else
+  float energy=uStarI*pow(10.0,-.30*(mag-6.0))*1.9;
   energy=18.0*energy/(18.0+energy);
   float peak=energy*dot(ext,vec3(.2126,.7152,.0722))/(6.28318530718*sigma*sigma);
   vec2 skyUV=stellarSkyUV(d);
   float skyL=dot(textureLod(uSkyLut,skyUV,0.0).rgb,vec3(.2126,.7152,.0722));
   float visible=smoothstep(-2.0,2.0,log2(max(peak/(12.0*skyL+1e-9),1e-9)));
+#endif
   // 恒星保持点源；亮度不能把光斑扩张成接近月盘的圆球。
   vSigma=sigma*uPxScale;
   vEnergy=aCol*ext*energy*uPxScale*uPxScale*T*tw*visible*glare*occultation;
@@ -1246,7 +1294,11 @@ void main(){
   float psf=exp(-dot(q,q)/(2.0*variance))/(6.28318530718*variance);
   vec3 value=vEnergy*psf;
   if(max(value.r,max(value.g,value.b))<2e-4) discard;
+#ifdef NIGHT_HDR
+  o=vec4(value*occultation,1.0);
+#else
   o=vec4((1.0-exp(-value))*occultation,1.0);
+#endif
 }`;
 const LINE_VS = `#version 300 es
 precision highp float;
@@ -1262,7 +1314,14 @@ void main(){
 const LINE_FS = `#version 300 es
 precision highp float;
 in float vA; uniform float uLineA; out vec4 o;
-void main(){ o = vec4(vec3(0.45, 0.6, 0.95) * uLineA * vA, 1.0); }`;
+void main(){
+  vec3 c = vec3(0.45, 0.6, 0.95) * uLineA * vA;
+#ifdef NIGHT_HDR
+  // 星座线是低亮度标注，在线性空间校准，避免统一映射后变得刺眼。
+  c *= .18;
+#endif
+  o = vec4(c, 1.0);
+}`;
 /* 5044 stars brighter than mag 6.0 (d3-celestial, from the Yale Bright Star / Hipparcos data), 6 bytes each:
    RA u16, Dec u16, magnitude u8, B-V u8 */
 
@@ -1307,7 +1366,11 @@ void main(){
   vec2 q = gl_PointCoord * 2.0 - 1.0; float r2 = dot(q, q);
   if (r2 > 1.0) discard;
   vec3 c = vCol * vI * (exp(-r2 * 18.0) * 2.0 + exp(-r2 * 3.5) * 0.35);
+#ifdef NIGHT_HDR
+  o = vec4(c, 1.0);
+#else
   o = vec4(1.0 - exp(-c), 1.0);
+#endif
 }`;
 const FLY_COUNT = {low: 160, med: 280, high: 450, ultra: 600};
 

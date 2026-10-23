@@ -11,6 +11,8 @@ import galaxyUrl from './assets/milky-way.webp?url';
 import galaxyLowUrl from './assets/milky-way-low.webp?url';
 import galaxyMediumUrl from './assets/milky-way-medium.webp?url';
 import galaxyUltraUrl from './assets/milky-way-ultra.webp?url';
+import starCatalogUrl from './assets/hipparcos-v7.3.bin?url&no-inline';
+import starCatalogInline from './assets/hipparcos-v7.3.bin?url&inline';
 
 export let world;
 
@@ -18,7 +20,8 @@ if (WALLPAPER_MODE) document.body.dataset.wallpaper = 'true';
 initI18n();
 const shell = initShell();
 try {
-  world = startWorld(updateObservation, { moonSurfaceUrl, galaxyUrls: { low: galaxyLowUrl, med: galaxyMediumUrl, high: galaxyUrl, ultra: galaxyUltraUrl } });
+  world = startWorld(updateObservation, { moonSurfaceUrl, starCatalogUrl: import.meta.env.MODE === 'wallpaper' ? starCatalogInline : starCatalogUrl,
+    galaxyUrls: { low: galaxyLowUrl, med: galaxyMediumUrl, high: galaxyUrl, ultra: galaxyUltraUrl } });
   initGallery(world, shell);
   attachWallpaper(world, shell);
 } catch (error) {

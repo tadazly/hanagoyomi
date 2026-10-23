@@ -1,0 +1,107 @@
+{
+  "catalogue": "ESA 1997, Hipparcos Main Catalogue (I/239)",
+  "provider": "NASA HEASARC",
+  "sourceUrl": "https://heasarc.gsfc.nasa.gov/xamin/vo/tap/sync?REQUEST=doQuery&LANG=ADQL&MAXREC=50000&QUERY=SELECT+hip_number%2Cra_deg%2Cdec_deg%2Cvmag%2Cbv_color%2Cpm_ra%2Cpm_dec+FROM+hipparcos+WHERE+vmag+%3C%3D+7.3+ORDER+BY+hip_number",
+  "query": "SELECT hip_number,ra_deg,dec_deg,vmag,bv_color,pm_ra,pm_dec FROM hipparcos WHERE vmag <= 7.3 ORDER BY hip_number",
+  "sourceSha256": "8bcd73a0ac96202f50936799aee0a118213dbad18e5def5516d83b7af2a3e28c",
+  "binarySha256": "ecf98e1f2b6134e0508e6f5ea4fa11f996f155ed43b98b8e1971a8a03bac8c12",
+  "sourceEpoch": "J1991.25",
+  "outputEpoch": "J2000.0",
+  "properMotion": "球面切平面推进 8.75 年，pmRA 已包含 cos(dec)",
+  "format": "每条 12 字节：RA float32 deg、Dec float32 deg、V int16 毫星等、B-V int16 毫星等；均为 little-endian；缺失 B-V = -32768",
+  "inputRecords": 21115,
+  "count": 21107,
+  "nakedEyeCount": 8870,
+  "shortExposureCount": 12237,
+  "skippedPositions": [
+    31067,
+    50572,
+    52800,
+    55203,
+    59273,
+    78727,
+    80579,
+    115125
+  ],
+  "missingColor": [
+    6060,
+    8110,
+    17257,
+    20472,
+    21078,
+    26220,
+    29951,
+    30091,
+    32609,
+    36843,
+    39217,
+    39562,
+    48547,
+    56908,
+    67261,
+    75842,
+    76001,
+    82936,
+    88330,
+    88864,
+    90032,
+    90996,
+    102584
+  ],
+  "anchors": [
+    {
+      "name": "Canopus",
+      "index": 5407,
+      "hip": 30438,
+      "ra": 95.98795779981111,
+      "dec": -52.695660458722955,
+      "magnitude": -0.62,
+      "bv": 0.164
+    },
+    {
+      "name": "Sirius",
+      "index": 5837,
+      "hip": 32349,
+      "ra": 101.28715538648129,
+      "dec": -16.71611581927044,
+      "magnitude": -1.44,
+      "bv": 0.009
+    },
+    {
+      "name": "Arcturus",
+      "index": 12426,
+      "hip": 69673,
+      "ra": 213.91530010213023,
+      "dec": 19.18241029579009,
+      "magnitude": -0.05,
+      "bv": 1.239
+    },
+    {
+      "name": "Antares",
+      "index": 14205,
+      "hip": 80763,
+      "ra": 247.35192046271646,
+      "dec": -26.4320024931918,
+      "magnitude": 1.06,
+      "bv": 1.865
+    },
+    {
+      "name": "Vega",
+      "index": 16099,
+      "hip": 91262,
+      "ra": 279.2347351064922,
+      "dec": 38.78369179582599,
+      "magnitude": 0.03,
+      "bv": -0.001
+    },
+    {
+      "name": "Deneb",
+      "index": 18307,
+      "hip": 102098,
+      "ra": 310.3579780886565,
+      "dec": 45.28033799736099,
+      "magnitude": 1.25,
+      "bv": 0.092
+    }
+  ]
+}

@@ -6,6 +6,9 @@ import { exposureKey } from './exposure.js';
 import { splitAnimationTime, animationPhase, advanceFireflyOffset, advanceWindOffset, ANIMATION_TIME_PERIOD, wrap } from './animation-time.js';
 import { createLightingTimeline } from './lighting-timeline.js';
 import { MOON_RADIUS, nightSkyAppearance, moonNorthDirection, nightSkyStyle } from './night-sky.js';
+import { nightHdrEnabled, nightHdrBlend, nightHdrShader, hdrTarget } from './night-hdr.js';
+import { createNightObservation, nightObservationAppearance } from './night-observation.js';
+import { decodeHipparcosStars } from './stellar-photometry.js';
 import { STAR_DATA, LINE_DATA } from '../data/stars.js';
 import { CITIES, COMMON_CITIES, cityName, locationName, searchCities } from '../data/cities.js';
 import { WX_TYPES, WX_KEYS, wxPreset, WX_NEXT } from '../world/weather-presets.js';
@@ -44,7 +47,8 @@ function fail(key, values){ setMessage($('errorText'), key, values); $('error').
 const gl = canvas.getContext('webgl2', {antialias:false, alpha:false, depth:false, stencil:false,
   powerPreference:'high-performance', preserveDrawingBuffer:false});
 if (!gl){ fail('error.webgl'); return; }
-if (!(gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float'))){
+const floatColorBuffer = gl.getExtension('EXT_color_buffer_float');
+if (!(floatColorBuffer || gl.getExtension('EXT_color_buffer_half_float'))){
   fail('error.floatBuffer'); return;
 }
 (() => {
@@ -184,6 +188,27 @@ try {
     god: makeProgram(VS_FULL, GOD_FS, 'god'),
   };
 } catch (e){ fail('error.shader', { message: e.message.slice(0, 400) }); return; }
+const dayPrograms = P;
+let nightPrograms = null;
+let nightProgramIndex = 0;
+const nightProgramSources = [
+    ['terrain', TERRAIN_VS, TERRAIN_FS], ['grass', GRASS_VS, GRASS_FS],
+    ['flower', FLOWER_VS, PETAL_FS], ['petal', PETAL_VS, PETAL_FS], ['stream', STREAM_VS, PETAL_FS],
+    ['shell', SHELL_VS, SHELL_FS], ['sky', VS_SKY, SKYPASS_FS],
+    ['stars', STAR_VS, STAR_FS], ['planets', PLANET_VS, PLANET_FS], ['flies', FIREFLY_VS, FIREFLY_FS],
+    ['rain', RAIN_VS, RAIN_FS], ['snow', SNOW_VS, SNOW_FS], ['lines', LINE_VS, LINE_FS],
+    ['god', VS_FULL, GOD_FS], ['final', VS_FULL, FINAL_FS],
+    ['twilightBloom', VS_FULL, BLOOMPRE_FS, true], ['twilightFinal', VS_FULL, FINAL_FS, true],
+];
+function getNightPrograms(complete = true){
+  if (!nightPrograms) nightPrograms = { ...dayPrograms };
+  const end = complete ? nightProgramSources.length : Math.min(nightProgramIndex + 1, nightProgramSources.length);
+  while (nightProgramIndex < end){
+    const [name, vs, fs, twilight] = nightProgramSources[nightProgramIndex++];
+    nightPrograms[name] = makeProgram(nightHdrShader(vs), nightHdrShader(fs, twilight), `night ${name}`);
+  }
+  return nightPrograms;
+}
 const emptyVAO = gl.createVertexArray();
 const draw = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
 const flowerMeshes = [1, 4].map(segments => {
@@ -535,6 +560,28 @@ function bvToRgb(bv){
 }
 let STAR_N = 0, LINE_N = 0;
 const starVAO = gl.createVertexArray(), planetVAO = gl.createVertexArray(), lineVAO = gl.createVertexArray();
+let realisticStarVAO = null, realisticStarCount = 0, realisticStarRequested = false;
+const hipparcosUrl = celestialAssets.starCatalogUrl;
+function loadRealisticStars(){
+  if (realisticStarRequested || !hipparcosUrl) return;
+  realisticStarRequested = true;
+  fetch(hipparcosUrl).then(response => {
+    if (!response.ok) throw new Error('Hipparcos ' + response.status);
+    return response.arrayBuffer();
+  }).then(buffer => {
+    if (gl.isContextLost()) return;
+    const { count, positions, colorIndices } = decodeHipparcosStars(buffer);
+    const colors = new Float32Array(count * 3), vao = gl.createVertexArray();
+    for (let i = 0; i < count; i++) colors.set(Number.isFinite(colorIndices[i]) ? bvToRgb(colorIndices[i]) : [1, 1, 1], i * 3);
+    gl.bindVertexArray(vao);
+    for (const [location, data, size] of [[0, positions, 4], [1, colors, 3]]){
+      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(location); gl.vertexAttribPointer(location, size, gl.FLOAT, false, 0, 0);
+    }
+    gl.bindVertexArray(null);
+    realisticStarVAO = vao; realisticStarCount = count;
+  }).catch(error => console.warn('Hipparcos 星表加载失败，保留原星表', error));
+}
 const planetPos = new Float32Array(5 * 4), planetBuf = gl.createBuffer();
 (() => {
   const u = b64bytes(STAR_DATA), dv = new DataView(u.buffer);
@@ -860,7 +907,7 @@ function calculateLighting(AST){
 /* ================================================================== */
 /*  Render targets / geometry                                          */
 /* ================================================================== */
-let W = 0, H = 0, CW = 0, CH = 0, HW = 0, HH = 0, cssW = 0, cssH = 0;
+let W = 0, H = 0, CW = 0, CH = 0, HW = 0, HH = 0, cssW = 0, cssH = 0, hdrActive = false;
 const viewportLimit = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
 const textureLimit = gl.getParameter(gl.MAX_TEXTURE_SIZE), renderbufferLimit = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
 const targetLimits = { maxWidth: Math.min(textureLimit, renderbufferLimit, viewportLimit[0]), maxHeight: Math.min(textureLimit, renderbufferLimit, viewportLimit[1]) };
@@ -901,7 +948,7 @@ function resize(force){
   const { width: w, height: h } = renderSize(cssW, cssH, { dpr, ...targetLimits, maxPixels: WALLPAPER_MODE ? 3840 * 2160 : Infinity });
   const cloudSize = renderSize(cssW, cssH, { dpr: q.cloud, ...targetLimits, maxPixels: 1.15e6 });
   const cw = Math.max(16, cloudSize.width), ch = Math.max(16, cloudSize.height);
-  const signature = [w, h, cw, ch, S.quality].join('|');
+  const signature = [w, h, cw, ch, S.quality, hdrActive].join('|');
   if (signature === targetSignature) return;
   W = w; H = h; canvas.width = W; canvas.height = H;
   HW = Math.max(8, Math.ceil(W / 2)); HH = Math.max(8, Math.ceil(H / 2));
@@ -914,9 +961,15 @@ function resize(force){
   cloudFBO = FB([cloudColor, cloudDepth]);
   for (let i = 0; i < 2; i++){ hist[i] = T2(CW, CH, ...RGBA16F, gl.LINEAR); histFBO[i] = FB([hist[i]]); }
   /* multisampled scene target, resolved into textures for post */
-  const samples = Math.max(1, Math.min(q.samples, gl.getParameter(gl.MAX_SAMPLES)));
+  const candidates = (hdrActive ? (floatColorBuffer ? [gl.R11F_G11F_B10F, gl.RGBA16F] : [gl.RGBA16F]) : [])
+    .map(internal => ({ internal, format: internal === gl.RGBA16F ? gl.RGBA : gl.RGB,
+      supportedSamples: gl.getInternalformatParameter(gl.RENDERBUFFER, internal, gl.SAMPLES) }));
+  const target = hdrActive ? hdrTarget(q.samples, candidates,
+    gl.getInternalformatParameter(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, gl.SAMPLES)) : null;
+  const colorFormat = target?.internal ?? gl.RGBA8;
+  const samples = target?.samples ?? Math.max(1, Math.min(q.samples, gl.getParameter(gl.MAX_SAMPLES)));
   const rbC = gl.createRenderbuffer(), rbD = gl.createRenderbuffer(); owned.rb.push(rbC, rbD);
-  gl.bindRenderbuffer(gl.RENDERBUFFER, rbC); gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples, gl.RGBA8, W, H);
+  gl.bindRenderbuffer(gl.RENDERBUFFER, rbC); gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples, colorFormat, W, H);
   gl.bindRenderbuffer(gl.RENDERBUFFER, rbD); gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples, gl.DEPTH_COMPONENT24, W, H);
   msFBO = gl.createFramebuffer(); owned.fb.push(msFBO);
   gl.bindFramebuffer(gl.FRAMEBUFFER, msFBO);
@@ -924,7 +977,7 @@ function resize(force){
   gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rbD);
   gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
   if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error('MSAA framebuffer incomplete');
-  sceneTex = T2(W, H, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR);
+  sceneTex = T2(W, H, colorFormat, target?.format ?? gl.RGBA, hdrActive ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, gl.LINEAR);
   depthTex = T2(W, H, gl.DEPTH_COMPONENT24, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, gl.NEAREST);
   resFBO = FB([sceneTex]);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTex, 0);
@@ -1462,6 +1515,7 @@ function boxVisible(planes, x0, x1, y0, y1, z0, z1){
 /*  Frame                                                              */
 /* ================================================================== */
 let last = performance.now(), frameNo = 0, simTime = 0, prev = null, skyKey = '';
+const nightObservation = createNightObservation();
 const flyOffset = [0, 0];
 const gustOffset = [0, 0];
 let animationFrame = 0;
@@ -1474,7 +1528,11 @@ function frame(now){
   if (contextLost) return;
   const elapsedMs = Math.max(0, now - last);
   const { clockElapsed, visualDt: dt, weatherDt } = sceneFrameTiming(elapsedMs, sceneFreeze); last = now;
-  if (!noiseReady){ genStep(14); return; }
+  if (!noiseReady){
+    // 夜间启动在加载阶段分摊编译，不把整组新 shader 留给首个可见夜景帧。
+    if (AST.sunAlt < 2 * RAD) getNightPrograms(false);
+    genStep(14); return;
+  }
   resize(false);
   // uint 整秒自然环绕，小数秒精度不随累计运行时间下降。
   if (simTime + dt >= ANIMATION_TIME_PERIOD) for (const point of trailHist) point.t -= ANIMATION_TIME_PERIOD;
@@ -1505,8 +1563,17 @@ function frame(now){
   const localRain = WXS.rain * localWeather.precipitation;
   const lightChanged = updateLighting();
   const L = light, sun = L.lightDir, q = QUALITY[S.quality];
+  const hdr = nightHdrEnabled(AST.sunAlt);
+  const hdrBlend = nightHdrBlend(AST.sunAlt);
+  if (hdr !== hdrActive){
+    P = hdr ? getNightPrograms() : dayPrograms;
+    hdrActive = hdr;
+    resize(true);
+  }
   const nightSky = nightSkyAppearance(AST, S.nightSkyStyle);
-  if (nightSky.darkness > 0){ moonSurface.load(); galaxy.select(S.quality); }
+  if (nightSky.darkness > 0){ moonSurface.load(); galaxy.select(S.quality); loadRealisticStars(); }
+  const nightView = nightObservationAppearance(nightObservation.update(elapsedMs / 1000,
+    { position: camM, yaw, pitch, roll: cam.roll, fov: cam.fov }, nightSky.darkness > 0));
   equatorialToWorld(AST.lst, renderLocation().lat, S.sunAz, eqMat);
   expo = !isFinite(expo) ? L.exposure : Math.exp(Math.log(expo) + (Math.log(L.exposure) - Math.log(expo)) * (1 - Math.exp(-dt * 2.5)));
   const expoS = expo / L.pe, nightGlow = L.glowF * 0.45 / expoS;
@@ -1822,7 +1889,7 @@ function frame(now){
     set(Sk, 'uSunTrue', L.sunT); set(Sk, 'uMoonDir', L.moonD); set(Sk, 'uMoonDisk', L.moonDisk);
     set(Sk, 'uMoonRadius', MOON_RADIUS); set(Sk, 'uMoonNorth', moonNorthDirection(eqMat));
     set(Sk, 'uEarthshine', nightSky.earthshine); set(Sk, 'uNightSky', nightSky.darkness);
-    set(Sk, 'uGalaxyI', L.starI * nightSky.galaxy);
+    set(Sk, 'uGalaxyI', L.starI * nightSky.galaxy * nightView.galaxyGain);
     gl.uniformMatrix3fv(Sk.u.uEq, false, eqMat);
     tex(Sk, 'uMoonSurface', gl.TEXTURE_2D, moonSurface.texture); tex(Sk, 'uGalaxy', gl.TEXTURE_2D, galaxyTexture);
     const off = S.sunAz * Math.PI / 180, dirAE = (az, el) => [Math.cos(el) * Math.sin(az + off), Math.sin(el), Math.cos(el) * Math.cos(az + off)];
@@ -1833,18 +1900,20 @@ function frame(now){
   }
   /* real stars, planets and optional constellation lines, added over the sky only (depth test at the far plane) */
   if (L.starCat > 2e-4){
-    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR); gl.depthFunc(gl.LEQUAL); gl.depthMask(false);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, hdrActive ? gl.ONE : gl.ONE_MINUS_SRC_COLOR); gl.depthFunc(gl.LEQUAL); gl.depthMask(false);
     const St = nightSky.darkness > 0 ? P.stars : P.planets; use(St);
     gl.uniformMatrix3fv(St.u.uEq, false, eqMat);
     set(St, 'uR', B.r); set(St, 'uU', B.u); set(St, 'uF', B.f); set(St, 'uTan', tanX, tanY);
-    set(St, 'uStarI', L.starCat * (nightSky.darkness > 0 ? 8 / 2.4 * nightSky.stars : 1) * (1 - 0.95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow))); set(St, 'uPxScale', W / Math.max(cssW, 1)); setAnimationTime(St);
+    set(St, 'uStarI', L.starCat * (nightSky.darkness > 0 ? 8 / 2.4 * nightSky.stars * nightView.starGain : 1) * (1 - 0.95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow))); set(St, 'uPxScale', W / Math.max(cssW, 1)); setAnimationTime(St);
+    set(St, 'uStellarLimit', nightView.limitingMagnitude);
     tex(St, 'uCloud', gl.TEXTURE_2D, hist[cur]);
     if (nightSky.darkness > 0){
       set(St, 'uMoonDir', L.moonD); set(St, 'uMoonRadius', MOON_RADIUS); set(St, 'uMoonWash', AST.moonBright * smooth(0, .2, L.moonD[1]));
       set(St, 'uScintillation', reduceMotion ? 0 : 1); set(St, 'uPixAngle', 2 * tanY / H); set(St, 'uRes', W, H);
       tex(St, 'uSkyLut', gl.TEXTURE_2D, skyTex);
     }
-    gl.bindVertexArray(starVAO); gl.drawArrays(gl.POINTS, 0, STAR_N);
+    const realCatalog = nightSky.darkness > 0 && realisticStarVAO;
+    gl.bindVertexArray(realCatalog || starVAO); gl.drawArrays(gl.POINTS, 0, realCatalog ? realisticStarCount : STAR_N);
     updatePlanets(simMs);
     const Pl = P.planets;
     if (Pl !== St){
@@ -1913,7 +1982,7 @@ function frame(now){
     const god = Math.max(0, 1 - Math.max(0, off - 1) / 1.2) * Math.min(1, (fw - 0.05) * 4);
     if (god > 0.001){
       const Gd = P.god; use(Gd);
-      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR);
+      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, hdrActive ? gl.ONE : gl.ONE_MINUS_SRC_COLOR);
       tex(Gd, 'uCloud', gl.TEXTURE_2D, hist[cur]);
       set(Gd, 'uSunUV', sx * 0.5 + 0.5, syy * 0.5 + 0.5); set(Gd, 'uGod', god); set(Gd, 'uAspect', aspect);
       set(Gd, 'uExposure', expoS); set(Gd, 'uSunCam', L.lightCam); set(Gd, 'uSunDir', sun);
@@ -1943,8 +2012,11 @@ function frame(now){
     draw();
   }
   {
-    const Bp = P.bloomPre; use(Bp); gl.bindFramebuffer(gl.FRAMEBUFFER, bloomDF[0]); gl.viewport(0, 0, bloomSz[0][0], bloomSz[0][1]);
-    tex(Bp, 'uSrc', gl.TEXTURE_2D, sceneTex); set(Bp, 'uSrcTexel', 1 / W, 1 / H); set(Bp, 'uThresh', 0.76 - 0.15 * L.glowF);
+    const Bp = hdrActive && hdrBlend < 1 ? P.twilightBloom : P.bloomPre;
+    use(Bp); gl.bindFramebuffer(gl.FRAMEBUFFER, bloomDF[0]); gl.viewport(0, 0, bloomSz[0][0], bloomSz[0][1]);
+    const legacyThreshold = 0.76 - 0.15 * L.glowF;
+    tex(Bp, 'uSrc', gl.TEXTURE_2D, sceneTex); set(Bp, 'uSrcTexel', 1 / W, 1 / H);
+    set(Bp, 'uThresh', hdrActive ? legacyThreshold + (1 - legacyThreshold) * hdrBlend : legacyThreshold); set(Bp, 'uHdrBlend', hdrBlend);
     draw();
     for (let i = 1; i < bloomD.length; i++){
       const Dn = P.down; use(Dn); gl.bindFramebuffer(gl.FRAMEBUFFER, bloomDF[i]); gl.viewport(0, 0, bloomSz[i][0], bloomSz[i][1]);
@@ -1970,19 +2042,23 @@ function frame(now){
       gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
     } else if (!S.lensDrops) LR.drops.length = 0;
     LR.lastYaw = cam.yaw;
-    const Fi = P.final; use(Fi); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
+    const Fi = hdrActive && hdrBlend < 1 ? P.twilightFinal : P.final;
+    use(Fi); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
     set(Fi, 'uLowSaturation', S.lowSaturation ? 1 : 0);
     set(Fi, 'uVignette', S.vignette ? 1 : 0);
     tex(Fi, 'uScene', gl.TEXTURE_2D, sceneTex); tex(Fi, 'uDepth', gl.TEXTURE_2D, depthTex);
     tex(Fi, 'uDof', gl.TEXTURE_2D, dofTex); tex(Fi, 'uBloom', gl.TEXTURE_2D, bloomOut);
     set(Fi, 'uSat', L.grade.sat); set(Fi, 'uShTint', L.grade.sh); set(Fi, 'uHiTint', L.grade.hi); set(Fi, 'uLift', L.grade.lift);
     set(Fi, 'uDrops', lensOn && LR.tex ? 1 : 0); if (LR.tex) tex(Fi, 'uLens', gl.TEXTURE_2D, LR.tex);
-    set(Fi, 'uDofOn', dofOn ? 1 : 0); set(Fi, 'uBloomI', S.lowSaturation ? 0.055 + 0.07 * L.glowF : 0.16 + 0.2 * L.glowF); set(Fi, 'uNight', L.night); set(Fi, 'uNightSky', nightSky.darkness); set(Fi, 'uFrameN', frameNo % 997); set(Fi, 'uRes', W, H); setPost(Fi);
+    set(Fi, 'uHdrBlend', hdrBlend); set(Fi, 'uLegacyBloomI', S.lowSaturation ? 0.055 + 0.07 * L.glowF : 0.16 + 0.2 * L.glowF);
+    set(Fi, 'uDofOn', dofOn ? 1 : 0); set(Fi, 'uBloomI', hdrActive ? (S.lowSaturation ? .055 : .10) : S.lowSaturation ? 0.055 + 0.07 * L.glowF : 0.16 + 0.2 * L.glowF); set(Fi, 'uNight', L.night); set(Fi, 'uNightSky', nightSky.darkness); set(Fi, 'uFrameN', frameNo % 997); set(Fi, 'uRes', W, H); setPost(Fi);
     draw();
   }
 
   histIdx = 1 - histIdx; frameNo++;
   finishThumbnail();
+  // 日落前逐帧预热；白昼帧不新增 shader，切换日夜后重复使用已编译对象。
+  if (!hdrActive && AST.sunAlt < 2 * RAD && nightProgramIndex < nightProgramSources.length) getNightPrograms(false);
 
   /* stats + adaptive quality */
   statAcc += elapsedMs / 1000; statFrames++; statT += elapsedMs / 1000;
@@ -2081,6 +2157,7 @@ function loadScene(scene) {
   // 作品可恢复运动相位；旧作品保留当前相位，自然动画继续运行。
   keys.clear(); mouseFlight.reset(); frozenView = null; lastView = null;
   prev = null; needReset = true; lightKey = ''; skyKey = ''; expo = NaN;
+  nightObservation.reset();
   trailHist.length = 0; LR.drops.length = 0; streamG = NaN; streamAge = 0; streamOpacity = 0; bolt.t = 99;
   last = performance.now(); syncSceneControls();
   if (S.wxMode === 'follow' && !sceneFreeze.weather) { consumeObservedWeather(); void syncWeather(); }
