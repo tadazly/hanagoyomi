@@ -5,7 +5,7 @@ import { createGalaxyTexture } from './galaxy-texture.js';
 import { exposureKey } from './exposure.js';
 import { splitAnimationTime, animationPhase, advanceFireflyOffset, advanceWindOffset, ANIMATION_TIME_PERIOD, wrap } from './animation-time.js';
 import { createLightingTimeline } from './lighting-timeline.js';
-import { MOON_RADIUS, nightSkyAppearance, moonNorthDirection, nightSkyStyle } from './night-sky.js';
+import { MOON_RADIUS, celestialShaftSource, nightCloudGain, nightGroundGain, nightSkyAppearance, moonNorthDirection, nightSkyStyle } from './night-sky.js';
 import { nightHdrEnabled, nightHdrBlend, nightHdrShader, hdrTarget } from './night-hdr.js';
 import { createNightObservation, nightObservationAppearance } from './night-observation.js';
 import { decodeHipparcosStars } from './stellar-photometry.js';
@@ -860,15 +860,18 @@ function calculateLighting(AST){
   /* night key light: the moon when it stands high enough, otherwise a soft high light from its bearing */
   const legacyNightI = SUN_I * MOON_PHYS * Math.max(MOON_ART * AST.moonBright, NIGHT_KEY_MIN);
   const nightI = legacyNightI + (moonSky - legacyNightI) * nightSky.darkness;
-  const realMoon = moonD[1] > 0.1, legacyDir = realMoon ? moonD : azElDir(AST.moonAz, 1.1);
+  const moonRise = smooth(0, .1, moonD[1]), fillDir = azElDir(AST.moonAz, 1.1);
+  const lowMoonDir = fillDir.map((v, i) => v + (moonD[i] - v) * moonRise);
+  const legacyDir = moonRise === 1 ? moonD : moonRise === 0 ? fillDir : lowMoonDir.map(v => v / Math.hypot(...lowMoonDir));
   const blendedDir = legacyDir.map((v, i) => v + (moonD[i] - v) * nightSky.darkness);
   const nDir = nightSky.darkness > 0 ? blendedDir.map(v => v / Math.hypot(...blendedDir)) : legacyDir;
   // 写实深夜只保留真实月光；不再把落到地下的月亮抬成近地定向补光。
   const cool = [0.82, 0.93, 1.12].map(v => v + (1 - v) * nightSky.darkness);
-  const nCloud = tr(midH, nDir, nightI).map((v, i) => v * cool[i] * (0.1 + 0.5 * AST.moonBright) * (realMoon ? 1.0 : 0.6)), nGround = tr(0.05, nDir, nightI).map((v, i) => v * cool[i] * (0.18 + 0.82 * AST.moonBright) * (realMoon ? 1.0 : 0.7)), nCam = tr(camKm, nDir, nightI).map((v, i) => v * cool[i] * (0.18 + 0.82 * AST.moonBright) * (realMoon ? 1.0 : 0.7));
+  const nCloud = tr(midH, nDir, nightI).map((v, i) => v * cool[i] * (0.1 + 0.5 * AST.moonBright) * (.6 + .4 * moonRise)), nGround = tr(0.05, nDir, nightI).map((v, i) => v * cool[i] * (0.18 + 0.82 * AST.moonBright) * (.7 + .3 * moonRise));
+  const moonCam = tr(camKm, moonD, moonSky).map((v, i) => v * cool[i] * (0.18 + 0.82 * AST.moonBright));
   const sunWins = lum(sunCloud) >= lum(nCloud);
   const lightDir = sunWins ? sunT : nDir;
-  const lightCloud = sunWins ? sunCloud : nCloud, lightGround = sunWins ? sunGround : nGround, lightCam = sunWins ? sunCam : nCam;
+  const lightCloud = sunWins ? sunCloud : nCloud, lightGround = sunWins ? sunGround : nGround;
   /* multiple-scattering stand-in: the upper atmosphere stays sunlit well into twilight */
   const msI = SUN_I * lum(transmittance(30, sunT)) * 0.0028, MS = [0.35, 0.55, 1.0].map(v => v * msI);
   const zeroStats = {avg: Z, irr: Z};
@@ -894,14 +897,17 @@ function calculateLighting(AST){
   const darkness = nightSky.darkness;
   const keyV = legacyKey + (exposureKey(lg) - legacyKey) * darkness;
   const exposure = 0.66 / (0.9 * rel) * keyV, PE = exposure;
+  const cloudGain = sunWins ? 1 : nightCloudGain(AST, S.nightSkyStyle, lum(lightCloud) * PE, lum(atCloud.avg) * PE);
   const nightF = smooth(-1.8, -4.5, lg);
   for (let c = 0; c < 3; c++){ ambTop[c] *= 1 - 0.8 * nightF; ambBottom[c] *= 1 - 0.9 * nightF; }
   const pe = (v) => v.map(x => x * PE);
   /* at night the cloud deck as a whole thins the moonlight and skylight reaching the ground: thicker, darker */
   const overcast = nightF * smooth(0.2, 0.95, cov) * clamp(0.55 + 0.35 * densEff, 0.6, 1.2), dimN = 1 - 0.85 * Math.min(overcast, 1);
-  return {lightDir, lightCloud: pe(lightCloud), lightGround: pe(lightGround).map(v => v * dimN * nightSky.groundNight), lightCam: pe(lightCam), sunT, moonD,
-    moonI: moonUp ? moonSky : 0, ms: pe(MS), ambTop: pe(ambTop), ambBottom: pe(ambBottom), skyIrr: pe(skyIrr).map(v => v * dimN * nightSky.groundNight), sunDisk: pe(sunDisk), moonDisk: pe(moonDisk),
-    exposure, pe: PE, airglow: nightSky.airglow, night: nightF, glowF: Math.max(nightF, smooth(4, -5, AST.sunAlt / RAD)), fwd: sunWins ? 1 : (realMoon ? 0.8 : 0.3), ambOcc: 0.15 + 0.85 * nightF, cshAmt: 1, starCat: AIRGLOW * 2.4 * PE, starI: AIRGLOW * 14 * PE, grade: gradeAt(AST.sunAlt / RAD, S.lowSaturation, S.nightSkyStyle === 'realistic')};
+  const groundBudget = (lum(lightGround) * ly + lum(skyIrr)) * PE * dimN;
+  const groundGain = nightSky.groundNight * nightGroundGain(AST, S.nightSkyStyle, groundBudget);
+  return {lightDir, lightCloud: pe(lightCloud).map(v => v * cloudGain), lightGround: pe(lightGround).map(v => v * dimN * groundGain), sunCam: pe(sunCam), moonCam: pe(moonCam), sunT, moonD,
+    moonI: moonUp ? moonSky : 0, ms: pe(MS), ambTop: pe(ambTop), ambBottom: pe(ambBottom), skyIrr: pe(skyIrr).map(v => v * dimN * groundGain), sunDisk: pe(sunDisk), moonDisk: pe(moonDisk),
+    exposure, pe: PE, airglow: nightSky.airglow, night: nightF, glowF: Math.max(nightF, smooth(4, -5, AST.sunAlt / RAD)), fwd: sunWins ? 1 : .3 + .5 * moonRise, ambOcc: 0.15 + 0.85 * nightF, cshAmt: 1, starCat: AIRGLOW * 2.4 * PE, starI: AIRGLOW * 14 * PE, grade: gradeAt(AST.sunAlt / RAD, S.lowSaturation, S.nightSkyStyle === 'realistic')};
 }
 
 /* ================================================================== */
@@ -1974,10 +1980,11 @@ function frame(now){
   }
   gl.disable(gl.DEPTH_TEST);
   /* light shafts */
-  const fw = sun[0] * B.f[0] + sun[1] * B.f[1] + sun[2] * B.f[2];
-  if (S.god && fw > 0.05){
-    const sx = (sun[0] * B.r[0] + sun[1] * B.r[1] + sun[2] * B.r[2]) / (fw * tanX);
-    const syy = (sun[0] * B.u[0] + sun[1] * B.u[1] + sun[2] * B.u[2]) / (fw * tanY);
+  const shaft = celestialShaftSource(AST, L.sunCam, L.moonCam), shaftDir = shaft.direction;
+  const fw = shaftDir[0] * B.f[0] + shaftDir[1] * B.f[1] + shaftDir[2] * B.f[2];
+  if (S.god && lum(shaft.radiance) > 1e-8 && fw > 0.05){
+    const sx = (shaftDir[0] * B.r[0] + shaftDir[1] * B.r[1] + shaftDir[2] * B.r[2]) / (fw * tanX);
+    const syy = (shaftDir[0] * B.u[0] + shaftDir[1] * B.u[1] + shaftDir[2] * B.u[2]) / (fw * tanY);
     const off = Math.max(Math.abs(sx), Math.abs(syy));
     const god = Math.max(0, 1 - Math.max(0, off - 1) / 1.2) * Math.min(1, (fw - 0.05) * 4);
     if (god > 0.001){
@@ -1985,7 +1992,7 @@ function frame(now){
       gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, hdrActive ? gl.ONE : gl.ONE_MINUS_SRC_COLOR);
       tex(Gd, 'uCloud', gl.TEXTURE_2D, hist[cur]);
       set(Gd, 'uSunUV', sx * 0.5 + 0.5, syy * 0.5 + 0.5); set(Gd, 'uGod', god); set(Gd, 'uAspect', aspect);
-      set(Gd, 'uExposure', expoS); set(Gd, 'uSunCam', L.lightCam); set(Gd, 'uSunDir', sun);
+      set(Gd, 'uExposure', expoS); set(Gd, 'uSunCam', shaft.radiance); set(Gd, 'uSunDir', shaftDir);
       set(Gd, 'uRight', B.r); set(Gd, 'uUp', B.u); set(Gd, 'uFwd', B.f); set(Gd, 'uTan', tanX, tanY);
       draw();
       gl.disable(gl.BLEND);
