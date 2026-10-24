@@ -90,7 +90,7 @@ test('窄而极高画布受独立高度限制，普通画布不额外降采样',
 });
 
 test('精选风景都是可导入的实际世界参数，三语目录完整', () => {
-  assert.equal(GALLERY_SCENES.length, 20);
+  assert.equal(GALLERY_SCENES.length, 22);
   assert.equal(GALLERY_SCENES[0].id, 'recommended-cloud-sea-dawn');
   assert.equal(GALLERY_SCENES.at(-1).id, 'stars');
   assert.ok(GALLERY_SCENES.length >= 8);
@@ -103,7 +103,7 @@ test('精选风景都是可导入的实际世界参数，三语目录完整', ()
     assert.equal(metadata.weatherKey, item.scene.environment.weather.type);
     assert.match(metadata.timeText, /^\d{2}:\d{2}$/);
     assert.equal(item.thumbnail, `gallery/${item.id}.jpg`);
-    assert.equal(item.nightSkyStyle, ['recommended-milky-way-fireflies', 'recommended-southern-clouds'].includes(item.id) ? 'realistic' : 'default');
+    assert.equal(item.nightSkyStyle, ['recommended-milky-way-fireflies', 'recommended-southern-clouds', 'recommended-constellation-summer-triangle', 'recommended-constellation-southern-cross'].includes(item.id) ? 'realistic' : 'default');
   }
 });
 
