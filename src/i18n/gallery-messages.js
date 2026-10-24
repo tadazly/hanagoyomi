@@ -5,6 +5,8 @@ const copy = {
   open: ['Open landscape gallery', '打开风景画廊', '風景ギャラリーを開く'],
   close: ['Close gallery and restore world', '关闭画廊并还原世界', 'ギャラリーを閉じて元の世界に戻る'],
   curated: ['Selected', '精选风景', 'おすすめ'],
+  initialWeather: ['Live weather', '实时天气', '現在の天気'],
+  initialTime: ['Current time', '当前时刻', '現在の時刻'],
   saved: ['My collection', '我的收藏', 'コレクション'],
   savedCompact: ['Saved', '收藏', '保存'],
   capture: ['Save moment', '收藏此刻', '今の風景を保存'],

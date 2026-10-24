@@ -4,6 +4,7 @@ import { RECOMMENDED_SCENES } from './gallery-recommendations.js';
 import { V6_SCENES } from './gallery-v6-scenes.js';
 import { NIGHT_SKY_SCENES } from './gallery-night-scenes.js';
 import { CONSTELLATION_SCENES } from './gallery-constellation-scenes.js';
+import { INITIAL_LANDSCAPE } from './gallery-initial-scene.js';
 
 function scene(id, title, description, hour, weather, camera = {}, settings = {}) {
   const current = wxPreset(weather);
@@ -19,6 +20,7 @@ function scene(id, title, description, hour, weather, camera = {}, settings = {}
 
 // 所有封面来自同一 WebGL 世界；不改变主干地形或着色器。
 const scenes = [
+  INITIAL_LANDSCAPE,
   scene('meadow', ['晴日花海', 'Sunlit meadow', '晴れの花畑'], ['晴朗 · 午后', 'Clear · Afternoon', '晴れ · 午後'], 15, 'clear', { agl: 3 }),
   scene('sunset', ['落日余温', 'Afterglow', '夕日の余韻'], ['少云 · 黄昏', 'Few clouds · Dusk', '薄曇り · 夕暮れ'], 17, 'fewcloud', { yaw: 4.1, pitch: .015 }, { sunAz: 317 }),
   scene('stars', ['星河入梦', 'Among the stars', '星空の夢'], ['晴朗 · 深夜', 'Clear · Midnight', '晴れ · 真夜中'], 23, 'clear', { pitch: .32 }, { constel: true, flowerGlow: true }),
@@ -30,7 +32,7 @@ const scenes = [
   ...CONSTELLATION_SCENES,
 ];
 // 按清晨、日间、雨雪与雨后、暮色、月夜到深夜排列，同类天气相邻。
-const order = ['recommended-cloud-sea-dawn', 'recommended-mist-valley-dawn', 'snow', 'recommended-snowfield-blue', 'recommended-v6-snow-flowers',
+const order = ['recommended-first-landscape', 'recommended-cloud-sea-dawn', 'recommended-mist-valley-dawn', 'snow', 'recommended-snowfield-blue', 'recommended-v6-snow-flowers',
   'recommended-rain-on-the-ridge', 'rain', 'recommended-v6-storm-flowers', 'meadow', 'recommended-film-gold-clear', 'recommended-wet-meadow-glow',
   'sunset', 'recommended-v6-cloudsea-dusk', 'recommended-rose-full', 'recommended-moon-cinema', 'recommended-v6-night-flowers', 'recommended-constel-cinema',
   ...CONSTELLATION_SCENES.map(item => item.id), 'recommended-milky-way-fireflies', 'recommended-southern-clouds', 'stars'];

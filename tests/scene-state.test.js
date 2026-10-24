@@ -90,8 +90,9 @@ test('窄而极高画布受独立高度限制，普通画布不额外降采样',
 });
 
 test('精选风景都是可导入的实际世界参数，三语目录完整', () => {
-  assert.equal(GALLERY_SCENES.length, 23);
-  assert.equal(GALLERY_SCENES[0].id, 'recommended-cloud-sea-dawn');
+  assert.equal(GALLERY_SCENES.length, 24);
+  assert.equal(GALLERY_SCENES[0].id, 'recommended-first-landscape');
+  assert.equal(GALLERY_SCENES[1].id, 'recommended-cloud-sea-dawn');
   assert.equal(GALLERY_SCENES.at(-1).id, 'stars');
   assert.ok(GALLERY_SCENES.length >= 8);
   assert.equal(new Set(GALLERY_SCENES.map(item => item.id)).size, GALLERY_SCENES.length);

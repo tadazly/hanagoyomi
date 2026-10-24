@@ -23,7 +23,7 @@ test('全部精选风景无损往返，localHour 解析为固定 UTC，链接短
     const scene = shared(entry.scene);
     const link = createSceneLink(scene, { title: entry.title.zh, baseUrl: BASE, now: NOW, timeZone: 'America/New_York' });
     const expected = resolveSceneTime(scene, 'Asia/Tokyo', NOW);
-    assert.ok(new URL(link).hash.startsWith('#scene=v3.'));
+    assert.match(new URL(link).hash, /^#scene=v[34]\./);
     assert.deepEqual(parseSceneLink(link), { scene: expected, title: entry.title.zh });
     assert.equal('localHour' in parseSceneLink(link).scene.environment.time, false);
     assert.ok(link.length < 480, `${entry.id}: ${link.length}`);

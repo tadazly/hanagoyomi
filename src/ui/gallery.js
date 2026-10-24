@@ -86,6 +86,7 @@ export function initGallery(world, shell) {
   };
   const freezes = () => ({ freezeTime: $('#galleryFreezeTime').checked, freezeWeather: $('#galleryFreezeWeather').checked, freezeClouds: $('#galleryFreezeClouds').checked });
   const summaryFor = item => {
+    if (item.initial) return `${g('initialWeather')} · ${g('initialTime')}`;
     const details = describeScene(item.scene, { timeZone: getSavedLocation()?.tz || 'Asia/Tokyo' });
     return details ? `${t(`weather.${details.weatherKey}`)} · ${details.timeText}` : g('metadataUnknown');
   };
@@ -123,8 +124,9 @@ export function initGallery(world, shell) {
   };
   const previewItem = item => {
     sharing?.dismissIncoming();
-    world.previewScene(item.scene, { nightSkyStyle: item.nightSkyStyle }); selected = item;
-    syncFreezes(item.scene.freeze);
+    const scene = item.initial ? world.createInitialScene() : item.scene;
+    world.previewScene(scene, { nightSkyStyle: item.nightSkyStyle, preserveFollowNow: Boolean(item.initial), followLocation: Boolean(item.initial) }); selected = item;
+    syncFreezes(scene.freeze);
     if (sheet.hidden) open();
     render(); setCollapsed(true);
   };
@@ -171,8 +173,8 @@ export function initGallery(world, shell) {
     if (card.caption.tagName === 'BUTTON') { card.caption.title = g('renameHint'); card.caption.setAttribute('aria-label', `${g('rename')} · ${name}`); }
     if (card.options) { card.options.title = g('options'); card.options.setAttribute('aria-label', `${g('options')} · ${name}`); }
     const metadata = describeScene(item.scene, { timeZone: getSavedLocation()?.tz || 'Asia/Tokyo' });
-    card.weather.textContent = metadata ? t(`weather.${metadata.weatherKey}`) : g('metadataUnknown');
-    card.moment.textContent = metadata ? ` · ${metadata.timeText}` : '';
+    card.weather.textContent = item.initial ? g('initialWeather') : metadata ? t(`weather.${metadata.weatherKey}`) : g('metadataUnknown');
+    card.moment.textContent = item.initial ? ` · ${g('initialTime')}` : metadata ? ` · ${metadata.timeText}` : '';
     card.description.title = summary;
     if (collection === 'saved' && item.hasThumbnail && !card.thumbnailLoaded) {
       card.thumbnailLoaded = true;

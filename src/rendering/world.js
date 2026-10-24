@@ -721,6 +721,8 @@ const S = {
   ...startupPreferences(),
   showWeather: true, showTemperature: true, showPrecipitation: false, showAirQuality: false, showClouds: false, showWind: false,
 };
+// 保存读档前、已适配设备与减少动态效果的场景默认值。
+const initialSceneSettings = Object.freeze(Object.fromEntries(Object.keys(SCENE_SETTINGS).map(key => [key, S[key]])));
 /* 本机偏好与完整世界分开保存，未应用的预览始终写回原世界。 */
 const SETTINGS_KEY = storageKey('meadow.settings.v1');
 const PERSIST_KEYS = [...Object.keys(STARGAZING_DEFAULTS), 'nightSkyStyle', 'auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof', 'lowSaturation', 'vignette',
@@ -764,7 +766,7 @@ function saveSettings(){
   for (const k of PERSIST_KEYS) if (S[k] !== undefined) o[k] = original && k in original.settings ? original.settings[k] : S[k];
   if (preview) o.nightSkyStyle = preview.nightSkyStyle;
   if (original) { o.speed = original.environment.time.speedIndex; o.agl = original.camera.agl; o.heightSlider = sliderFromAgl(original.camera.agl); }
-  o.world = original || captureScene();
+  o.world = original || captureWorld();
   const j = JSON.stringify(o);
   if (j !== settingsSnap){
     let saved = false;
@@ -808,6 +810,7 @@ const interactionEnabled = () => S.interactionEnabled || S.stargazing;
   if (!hasRestoredSettings) S.sunAz = (((best.yaw * 180 / Math.PI - 38 - 230) % 360) + 360) % 360;
 })();
 const startupCamera = { ...DEFAULT_VIEW, x: S.x, z: S.z, yaw: cam.yaw, y: groundH(S.x, S.z) + DEFAULT_VIEW.agl };
+const initialSunAz = ((startupCamera.yaw * 180 / Math.PI - 38 - 230) % 360 + 360) % 360;
 if (!S.rememberPosition) { S.agl = DEFAULT_VIEW.agl; S.fovY = DEFAULT_VIEW.fov; }
 S.heightSlider = sliderFromAgl(S.agl);
 cam.y = groundH(S.x, S.z) + S.agl;
@@ -2308,6 +2311,19 @@ function captureScene() {
   if (!value) throw new Error('当前世界包含无效状态');
   return value;
 }
+// 本机世界保留“跟随城市”的绑定；收藏和分享仍由 captureScene 固定天文地点。
+function captureWorld() {
+  const scene = captureScene();
+  if (!sceneSkyLocation) delete scene.environment.skyLocation;
+  return scene;
+}
+function createInitialScene() {
+  return validateScene({ version: 1, settings: { ...initialSceneSettings, sunAz: initialSunAz }, camera: { ...startupCamera },
+    environment: { time: { ms: Date.now(), followNow: true, speedIndex: 1 },
+      weather: { type: 'cloudy', current: wxPreset('cloudy'), wet: 0, snowCover: 0 },
+      motion: { time: 0, windAngle: .6, windOffset: [0, 0], cloudY: 0, cloudAngle: .6, flyOffset: [0, 0], gustOffset: [0, 0] } },
+    freeze: { time: false, weather: false, clouds: false } });
+}
 function syncSceneControls() {
   S.heightSlider = sliderFromAgl(S.agl);
   for (const { el, paint, key } of rangeControls) { el.value = S[key]; paint(S[key]); }
@@ -2371,12 +2387,12 @@ function previewScene(input, options = {}) {
   const scene = resolveSceneTime(input, LOC.tz);
   if (!scene) throw new TypeError('无效的风景');
   const { freezeTime = scene.freeze.time, freezeWeather = scene.freeze.weather, freezeClouds = scene.freeze.clouds } = options;
-  if (!scene.environment.skyLocation) { const { lat, lon, tz } = LOC; scene.environment.skyLocation = { lat, lon, tz }; }
-  if (!preview) preview = { original: captureScene(), weather: structuredClone(WXS), nightSkyStyle: S.nightSkyStyle, startedAt: performance.now() };
+  if (!scene.environment.skyLocation && !options.followLocation) { const { lat, lon, tz } = LOC; scene.environment.skyLocation = { lat, lon, tz }; }
+  if (!preview) preview = { original: captureWorld(), weather: structuredClone(WXS), nightSkyStyle: S.nightSkyStyle, startedAt: performance.now() };
   preview.selected = scene;
   const composed = structuredClone(scene);
   composed.freeze = { time: Boolean(freezeTime), weather: Boolean(freezeWeather), clouds: Boolean(freezeClouds) };
-  if (!freezeTime) composed.environment.time = { ...scene.environment.time, followNow: false, speedIndex: Math.max(1, scene.environment.time.speedIndex) };
+  if (!freezeTime) composed.environment.time = { ...scene.environment.time, followNow: Boolean(options.preserveFollowNow && scene.environment.time.followNow), speedIndex: Math.max(1, scene.environment.time.speedIndex) };
 
   // 推荐风景按封面切换风格；没有指定风格的作品沿用用户选择，取消时可还原。
   S.nightSkyStyle = ['default', 'realistic'].includes(options.nightSkyStyle) ? options.nightSkyStyle : preview.nightSkyStyle;
@@ -2415,7 +2431,7 @@ function commitPreview() {
   const previous = preview;
   try {
     const o = Object.fromEntries(PERSIST_KEYS.filter(key => S[key] !== undefined).map(key => [key, S[key]]));
-    o.world = captureScene();
+    o.world = captureWorld();
     const serialized = JSON.stringify(o); localStorage.setItem(SETTINGS_KEY, serialized); settingsSnap = serialized;
     preview = null;
   }
@@ -2487,7 +2503,7 @@ resize(true);
 animationFrame = requestAnimationFrame(tick);
 
 return {
-  hasRestoredSettings, captureScene, previewScene, setPreviewFreeze, cancelPreview, commitPreview, captureThumbnail,
+  hasRestoredSettings, captureScene, createInitialScene, previewScene, setPreviewFreeze, cancelPreview, commitPreview, captureThumbnail,
   isPreviewing: () => Boolean(preview),
   save: saveSettings,
   applyStartupPositionPreference(rememberPosition) {
