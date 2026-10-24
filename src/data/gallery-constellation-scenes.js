@@ -196,5 +196,103 @@ export const CONSTELLATION_SCENES = Object.freeze([
         "clouds": false
       }
     }
+  },
+  {
+    "id": "recommended-stargazing-honolulu-scorpius",
+    "title": {
+      "zh": "天蝎映野",
+      "en": "Scorpius over the Meadow",
+      "ja": "さそりの野"
+    },
+    "thumbnail": "gallery/recommended-stargazing-honolulu-scorpius.jpg",
+    "nightSkyStyle": "realistic",
+    "scene": {
+      "version": 1,
+      "settings": {
+        "auto": false,
+        "god": false,
+        "petals": false,
+        "sway": false,
+        "constel": true,
+        "flies": false,
+        "flowerGlow": false,
+        "bloom": false,
+        "streamScale": false,
+        "infMem": false,
+        "lensDrops": false,
+        "lowSaturation": false,
+        "streamDist": "near",
+        "bloomR": 4,
+        "sunAz": 0,
+        "dof": 0,
+        "wxMode": "manual",
+        "wxType": "clear",
+        "coverage": 0.018,
+        "density": 0.55,
+        "wind": 18,
+        "breeze": 0.18,
+        "fogVisS": 1000,
+        "rainAmt": 0,
+        "snowAmt": 0,
+        "boltFreq": 0,
+        "puddle": 0.68,
+        "snowMax": 0
+      },
+      "camera": {
+        "x": -48484,
+        "z": -53660,
+        "agl": 2.4,
+        "yaw": -2.8443018756990797,
+        "pitch": 0.3839724354387525,
+        "roll": 0,
+        "fov": 86,
+        "y": 57.36244913606906,
+        "focus": 45
+      },
+      "environment": {
+        "time": {
+          "ms": 1779107400000,
+          "followNow": false,
+          "speedIndex": 0
+        },
+        "weather": {
+          "type": "clear",
+          "current": {
+            "cov": 0.018,
+            "dens": 0.55,
+            "wind": 18,
+            "breeze": 0.18,
+            "vis": 30000,
+            "rain": 0,
+            "snow": 0,
+            "bolt": 0,
+            "wet": 0.68,
+            "snowCov": 0
+          },
+          "wet": 0.68,
+          "snowCover": 0
+        },
+        "skyLocation": {
+          "lat": 21.3069,
+          "lon": -157.8583,
+          "tz": "Pacific/Honolulu"
+        },
+        "motion": {
+          "time": 68,
+          "windAngle": 1.4,
+          "windOffset": [
+            0.6000000000000001,
+            0.18
+          ],
+          "cloudAngle": 1.4,
+          "cloudY": 0.14
+        }
+      },
+      "freeze": {
+        "time": true,
+        "weather": true,
+        "clouds": false
+      }
+    }
   }
 ]);
