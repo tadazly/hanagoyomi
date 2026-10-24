@@ -1,14 +1,22 @@
 import { TN, tnData, tnSample, groundH } from './terrain.js';
-import { VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CLOUD_FS, TAA_FS, DISPLAY, SCENE, SCENE_FS, VPRE, TERRAIN_VS, TERRAIN_FS, GRASS_VS, GRASS_FS, FLOWER_VS, PETAL_VS, STREAM_VS, PETAL_FS, SKYPASS_FS, GOD_FS, POSTCOMMON, DOFPREP_FS, DOF_FS, BLOOMPRE_FS, DOWN_FS, UP_FS, FINAL_FS, SHELL_VS, SHELL_FS, STAR_VS, STAR_FS, PLANET_VS, PLANET_FS, LINE_VS, LINE_FS, FIREFLY_VS, FIREFLY_FS, FLY_COUNT, GLOW_VS, GLOW_FS, GLOW_N, TOUCH_FS, RESTAMP_VS, RESTAMP_FS, TOUCH_N, PUD_FS, PUD_N, RAIN_VS, RAIN_FS, BOLT_VS, BOLT_FS, RAIN_N, SNOW_VS, SNOW_FS, SNOW_N, DROP_VS, DROP_FS, GLOW_EXT, TOUCH_EXT, PUD_EXT, BOLT_MAX } from './shaders.js';
+import { VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CLOUD_FS, TAA_FS, DISPLAY, SCENE, SCENE_FS, VPRE, TERRAIN_VS, TERRAIN_FS, GRASS_VS, GRASS_FS, FLOWER_VS, PETAL_VS, STREAM_VS, PETAL_FS, SKYPASS_FS, GOD_FS, POSTCOMMON, DOFPREP_FS, DOF_FS, BLOOMPRE_FS, DOWN_FS, UP_FS, FINAL_FS, SHELL_VS, SHELL_FS, STAR_VS, STAR_FS, PLANET_VS, PLANET_FS, FIREFLY_VS, FIREFLY_FS, FLY_COUNT, GLOW_VS, GLOW_FS, GLOW_N, TOUCH_FS, RESTAMP_VS, RESTAMP_FS, TOUCH_N, PUD_FS, PUD_N, RAIN_VS, RAIN_FS, BOLT_VS, BOLT_FS, RAIN_N, SNOW_VS, SNOW_FS, SNOW_N, DROP_VS, DROP_FS, GLOW_EXT, TOUCH_EXT, PUD_EXT, BOLT_MAX } from './shaders.js';
 import { equatorialToWorld } from './celestial-coordinates.js';
 import { createGalaxyTexture } from './galaxy-texture.js';
+import { cloudRayLimit } from './cloud-range.js';
+import { moonlessAstronomy, observationLighting, observationSunAltitude } from './observation-lighting.js';
 import { exposureKey } from './exposure.js';
 import { splitAnimationTime, animationPhase, advanceFireflyOffset, advanceWindOffset, ANIMATION_TIME_PERIOD, wrap } from './animation-time.js';
 import { createLightingTimeline } from './lighting-timeline.js';
 import { MOON_RADIUS, celestialShaftSource, nightCloudGain, nightGroundGain, nightSkyAppearance, moonNorthDirection, nightSkyStyle } from './night-sky.js';
 import { nightHdrEnabled, nightHdrBlend, nightHdrShader, hdrTarget } from './night-hdr.js';
 import { createNightObservation, nightObservationAppearance } from './night-observation.js';
+import { bvToRgb } from './stellar-color.js';
+import { observationPlanetMagnitude } from './planet-photometry.js';
 import { decodeHipparcosStars } from './stellar-photometry.js';
+import { createConstellationOverlay } from './constellation-overlay.js';
+import { createChartCelestials } from './chart-celestials.js';
+import { STARGAZING_DEFAULTS, stargazingPreferences, constellationTarget, constellationLabel } from './stargazing.js';
+import { CONSTELLATIONS } from '../data/constellations.js';
 import { STAR_DATA, LINE_DATA } from '../data/stars.js';
 import { CITIES, COMMON_CITIES, cityName, locationName, searchCities } from '../data/cities.js';
 import { WX_TYPES, WX_KEYS, wxPreset, WX_NEXT } from '../world/weather-presets.js';
@@ -18,7 +26,7 @@ import { updateWeatherDetails } from '../ui/weather-details.js';
 import { getSavedLocation, saveLocation } from '../world/location.js';
 import { zonedHours, zonedDayStart, localTimeToUTC, fmtTime, advanceClock, timezoneOffset, TIME_SPEEDS as SPEEDS } from '../world/clock.js';
 import { getAstronomy, sunEventsText, phaseName, phaseIndex, getSunEvents } from '../world/astronomy.js';
-import { getLocale, onLanguageChange, setMessage, t } from '../i18n/index.js';
+import { getLocale, getLanguage, onLanguageChange, setMessage, t } from '../i18n/index.js';
 import { bindTimeActions, updateTimeControls } from '../ui/time-controls.js';
 import { bindMouseFlightInput, flightStickAxes } from './flight-input.js';
 import { WALLPAPER_MODE, storageKey } from '../platform/environment.js';
@@ -177,7 +185,6 @@ try {
     pud: makeProgram(VS_FULL, PUD_FS, 'pud'),
     drop: makeProgram(DROP_VS, DROP_FS, 'drop'),
     bolt: makeProgram(BOLT_VS, BOLT_FS, 'bolt'),
-    lines: makeProgram(LINE_VS, LINE_FS, 'lines'),
     dofPrep: makeProgram(VS_FULL, DOFPREP_FS, 'dofprep'),
     dof: makeProgram(VS_FULL, DOF_FS, 'dof'),
     bloomPre: makeProgram(VS_FULL, BLOOMPRE_FS, 'bloompre'),
@@ -196,7 +203,7 @@ const nightProgramSources = [
     ['flower', FLOWER_VS, PETAL_FS], ['petal', PETAL_VS, PETAL_FS], ['stream', STREAM_VS, PETAL_FS],
     ['shell', SHELL_VS, SHELL_FS], ['sky', VS_SKY, SKYPASS_FS],
     ['stars', STAR_VS, STAR_FS], ['planets', PLANET_VS, PLANET_FS], ['flies', FIREFLY_VS, FIREFLY_FS],
-    ['rain', RAIN_VS, RAIN_FS], ['snow', SNOW_VS, SNOW_FS], ['lines', LINE_VS, LINE_FS],
+    ['rain', RAIN_VS, RAIN_FS], ['snow', SNOW_VS, SNOW_FS],
     ['god', VS_FULL, GOD_FS], ['final', VS_FULL, FINAL_FS],
     ['twilightBloom', VS_FULL, BLOOMPRE_FS, true], ['twilightFinal', VS_FULL, FINAL_FS, true],
 ];
@@ -305,6 +312,7 @@ function celestialTexture(url, fallback) {
   return { texture, load };
 }
 // 入口传入 Vite 的静态资源 URL，同时兼容 Web ES module 与壁纸 IIFE。
+let chartCelestials = null;
 const moonSurface = celestialTexture(celestialAssets.moonSurfaceUrl, [170, 165, 158, 255]);
 const galaxy = createGalaxyTexture(gl, celestialAssets.galaxyUrls);
 const galaxyTexture = galaxy.texture;
@@ -549,17 +557,10 @@ gl.bindVertexArray(null);
 const DEG = Math.PI / 180;
 const b64bytes = (str) => { const bin = atob(str), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
 const eqVec = (raU16, decU16) => { const ra = raU16 / 65535 * Math.PI * 2, dec = (decU16 / 65535 * 180 - 90) * DEG; return [Math.cos(dec) * Math.cos(ra), Math.cos(dec) * Math.sin(ra), Math.sin(dec)]; };
-/* star colour from B-V: Ballesteros (2012) temperature, then a blackbody fit, softened toward white as the eye sees it */
-function bvToRgb(bv){
-  const T = 4600 * (1 / (0.92 * bv + 1.7) + 1 / (0.92 * bv + 0.62)), t = T / 100;
-  const r = t <= 66 ? 255 : 329.698727446 * Math.pow(t - 60, -0.1332047592);
-  const g = t <= 66 ? 99.4708025861 * Math.log(t) - 161.1195681661 : 288.1221695283 * Math.pow(t - 60, -0.0755148492);
-  const b = t >= 66 ? 255 : t <= 19 ? 0 : 138.5177312231 * Math.log(t - 10) - 305.0447927307;
-  const c = [r, g, b].map(v => Math.max(0, Math.min(255, v)) / 255), m = Math.max(...c, 1e-3);
-  return c.map(v => (v / m) * 0.65 + 0.35);
-}
 let STAR_N = 0, LINE_N = 0;
-const starVAO = gl.createVertexArray(), planetVAO = gl.createVertexArray(), lineVAO = gl.createVertexArray();
+const starVAO = gl.createVertexArray(), planetVAO = gl.createVertexArray();
+let constellationStars, constellationDirections, constellationOverlay = null;
+const constellationCatalogs = {};
 let realisticStarVAO = null, realisticStarCount = 0, realisticStarRequested = false;
 const hipparcosUrl = celestialAssets.starCatalogUrl;
 function loadRealisticStars(){
@@ -580,6 +581,7 @@ function loadRealisticStars(){
     }
     gl.bindVertexArray(null);
     realisticStarVAO = vao; realisticStarCount = count;
+    constellationCatalogs.realistic = { positions, colors };
   }).catch(error => console.warn('Hipparcos 星表加载失败，保留原星表', error));
 }
 const planetPos = new Float32Array(5 * 4), planetBuf = gl.createBuffer();
@@ -602,8 +604,8 @@ const planetPos = new Float32Array(5 * 4), planetBuf = gl.createBuffer();
   LINE_N = lu.length / 4;
   const lp = new Float32Array(LINE_N * 3);
   for (let i = 0; i < LINE_N; i++) lp.set(eqVec(ldv.getUint16(i * 4, true), ldv.getUint16(i * 4 + 2, true)), i * 3);
-  attr(lineVAO, 0, lp, 3);
-  gl.bindVertexArray(null);
+  constellationStars = pos; constellationDirections = lp;
+  constellationCatalogs.default = { positions: pos, colors: col };
 })();
 /* planets: JPL "Approximate Positions of the Major Planets", Table 1 (valid 1800-2050) */
 const PLANET_EL = [
@@ -624,14 +626,16 @@ function helio(el, rate, T){
   const cw = Math.cos(w), sw = Math.sin(w), cO = Math.cos(Om), sO = Math.sin(Om), cI = Math.cos(I), sI = Math.sin(I);
   return [(cw * cO - sw * sO * cI) * xp + (-sw * cO - cw * sO * cI) * yp, (cw * sO + sw * cO * cI) * xp + (-sw * sO + cw * cO * cI) * yp, sw * sI * xp + cw * sI * yp];
 }
-function updatePlanets(ms){
+function updatePlanets(ms, atmosphere = 1){
   const T = (ms / 86400000 + 2440587.5 - 2451545) / 36525, eps = 23.43928 * DEG;
   const E = helio(EARTH_EL[0], EARTH_EL[1], T);
   PLANET_EL.forEach(([el, rate, H], i) => {
     const h = helio(el, rate, T), g = [h[0] - E[0], h[1] - E[1], h[2] - E[2]];
     const r = Math.hypot(...h), dl = Math.hypot(...g);
     const x = g[0], y = g[1] * Math.cos(eps) - g[2] * Math.sin(eps), z = g[1] * Math.sin(eps) + g[2] * Math.cos(eps);
-    planetPos.set([x / dl, y / dl, z / dl, H + 5 * Math.log10(r * dl)], i * 4);
+    const legacyMagnitude = H + 5 * Math.log10(r * dl);
+    const magnitude = i === 1 ? observationPlanetMagnitude(legacyMagnitude, h, g, atmosphere) : legacyMagnitude;
+    planetPos.set([x / dl, y / dl, z / dl, magnitude], i * 4);
   });
   gl.bindBuffer(gl.ARRAY_BUFFER, planetBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, planetPos);
 }
@@ -713,22 +717,23 @@ const S = {
   fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: !WALLPAPER_MODE, lowSaturation: false,
   nightSkyStyle: nightSkyStyle(),
   ...displayPreferences(),
+  ...STARGAZING_DEFAULTS,
   ...startupPreferences(),
   showWeather: true, showTemperature: true, showPrecipitation: false, showAirQuality: false, showClouds: false, showWind: false,
 };
 /* 本机偏好与完整世界分开保存，未应用的预览始终写回原世界。 */
 const SETTINGS_KEY = storageKey('meadow.settings.v1');
-const PERSIST_KEYS = ['nightSkyStyle', 'auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof', 'lowSaturation', 'vignette',
+const PERSIST_KEYS = [...Object.keys(STARGAZING_DEFAULTS), 'nightSkyStyle', 'auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof', 'lowSaturation', 'vignette',
   'heightSlider', 'agl', 'speed', 'streamDist', 'wxMode', 'wxType', 'coverage', 'density', 'wind', 'breeze', 'fogVisS', 'rainAmt', 'snowAmt', 'boltFreq',
   'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind', 'interactionEnabled', 'rememberPosition'];
 try {
   const sv = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
   if (sv && typeof sv === 'object' && !Array.isArray(sv)){
-    Object.assign(S, displayPreferences(sv));
+    Object.assign(S, displayPreferences(sv), stargazingPreferences(sv));
     S.nightSkyStyle = nightSkyStyle(sv);
     Object.assign(S, startupPreferences(sv));
     for (const k of PERSIST_KEYS) {
-      if (!Object.hasOwn(sv, k) || k === 'nightSkyStyle') continue;
+      if (!Object.hasOwn(sv, k) || k === 'nightSkyStyle' || Object.hasOwn(STARGAZING_DEFAULTS, k)) continue;
       const value = sv[k];
       if (Object.hasOwn(SCENE_SETTINGS, k)) {
         if (!validateScene({ version: 1, settings: { [k]: value } })) continue;
@@ -777,6 +782,10 @@ const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t
 let userPickedQuality = WALLPAPER_MODE;
 const cam = {yaw: 0, pitch: 0.04, roll: 0, yawT: 0, pitchT: 0.04, pitchBase: 0.04, vx: 0, vz: 0, y: 0, focus: 40, fov: 60};
 let lastView = null, frozenView = null;
+let skyPress = null, skyPointer = null;
+const skyActivePointers = new Set();
+let stargazingPosition = null, constellationFocus = -1, atmosphere = S.atmosphere ? 1 : 0;
+const interactionEnabled = () => S.interactionEnabled || S.stargazing;
 
 (() => {
   let best = null;
@@ -830,6 +839,7 @@ const riseSetText = (ms) => sunEventsText(ms, renderLocation());
 const AIRGLOW = 5e-7, GLOW = [0.55, 0.7, 1.0].map(v => v * AIRGLOW);
 const MOON_PHYS = 2.5e-6, MOON_ART = 6.0, NIGHT_KEY_MIN = 1.4, KEY_NIGHT = 0.36, KEY_TWILIGHT = 0.8;
 let light = null, lightKey = '', lightSamples = null, AST = astro(simMs), expo = NaN;
+let observationLight = null, observationLightKey = '';
 const lightingTimeline = createLightingTimeline(ms => calculateLighting(astro(ms)));
 function updateLighting(){
   AST = astro(simMs);
@@ -850,7 +860,7 @@ function updateLighting(){
   lightKey = key; light = calculateLighting(AST);
   return true;
 }
-function calculateLighting(AST){
+function calculateLighting(AST, moonless = false){
   const sunT = AST.sun, moonD = AST.moon;
   const nightSky = nightSkyAppearance(AST, S.nightSkyStyle);
   const midH = (LAYER[0] + LAYER[1]) * 0.5, camKm = Math.max(cam.y / 1000, 0.002), Z = [0, 0, 0];
@@ -858,7 +868,7 @@ function calculateLighting(AST){
   const sunCloud = tr(midH, sunT, SUN_I), sunGround = tr(0.05, sunT, SUN_I), sunCam = tr(camKm, sunT, SUN_I);
   const moonSky = SUN_I * MOON_PHYS * MOON_ART * AST.moonBright, moonUp = moonD[1] > -0.05 && moonSky > 0;
   /* night key light: the moon when it stands high enough, otherwise a soft high light from its bearing */
-  const legacyNightI = SUN_I * MOON_PHYS * Math.max(MOON_ART * AST.moonBright, NIGHT_KEY_MIN);
+  const legacyNightI = moonless ? 0 : SUN_I * MOON_PHYS * Math.max(MOON_ART * AST.moonBright, NIGHT_KEY_MIN);
   const nightI = legacyNightI + (moonSky - legacyNightI) * nightSky.darkness;
   const moonRise = smooth(0, .1, moonD[1]), fillDir = azElDir(AST.moonAz, 1.1);
   const lowMoonDir = fillDir.map((v, i) => v + (moonD[i] - v) * moonRise);
@@ -873,7 +883,7 @@ function calculateLighting(AST){
   const lightDir = sunWins ? sunT : nDir;
   const lightCloud = sunWins ? sunCloud : nCloud, lightGround = sunWins ? sunGround : nGround;
   /* multiple-scattering stand-in: the upper atmosphere stays sunlit well into twilight */
-  const msI = SUN_I * lum(transmittance(30, sunT)) * 0.0028, MS = [0.35, 0.55, 1.0].map(v => v * msI);
+  const msI = moonless ? 0 : SUN_I * lum(transmittance(30, sunT)) * 0.0028, MS = [0.35, 0.55, 1.0].map(v => v * msI);
   const zeroStats = {avg: Z, irr: Z};
   const stats = (h) => {
     const a = sunT[1] > -0.35 ? skyStats(h, sunT) : zeroStats;
@@ -919,7 +929,7 @@ const textureLimit = gl.getParameter(gl.MAX_TEXTURE_SIZE), renderbufferLimit = g
 const targetLimits = { maxWidth: Math.min(textureLimit, renderbufferLimit, viewportLimit[0]), maxHeight: Math.min(textureLimit, renderbufferLimit, viewportLimit[1]) };
 let targetSignature = '';
 let cloudColor, cloudDepth, cloudFBO, hist = [], histFBO = [], histIdx = 0, needReset = true;
-let msFBO, resFBO, sceneTex, depthTex, dofPrepTex, dofPrepFBO, dofTex, dofFBO;
+let msFBO, resFBO, chartFBO, sceneTex, depthTex, dofPrepTex, dofPrepFBO, dofTex, dofFBO;
 let bloomD = [], bloomDF = [], bloomU = [], bloomUF = [], bloomSz = [];
 const owned = {tex: [], fb: [], rb: []};
 const T2 = (w, h, internal, format, type, filter) => { const t = makeTex2D(w, h, internal, format, type, filter, gl.CLAMP_TO_EDGE); owned.tex.push(t); return t; };
@@ -988,6 +998,8 @@ function resize(force){
   resFBO = FB([sceneTex]);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTex, 0);
   if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error('Scene depth framebuffer incomplete');
+  // 复用场景颜色，单独的纯色附件 FBO 允许安全采样 depthTex，避免深度附件反馈。
+  chartFBO = FB([sceneTex]);
   dofPrepTex = T2(HW, HH, ...RGBA16F, gl.LINEAR); dofPrepFBO = FB([dofPrepTex]);
   dofTex = T2(HW, HH, ...RGBA16F, gl.LINEAR); dofFBO = FB([dofTex]);
   let bw = HW, bh = HH;
@@ -1013,12 +1025,13 @@ function basis(yaw, pitch, roll){
 }
 const keys = new Set();
 window.addEventListener('keydown', (e) => {
-  if (!S.interactionEnabled || e.target.closest('input, textarea, select, button, summary') || $('helpDialog').open) return;
+  if (canPickConstellation() && e.key === 'Escape' && !e.target.closest('input,textarea,select')) { clearConstellation(); return; }
+  if (S.stargazing || !S.interactionEnabled || e.target.closest('input, textarea, select, button, summary') || $('helpDialog').open) return;
   const k = e.key.toLowerCase();
   if (['w','a','s','d','q','e','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){ keys.add(k); if (k !== 'shift') stopAuto(); }
 });
 window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
-window.addEventListener('keydown', (e) => { if (S.interactionEnabled && e.key === ' ' && !e.target.closest('input, textarea, select, button, summary') && !$('helpDialog').open){ sprintUntil = performance.now() + 1600; e.preventDefault(); } });
+window.addEventListener('keydown', (e) => { if (S.interactionEnabled && !S.stargazing && e.key === ' ' && !e.target.closest('input, textarea, select, button, summary') && !$('helpDialog').open){ sprintUntil = performance.now() + 1600; e.preventDefault(); } });
 window.addEventListener('blur', () => { keys.clear(); mouseFlight.reset(); });
 /* touch flies the petal stream like a flight game: one finger is a virtual stick measured from where it landed;
    double taps: one finger = sprint, two fingers = turn around, three fingers = hover / fly on */
@@ -1026,8 +1039,9 @@ const touches = new Map();
 const stick = {active: false, id: -1, ox: 0, oy: 0, x: 0, y: 0};
 let gesture = null, lastTap = {n: 0, t: 0}, lastSteerAt = -1e9, sprintUntil = 0;
 const mouseFlight = bindMouseFlightInput({
-  canvas, isFlying: () => S.auto, isEnabled: () => S.interactionEnabled && !$('helpDialog').open,
+  canvas, isFlying: () => S.auto, isEnabled: () => S.interactionEnabled && !S.stargazing && !$('helpDialog').open,
   look: (dx, dy) => {
+    constellationFocus = -1; constellationOverlay?.cancelPick();
     const k = (S.fovY / 60) * 0.0032;
     cam.yawT += dx * k; cam.pitchBase = cam.pitchT = clamp(cam.pitchT - dy * k, -1.45, 1.45);
   },
@@ -1036,7 +1050,7 @@ const mouseFlight = bindMouseFlightInput({
 window.addEventListener('resize', () => mouseFlight.reset());
 const capture = (id) => { try { canvas.setPointerCapture(id); } catch (err) {} };
 canvas.addEventListener('pointerdown', (e) => {
-  if (!S.interactionEnabled || e.pointerType === 'mouse') return;
+  if (!S.interactionEnabled || S.stargazing || e.pointerType === 'mouse') return;
   canvas.focus({ preventScroll: true });
   mouseFlight.reset();
   capture(e.pointerId);
@@ -1047,14 +1061,14 @@ canvas.addEventListener('pointerdown', (e) => {
   else stick.active = false;
 });
 canvas.addEventListener('pointermove', (e) => {
-  if (!S.interactionEnabled) return;
+  if (!S.interactionEnabled || S.stargazing) return;
   const tp = touches.get(e.pointerId);
   if (!tp) return;
   if (gesture && Math.hypot(e.clientX - tp.x0, e.clientY - tp.y0) > 14) gesture.moved = true;
   if (stick.active && e.pointerId === stick.id){ stick.x = e.clientX; stick.y = e.clientY; }
 });
 function onDoubleTap(n){
-  if (!S.interactionEnabled) return;
+  if (!S.interactionEnabled || S.stargazing) return;
   if (n === 1) sprintUntil = performance.now() + 1600;
   else if (n === 2){ cam.yawT += Math.PI; lastSteerAt = performance.now(); }
   else setAuto(!S.auto);
@@ -1074,7 +1088,7 @@ const endPointer = (e) => {
   }
 };
 canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
-canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (S.interactionEnabled) { S.fovY = clamp(S.fovY * Math.exp(e.deltaY * 0.0012), 28, 95); saveSettings(); } }, {passive: false});
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (interactionEnabled()) { constellationFocus = -1; S.fovY = clamp(S.fovY * Math.exp(e.deltaY * 0.0012), 28, 95); saveSettings(); } }, {passive: false});
 
 /* ================================================================== */
 /*  UI                                                                 */
@@ -1190,6 +1204,7 @@ function wxStatus(){
 bindRange('dof', 'dof', (v) => v < 0.01 ? t('common.off') : Math.round(v * 100) + '%');
 const fmtAgl = (a) => a < 10 ? a.toFixed(1) + ' m' : Math.round(a) + ' m';
 function setViewHeight(na) {
+  if (S.stargazing) return;
   na = clamp(na, VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX);
   if (Math.abs(na - S.agl) > 300) needReset = true;
   S.agl = na;
@@ -1200,7 +1215,7 @@ function setViewHeight(na) {
     frozenView = null; lastView = null;
   }
 }
-const heightCtl = bindRange('height', 'heightSlider', (v) => fmtAgl(aglFromSlider(v)), () => setViewHeight(aglFromSlider(S.heightSlider)));
+const heightCtl = bindRange('height', 'heightSlider', (v) => fmtAgl(aglFromSlider(v)), () => setViewHeight(aglFromSlider(S.heightSlider)), () => S.stargazing);
 function syncHeightSlider(){ S.heightSlider = sliderFromAgl(S.agl); heightCtl.el.value = S.heightSlider; heightCtl.paint(S.heightSlider); }
 document.querySelectorAll('[data-height-preset]').forEach(button => button.addEventListener('click', () => {
   const height = HEIGHT_PRESETS[button.dataset.heightPreset];
@@ -1212,7 +1227,7 @@ document.querySelectorAll('[data-height-preset]').forEach(button => button.addEv
 $('rememberPosition').checked = S.rememberPosition;
 $('rememberPosition').addEventListener('change', event => { S.rememberPosition = event.target.checked; saveSettings(); });
 const toggles = {auto: 'auto', god: 'god', petals: 'petals', sway: 'sway', constel: 'constel', flies: 'flies', flowerGlow: 'flowerGlow', bloom: 'bloom', streamScale: 'streamScale', infMem: 'infMem', lensDrops: 'lensDrops', vignette: 'vignette'};
-for (const [id, key] of Object.entries(toggles)){ const el = $(id); el.checked = S[key]; el.addEventListener('change', () => { if (key === 'auto') setAuto(el.checked); else S[key] = el.checked; }); }
+for (const [id, key] of Object.entries(toggles)){ const el = $(id); el.checked = S[key]; el.addEventListener('change', () => { if (key === 'auto') setAuto(el.checked); else { S[key] = el.checked; if (key === 'constel' && !el.checked) clearConstellation(); } }); }
 function syncNightSkyControls(){
   document.querySelectorAll('input[name="nightSkyStyle"]').forEach(r => { r.checked = r.value === S.nightSkyStyle; });
 }
@@ -1232,6 +1247,7 @@ $('lowSaturation').addEventListener('change', e => {
 });
 function setInteractionEnabled(enabled){
   S.interactionEnabled = enabled;
+  if (!enabled) { skyPress = null; skyPointer = null; skyActivePointers.clear(); clearConstellation(); }
   $('interactionEnabled').checked = enabled;
   keys.clear(); mouseFlight.reset();
   for (const id of touches.keys()) { try { canvas.releasePointerCapture(id); } catch {} }
@@ -1239,7 +1255,7 @@ function setInteractionEnabled(enabled){
   if (!enabled) { lastSteerAt = -1e9; cam.yawT = cam.yaw; cam.pitchBase = cam.pitchT = cam.pitch; }
   if (!enabled && !S.auto) cam.vx = cam.vz = 0;
   frozenView = !enabled && !S.auto ? lastView : null;
-  document.body.dataset.sceneInteractive = String(enabled);
+  document.body.dataset.sceneInteractive = String(interactionEnabled());
   document.dispatchEvent(new Event('sceneinteractionchange'));
   saveSettings();
 }
@@ -1252,6 +1268,7 @@ $('clearMem').addEventListener('click', () => {
 });
 window.addEventListener('pagehide', () => { if (S.infMem){ memDirty = true; memSave(true); } });
 function setAuto(value){
+  if (S.stargazing) value = false;
   S.auto = value; $('auto').checked = value; mouseFlight.reset();
   if (!value) { sprintUntil = 0; cam.pitchBase = cam.pitchT = cam.pitch; }
   if (!S.interactionEnabled){
@@ -1260,6 +1277,120 @@ function setAuto(value){
   }
   saveSettings();
 }
+// 观星的输入路由独立于飞行手势，防止双击、惯性、自动飞行改变观察位置。
+const canPickConstellation = () => interactionEnabled() && (S.constel || S.stargazing)
+  && (S.constelInteract || S.stargazing) && !$('helpDialog').open;
+const pointerPosition = e => { const rect = canvas.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; };
+canvas.addEventListener('pointerdown', e => {
+  if (!canPickConstellation() || e.button > 0) return;
+  skyActivePointers.add(e.pointerId);
+  if (skyActivePointers.size > 1) { skyPress = null; return; }
+  if (skyPress) { skyPress = null; return; }
+  skyPress = { id: e.pointerId, ...pointerPosition(e), cx: e.clientX, cy: e.clientY, lastX: e.clientX, lastY: e.clientY, moved: false };
+  if (S.stargazing) { canvas.focus({ preventScroll: true }); capture(e.pointerId); }
+});
+canvas.addEventListener('pointermove', e => {
+  if (!canPickConstellation()) return;
+  const point = pointerPosition(e); skyPointer = e.pointerType === 'mouse' ? point : null;
+  if (skyPress?.id === e.pointerId) {
+    const p = skyPress, dx = e.clientX - p.lastX, dy = e.clientY - p.lastY;
+    p.lastX = e.clientX; p.lastY = e.clientY;
+    if (Math.hypot(e.clientX - p.cx, e.clientY - p.cy) > 8) p.moved = true;
+    if (p.moved && S.stargazing) {
+      constellationFocus = -1; constellationOverlay?.cancelPick();
+      const k = S.fovY / 60 * .0032;
+      cam.yawT += dx * k; cam.pitchBase = cam.pitchT = clamp(cam.pitchT - dy * k, -Math.PI / 2, Math.PI / 2);
+    }
+  }
+  if (!skyPress?.moved && e.pointerType === 'mouse') constellationOverlay?.requestPick(point.x, point.y);
+});
+canvas.addEventListener('pointerup', e => {
+  skyActivePointers.delete(e.pointerId);
+  if (skyPress?.id !== e.pointerId) return;
+  const p = skyPress; skyPress = null;
+  if (canPickConstellation() && !p.moved && Math.hypot(e.clientX - p.cx, e.clientY - p.cy) <= 8) {
+    const point = pointerPosition(e); constellationOverlay?.requestPick(point.x, point.y, 'select', e.pointerType);
+  }
+});
+for (const event of ['pointercancel', 'lostpointercapture']) canvas.addEventListener(event, e => {
+  skyActivePointers.delete(e.pointerId);
+  if (skyPress?.id === e.pointerId) skyPress = null;
+});
+canvas.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { skyPointer = null; constellationOverlay?.clearHover(); } });
+for (const event of ['blur', 'resize']) window.addEventListener(event, () => { skyPress = null; skyPointer = null; skyActivePointers.clear(); constellationOverlay?.cancelPick(); });
+function clearConstellation() {
+  constellationFocus = -1; constellationOverlay?.clear();
+  cam.yawT = cam.yaw; cam.pitchBase = cam.pitchT = cam.pitch;
+  $('constellationInfo').textContent = ''; delete $('constellationInfo').dataset.i18n; delete $('constellationInfo').dataset.i18nParams; $('constellationSelect').value = '';
+}
+function selectConstellation(id, fromFinder = false) {
+  if (id < 0 || !constellationOverlay) { clearConstellation(); return; }
+  const target = constellationTarget(eqMat, constellationOverlay.centers[id], cam.yaw);
+  if (target.pitch <= 0) { clearConstellation(); setMessage($('constellationInfo'), 'sky.belowHorizon'); return; }
+  if (fromFinder && !S.stargazing) setStargazing(true);
+  constellationOverlay.select(id);
+  constellationFocus = S.stargazing ? id : -1;
+  $('constellationSelect').value = String(id);
+  setMessage($('constellationInfo'), 'sky.selected', { name: constellationLabel(CONSTELLATIONS[id], getLanguage(), S.constelBilingual).join(' · ') });
+}
+function syncStargazingControls() {
+  for (const key of ['stargazing', 'constelInteract', 'constelNames', 'constelBilingual']) $(key).checked = S[key];
+  document.querySelectorAll('input[name="skyDisplay"]').forEach(el => { el.checked = el.value === (S.atmosphere ? 'natural' : 'chart'); });
+  $('constel').checked = S.constel || S.stargazing; $('constel').disabled = S.stargazing;
+  $('constelInteract').checked = S.constelInteract || S.stargazing; $('constelInteract').disabled = S.stargazing;
+  $('interactionEnabled').checked = interactionEnabled(); $('interactionEnabled').disabled = S.stargazing;
+  $('auto').checked = S.auto && !S.stargazing; $('auto').disabled = S.stargazing;
+  $('height').disabled = S.stargazing;
+  document.querySelectorAll('[data-height-preset]').forEach(el => { el.disabled = S.stargazing; });
+  document.querySelectorAll('input[name="constelStyle"]').forEach(el => { el.checked = el.value === S.constelStyle; });
+  $('bilingualOption').hidden = getLanguage() === 'en'; $('constelBilingual').disabled = !S.constelNames;
+  $('stargazingStatus').hidden = !S.stargazing;
+  setMessage($('hintText'), S.stargazing ? 'sky.hint' : coarse ? 'hint.touch' : 'hint.mouse');
+  const current = $('constellationSelect').value;
+  $('constellationSelect').replaceChildren(new Option(t('sky.choose'), ''));
+  CONSTELLATIONS.forEach((item, i) => $('constellationSelect').add(new Option(constellationLabel(item, getLanguage(), S.constelBilingual).join(' · '), String(i))));
+  $('constellationSelect').value = current;
+  if (constellationOverlay?.selected >= 0) setMessage($('constellationInfo'), 'sky.selected', { name: constellationLabel(CONSTELLATIONS[constellationOverlay.selected], getLanguage(), S.constelBilingual).join(' · ') });
+  document.body.dataset.sceneInteractive = String(interactionEnabled());
+}
+function setStargazing(enabled) {
+  S.stargazing = enabled; stargazingPosition = null; constellationFocus = -1;
+  keys.clear(); mouseFlight.reset(); touches.clear(); stick.active = false; gesture = null; skyPress = null; skyActivePointers.clear();
+  lastTap = { n: 0, t: 0 }; sprintUntil = 0; cam.vx = cam.vz = 0;
+  cam.yawT = cam.yaw; cam.pitchBase = cam.pitchT = cam.pitch;
+  if (enabled) { S.auto = false; cam.y = lastView?.position[1] ?? cam.y; }
+  frozenView = null; constellationOverlay?.cancelPick();
+  syncStargazingControls(); document.dispatchEvent(new Event('sceneinteractionchange')); saveSettings();
+}
+for (const key of ['stargazing', 'constelInteract', 'constelNames', 'constelBilingual']) {
+  $(key).addEventListener('change', e => {
+    if (key === 'stargazing') setStargazing(e.target.checked);
+    else { S[key] = e.target.checked; if (key === 'constelInteract' && !S[key]) clearConstellation(); syncStargazingControls(); saveSettings(); }
+  });
+}
+// 沿用旧本机偏好以兼容已有星图用户；界面不再把整个显示模式称为大气开关。
+document.querySelectorAll('input[name="skyDisplay"]').forEach(el => el.addEventListener('change', () => {
+  if (el.checked) { S.atmosphere = el.value === 'natural'; saveSettings(); }
+}));
+document.querySelectorAll('input[name="constelStyle"]').forEach(el => el.addEventListener('change', () => {
+  if (el.checked) { S.constelStyle = el.value; saveSettings(); }
+}));
+for (const key of ['constelWidth', 'constelClarity', 'constelFont']) bindRange(key, key,
+  value => key === 'constelFont' ? `${value} px` : `${Math.round(value * 100)}%`);
+$('resetConstellationDisplay').addEventListener('click', () => {
+  for (const key of ['constelWidth', 'constelClarity', 'constelFont']) S[key] = STARGAZING_DEFAULTS[key];
+  syncSceneControls(); saveSettings();
+});
+$('exitStargazing').addEventListener('click', () => setStargazing(false));
+$('constellationSelect').addEventListener('change', () => {
+  const value = $('constellationSelect').value;
+  if (value === '') { clearConstellation(); return; }
+  constellationOverlay ||= createConstellationOverlay(gl, { makeProgram, use, set, tex }, constellationDirections, constellationStars, constellationCatalogs);
+  selectConstellation(Number(value), true);
+});
+onLanguageChange(syncStargazingControls);
+syncStargazingControls();
+
 function stopAuto(){ if (S.auto) setAuto(false); }
 function setQuality(q){ S.quality = q; document.querySelectorAll('input[name="q"]').forEach(r => { r.checked = r.value === q; }); resize(true); }
 document.querySelectorAll('input[name="sdist"]').forEach(r => {
@@ -1382,6 +1513,19 @@ onLanguageChange(() => { renderLoc(); renderSearch(); wxStatus(); renderClock();
 /* ================================================================== */
 let autoT = 0;
 function updateCamera(dt){
+  if (S.stargazing) {
+    stargazingPosition ||= { x: S.x, z: S.z, agl: S.agl, y: lastView?.position[1] ?? cam.y };
+    Object.assign(S, { x: stargazingPosition.x, z: stargazingPosition.z, agl: stargazingPosition.agl });
+    cam.y = stargazingPosition.y; cam.vx = cam.vz = 0;
+    if (constellationFocus >= 0 && constellationOverlay) {
+      const target = constellationTarget(eqMat, constellationOverlay.centers[constellationFocus], cam.yaw);
+      cam.yawT = target.yaw; cam.pitchT = cam.pitchBase = clamp(target.pitch, -Math.PI / 2, Math.PI / 2);
+    }
+    const k = 1 - Math.exp(-dt * (reduceMotion ? 14 : 4));
+    cam.yaw += (cam.yawT - cam.yaw) * k; cam.pitch += (cam.pitchT - cam.pitch) * k;
+    cam.roll *= Math.exp(-dt * 7); cam.fov = S.fovY;
+    return groundH(S.x, S.z);
+  }
   if (preview) return groundH(S.x, S.z);
   if (!S.interactionEnabled && !S.auto) return groundH(S.x, S.z);
   autoT += dt;
@@ -1534,9 +1678,10 @@ function frame(now){
   if (contextLost) return;
   const elapsedMs = Math.max(0, now - last);
   const { clockElapsed, visualDt: dt, weatherDt } = sceneFrameTiming(elapsedMs, sceneFreeze); last = now;
+  if (skyPointer && !skyPress?.moved && canPickConstellation() && now % 150 < elapsedMs) constellationOverlay?.requestPick(skyPointer.x, skyPointer.y);
   if (!noiseReady){
     // 夜间启动在加载阶段分摊编译，不把整组新 shader 留给首个可见夜景帧。
-    if (AST.sunAlt < 2 * RAD) getNightPrograms(false);
+    if (AST.sunAlt < 2 * RAD || !S.atmosphere) getNightPrograms(false);
     genStep(14); return;
   }
   resize(false);
@@ -1545,8 +1690,8 @@ function frame(now){
   simTime = (simTime + dt) % ANIMATION_TIME_PERIOD;
 
   const groundNow = updateCamera(dt);
-  const cameraActive = !preview && (S.interactionEnabled || S.auto);
-  const sw = S.sway && cameraActive ? 1 : 0;
+  const cameraActive = (!preview || S.stargazing) && (interactionEnabled() || S.auto);
+  const sw = S.sway && cameraActive && !S.stargazing ? 1 : 0;
   const view = cameraActive ? {
     yaw: cam.yaw + sw * (0.004 * Math.sin(animationPhase(simTime, .53, 2 * Math.PI)) + 0.003 * Math.sin(animationPhase(simTime, 1.31, 2 * Math.PI))),
     pitch: cam.pitch + sw * 0.003 * Math.sin(animationPhase(simTime, .71, 2 * Math.PI, 1)),
@@ -1568,21 +1713,47 @@ function frame(now){
   if (!sceneFreeze.weather) updateWeather(weatherDt);
   const localRain = WXS.rain * localWeather.precipitation;
   const lightChanged = updateLighting();
-  const L = light, sun = L.lightDir, q = QUALITY[S.quality];
-  const hdr = nightHdrEnabled(AST.sunAlt);
-  const hdrBlend = nightHdrBlend(AST.sunAlt);
+  atmosphere += ((S.atmosphere ? 1 : 0) - atmosphere) * (1 - Math.exp(-dt * 5));
+  if (Math.abs(atmosphere - +S.atmosphere) < .0001) atmosphere = +S.atmosphere;
+  let L = light, frameSkySamples = lightSamples, frameSkyLight = light;
+  if (atmosphere < 1){
+    const key = [covEff.toFixed(2), densEff.toFixed(2), Math.round(cam.y / 50), S.nightSkyStyle, S.lowSaturation].join('|');
+    if (key !== observationLightKey){
+      observationLightKey = key;
+      observationLight = calculateLighting(moonlessAstronomy(AST), true);
+      observationLight.sunI = 0;
+    }
+    L = observationLighting(light, observationLight, atmosphere);
+    frameSkySamples = atmosphere > 0 ? { samples: [light, observationLight], fraction: 1 - atmosphere } : null;
+    frameSkyLight = observationLight;
+    // 沿同一渐变使用目标预曝光，避免日间曝光滞后让永夜恒星先消失数秒。
+    expo = L.exposure;
+  }
+  const sun = L.lightDir, q = QUALITY[S.quality];
+  const visualSunAltitude = observationSunAltitude(AST.sunAlt, atmosphere);
+  const observationAstronomy = atmosphere === 1 ? AST : { ...AST, sunAlt: visualSunAltitude, moonBright: AST.moonBright * atmosphere };
+  const hdr = nightHdrEnabled(visualSunAltitude);
+  const hdrBlend = nightHdrBlend(visualSunAltitude);
+  // 仅自然 SDR 天空进入星图时分离两种泛光单位；真实暮光与自然模式沿用原路径。
+  const chartBloom = atmosphere < 1 && !nightHdrEnabled(AST.sunAlt);
+  const sunHandoff = chartBloom ? smooth(0, Math.max(.001, (AST.sunAlt + 4 * RAD) / (AST.sunAlt + Math.PI / 2)), 1 - atmosphere) : 0;
   if (hdr !== hdrActive){
     P = hdr ? getNightPrograms() : dayPrograms;
     hdrActive = hdr;
     resize(true);
   }
-  const nightSky = nightSkyAppearance(AST, S.nightSkyStyle);
-  if (nightSky.darkness > 0){ moonSurface.load(); galaxy.select(S.quality); loadRealisticStars(); }
+  const nightSky = nightSkyAppearance(observationAstronomy, S.nightSkyStyle);
+  if (nightSky.darkness > 0 || atmosphere < 1){ moonSurface.load(); galaxy.select(S.quality); loadRealisticStars(); }
   const nightView = nightObservationAppearance(nightObservation.update(elapsedMs / 1000,
     { position: camM, yaw, pitch, roll: cam.roll, fov: cam.fov }, nightSky.darkness > 0));
   equatorialToWorld(AST.lst, renderLocation().lat, S.sunAz, eqMat);
   expo = !isFinite(expo) ? L.exposure : Math.exp(Math.log(expo) + (Math.log(L.exposure) - Math.log(expo)) * (1 - Math.exp(-dt * 2.5)));
   const expoS = expo / L.pe, nightGlow = L.glowF * 0.45 / expoS;
+  // 恒星和沉浸标注共享无积累基础强度；最低星图亮度在夜间风格系数之后应用，
+  // 防止关闭大气时跨越暮光边界出现恒星消失、连线仍在的分支差异。
+  const starWeather = 1 - .95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow);
+  const baseStarI = Math.max(L.starCat * (nightSky.darkness > 0 ? 8 / 2.4 * nightSky.stars : 1),
+    (1 - atmosphere) * .10 / (hdrActive ? expoS : 1)) * starWeather;
   const B = basis(yaw, pitch, cam.roll), aspect = W / H;
   /* weather this frame: lightning, fog, colours (all pre-exposed like the rest of the lighting) */
   if (WXS.storm > 0.15 && bolt.t > 1.4 && Math.random() < 1 - Math.exp(-WP.bolt / 10 * dt)) spawnBolt(camM, B.f);
@@ -1633,24 +1804,24 @@ function frame(now){
   };
 
   /* sky LUT：光照与天空使用同一对端点，避免只平滑草地而天空仍阶梯跳变。 */
-  const skySampleKey = sample => sample.sunT.join(',') + sample.moonD.join(',') + sample.moonI + '|' + sample.pe + '|' + sample.airglow + '|' + Math.round(cam.y / 100);
+  const skySampleKey = sample => sample.sunT.join(',') + sample.moonD.join(',') + sample.moonI + '|' + sample.pe + '|' + sample.airglow + '|' + Math.round(cam.y / 100) + (sample.sunI === 0 ? '|moonless' : '');
   const renderSkySample = (sample, fbo) => {
     use(P.skyLut); gl.bindFramebuffer(gl.FRAMEBUFFER, fbo); gl.viewport(0, 0, SKY_W, SKY_H);
-    set(P.skyLut, 'uCamPos', camK); set(P.skyLut, 'uSunDir', sample.sunT); set(P.skyLut, 'uSunI', SUN_I * sample.pe);
+    set(P.skyLut, 'uCamPos', camK); set(P.skyLut, 'uSunDir', sample.sunT); set(P.skyLut, 'uSunI', sample.sunI ?? SUN_I * sample.pe);
     set(P.skyLut, 'uMoonDir', sample.moonD); set(P.skyLut, 'uMoonI', sample.moonI * sample.pe);
     set(P.skyLut, 'uGlow', GLOW.map(v => v * sample.pe * sample.airglow)); set(P.skyLut, 'uMS', sample.ms); draw();
   };
-  if (lightSamples) {
-    const [a, b] = lightSamples.samples, ka = skySampleKey(a), kb = skySampleKey(b);
+  if (frameSkySamples) {
+    const [a, b] = frameSkySamples.samples, ka = skySampleKey(a), kb = skySampleKey(b);
     let ia = skySamples.findIndex(sample => sample.key === ka), ib = skySamples.findIndex(sample => sample.key === kb);
     if (ia < 0) { ia = ib === 0 ? 1 : 0; renderSkySample(a, skySamples[ia].fbo); skySamples[ia].key = ka; }
     if (ib < 0) { ib = 1 - ia; renderSkySample(b, skySamples[ib].fbo); skySamples[ib].key = kb; }
     use(P.skyMix); gl.bindFramebuffer(gl.FRAMEBUFFER, skyFBO); gl.viewport(0, 0, SKY_W, SKY_H);
     tex(P.skyMix, 'uA', gl.TEXTURE_2D, skySamples[ia].texture); tex(P.skyMix, 'uB', gl.TEXTURE_2D, skySamples[ib].texture);
-    set(P.skyMix, 'uMix', lightSamples.fraction); draw(); skyKey = '';
+    set(P.skyMix, 'uMix', frameSkySamples.fraction); draw(); skyKey = '';
   } else {
-    const sk = skySampleKey(L);
-    if (sk !== skyKey) { skyKey = sk; renderSkySample(L, skyFBO); }
+    const sk = skySampleKey(frameSkyLight);
+    if (sk !== skyKey) { skyKey = sk; renderSkySample(frameSkyLight, skyFBO); }
   }
   /* cloud shadow map */
   const cshTexel = CSH_EXT / CSH_N;
@@ -1663,6 +1834,8 @@ function frame(now){
   /* clouds */
   use(P.cloud); gl.bindFramebuffer(gl.FRAMEBUFFER, cloudFBO); gl.viewport(0, 0, CW, CH);
   setCloudCommon(P.cloud); bindCloudTex(P.cloud);
+  set(P.cloud, 'uAtmosphere', atmosphere);
+  set(P.cloud, 'uRayLimit', cloudRayLimit(camK[1], LAYER[0], atmosphere));
   set(P.cloud, 'uSunColor', L.lightCloud);
   set(P.cloud, 'uFlashP', bolt.x / 1000, (LAYER[0] + LAYER[1]) * 0.45, bolt.z / 1000, 2.5); set(P.cloud, 'uFlashC', [0.9, 0.92, 1.0].map(v => v * flash * 22)); set(P.cloud, 'uFwdScat', L.fwd); set(P.cloud, 'uAmbOcc', L.ambOcc); set(P.cloud, 'uAmbTop', L.ambTop); set(P.cloud, 'uAmbBottom', L.ambBottom);
   seti(P.cloud, 'uSteps', q.steps); seti(P.cloud, 'uLightSteps', q.light);
@@ -1886,15 +2059,15 @@ function frame(now){
   /* sky + clouds where nothing was drawn */
   {
     const Sk = P.sky; use(Sk);
-    set(Sk, 'uLowStormHorizon', lowStormHorizon);
+    set(Sk, 'uLowStormHorizon', lowStormHorizon); set(Sk, 'uAtmosphere', atmosphere);
     gl.depthFunc(gl.LEQUAL); gl.depthMask(false);
     setCloudCommon(Sk); tex(Sk, 'uSkyLut', gl.TEXTURE_2D, skyTex); tex(Sk, 'uCloud', gl.TEXTURE_2D, hist[cur]); tex(Sk, 'uCloudDepth', gl.TEXTURE_2D, cloudDepth);
-    set(Sk, 'uCloudSize', CW, CH); set(Sk, 'uSunDisk', L.sunDisk); set(Sk, 'uExposure', expoS); set(Sk, 'uRes', W, H);
+    set(Sk, 'uCloudSize', CW, CH); set(Sk, 'uSunDisk', L.sunDisk); set(Sk, 'uSunHandoff', sunHandoff); set(Sk, 'uExposure', expoS); set(Sk, 'uRes', W, H);
     set(Sk, 'uFogSky', fogSky[0], fogSky[1], fogSky[2], fogSky[3]);
     set(Sk, 'uFogW', fogW[0], fogW[1], fogW[2], fogW[3]); set(Sk, 'uFogCol', fogCol); set(Sk, 'uFlashSky', [0.8, 0.85, 1.0].map(v => v * flash * 1.4 * localWeather.skyFlash)); set(Sk, 'uFlashDir', flashTop.map(v => v / ftl));
     set(Sk, 'uSunTrue', L.sunT); set(Sk, 'uMoonDir', L.moonD); set(Sk, 'uMoonDisk', L.moonDisk);
     set(Sk, 'uMoonRadius', MOON_RADIUS); set(Sk, 'uMoonNorth', moonNorthDirection(eqMat));
-    set(Sk, 'uEarthshine', nightSky.earthshine); set(Sk, 'uNightSky', nightSky.darkness);
+    set(Sk, 'uEarthshine', nightSky.earthshine * atmosphere); set(Sk, 'uNightSky', nightSky.darkness);
     set(Sk, 'uGalaxyI', L.starI * nightSky.galaxy * nightView.galaxyGain);
     gl.uniformMatrix3fv(Sk.u.uEq, false, eqMat);
     tex(Sk, 'uMoonSurface', gl.TEXTURE_2D, moonSurface.texture); tex(Sk, 'uGalaxy', gl.TEXTURE_2D, galaxyTexture);
@@ -1905,47 +2078,48 @@ function frame(now){
     gl.depthMask(true);
   }
   /* real stars, planets and optional constellation lines, added over the sky only (depth test at the far plane) */
-  if (L.starCat > 2e-4){
+  if (L.starCat > 2e-4 || atmosphere < 1){
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, hdrActive ? gl.ONE : gl.ONE_MINUS_SRC_COLOR); gl.depthFunc(gl.LEQUAL); gl.depthMask(false);
-    const St = nightSky.darkness > 0 ? P.stars : P.planets; use(St);
+    const astronomicalStars = nightSky.darkness > 0 || (S.nightSkyStyle === 'realistic' && atmosphere < 1);
+    const St = astronomicalStars ? P.stars : P.planets; use(St);
     gl.uniformMatrix3fv(St.u.uEq, false, eqMat);
     set(St, 'uR', B.r); set(St, 'uU', B.u); set(St, 'uF', B.f); set(St, 'uTan', tanX, tanY);
-    set(St, 'uStarI', L.starCat * (nightSky.darkness > 0 ? 8 / 2.4 * nightSky.stars * nightView.starGain : 1) * (1 - 0.95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow))); set(St, 'uPxScale', W / Math.max(cssW, 1)); setAnimationTime(St);
+    set(St, 'uAtmosphere', atmosphere);
+    set(St, 'uPointPeak', S.nightSkyStyle === 'realistic' ? 3.8 : 5);
+    set(St, 'uSunDir', AST.sun); set(St, 'uMoonDir', AST.moon); set(St, 'uRes', W, H);
+    set(St, 'uStarI', baseStarI * (nightSky.darkness > 0 ? nightView.starGain : 1)); set(St, 'uPxScale', W / Math.max(cssW, 1)); setAnimationTime(St);
     set(St, 'uStellarLimit', nightView.limitingMagnitude);
     tex(St, 'uCloud', gl.TEXTURE_2D, hist[cur]);
-    if (nightSky.darkness > 0){
-      set(St, 'uMoonDir', L.moonD); set(St, 'uMoonRadius', MOON_RADIUS); set(St, 'uMoonWash', AST.moonBright * smooth(0, .2, L.moonD[1]));
+    if (astronomicalStars){
+      set(St, 'uMoonDir', L.moonD); set(St, 'uMoonRadius', MOON_RADIUS); set(St, 'uMoonWash', observationAstronomy.moonBright * smooth(0, .2, L.moonD[1]));
       set(St, 'uScintillation', reduceMotion ? 0 : 1); set(St, 'uPixAngle', 2 * tanY / H); set(St, 'uRes', W, H);
       tex(St, 'uSkyLut', gl.TEXTURE_2D, skyTex);
     }
-    const realCatalog = nightSky.darkness > 0 && realisticStarVAO;
+    const realCatalog = astronomicalStars && realisticStarVAO;
     gl.bindVertexArray(realCatalog || starVAO); gl.drawArrays(gl.POINTS, 0, realCatalog ? realisticStarCount : STAR_N);
-    updatePlanets(simMs);
+    updatePlanets(simMs, atmosphere);
     const Pl = P.planets;
     if (Pl !== St){
       use(Pl);
       gl.uniformMatrix3fv(Pl.u.uEq, false, eqMat);
       set(Pl, 'uR', B.r); set(Pl, 'uU', B.u); set(Pl, 'uF', B.f); set(Pl, 'uTan', tanX, tanY);
-      set(Pl, 'uStarI', L.starCat * (1 - .95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow)));
+      set(Pl, 'uSunDir', AST.sun); set(Pl, 'uMoonDir', AST.moon); set(Pl, 'uRes', W, H);
+      set(Pl, 'uAtmosphere', atmosphere); set(Pl, 'uStarI', Math.max(L.starCat, (1 - atmosphere) * .10 / (hdrActive ? expoS : 1)) * starWeather);
+      set(Pl, 'uPointPeak', S.nightSkyStyle === 'realistic' ? 3.8 : 5);
       set(Pl, 'uPxScale', W / Math.max(cssW, 1)); setAnimationTime(Pl); tex(Pl, 'uCloud', gl.TEXTURE_2D, hist[cur]);
     }
     gl.bindVertexArray(planetVAO); gl.drawArrays(gl.POINTS, 0, 5);
-    if (S.constel){
-      const Ln = P.lines; use(Ln);
-      gl.uniformMatrix3fv(Ln.u.uEq, false, eqMat);
-      set(Ln, 'uR', B.r); set(Ln, 'uU', B.u); set(Ln, 'uF', B.f); set(Ln, 'uTan', tanX, tanY); set(Ln, 'uLineA', 0.05 + 0.3 * L.night);
-      gl.bindVertexArray(lineVAO); gl.drawArrays(gl.LINES, 0, LINE_N);
-    }
     gl.bindVertexArray(emptyVAO); gl.disable(gl.BLEND); gl.depthMask(true);
   }
-  /* fireflies from dusk on: additive glow, depth-tested against the grass, depth written so DOF treats them as near objects */
+  /* fireflies from dusk on: HDR additive glow, depth-tested against the grass without an opaque halo depth */
   const flyVis = S.flies && grassOn && aglReal < 30 ? smooth(0.2, 0.7, L.night) * (1 - Math.min(1, WXS.rain + WXS.snow)) : 0;
   if (flyVis > 0.01){
     const Fl = P.flies; use(Fl); setScene(Fl);
     set(Fl, 'uFBox', 60); set(Fl, 'uFlyI', 4.2 * flyVis); set(Fl, 'uPxScale', W / Math.max(cssW, 1));
-    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR); gl.depthFunc(gl.LESS); gl.depthMask(true);
+    // HDR 光点可大于 1；screen 的 1-src 会变为负数，反而抹黑背后的亮星。
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, hdrActive ? gl.ONE : gl.ONE_MINUS_SRC_COLOR); gl.depthFunc(gl.LESS); gl.depthMask(!hdrActive);
     gl.drawArraysInstanced(gl.POINTS, 0, 1, FLY_COUNT[S.quality] || 240);
-    gl.disable(gl.BLEND);
+    gl.disable(gl.BLEND); gl.depthMask(true);
   }
   /* rain streaks (alpha) and lightning channels (additive), depth-tested against the scene */
   if (WXS.rain > 0.01 && localWeather.precipitation > 0.0){
@@ -1982,7 +2156,7 @@ function frame(now){
   /* light shafts */
   const shaft = celestialShaftSource(AST, L.sunCam, L.moonCam), shaftDir = shaft.direction;
   const fw = shaftDir[0] * B.f[0] + shaftDir[1] * B.f[1] + shaftDir[2] * B.f[2];
-  if (S.god && lum(shaft.radiance) > 1e-8 && fw > 0.05){
+  if (S.god && atmosphere > .0001 && lum(shaft.radiance) > 1e-8 && fw > 0.05){
     const sx = (shaftDir[0] * B.r[0] + shaftDir[1] * B.r[1] + shaftDir[2] * B.r[2]) / (fw * tanX);
     const syy = (shaftDir[0] * B.u[0] + shaftDir[1] * B.u[1] + shaftDir[2] * B.u[2]) / (fw * tanY);
     const off = Math.max(Math.abs(sx), Math.abs(syy));
@@ -1991,7 +2165,7 @@ function frame(now){
       const Gd = P.god; use(Gd);
       gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, hdrActive ? gl.ONE : gl.ONE_MINUS_SRC_COLOR);
       tex(Gd, 'uCloud', gl.TEXTURE_2D, hist[cur]);
-      set(Gd, 'uSunUV', sx * 0.5 + 0.5, syy * 0.5 + 0.5); set(Gd, 'uGod', god); set(Gd, 'uAspect', aspect);
+      set(Gd, 'uSunUV', sx * 0.5 + 0.5, syy * 0.5 + 0.5); set(Gd, 'uGod', god * atmosphere); set(Gd, 'uAspect', aspect);
       set(Gd, 'uExposure', expoS); set(Gd, 'uSunCam', shaft.radiance); set(Gd, 'uSunDir', shaftDir);
       set(Gd, 'uRight', B.r); set(Gd, 'uUp', B.u); set(Gd, 'uFwd', B.f); set(Gd, 'uTan', tanX, tanY);
       draw();
@@ -2007,7 +2181,7 @@ function frame(now){
   const dofOn = S.dof > 0.01;
   const setPost = (Pp) => {
     set(Pp, 'uDepthAB', depthAB[0], depthAB[1]); set(Pp, 'uFocus', cam.focus);
-    set(Pp, 'uCocK', S.dof * 48 * (HH / 540)); set(Pp, 'uCocMaxN', q.dof[0] * 0.75); set(Pp, 'uCocMaxF', q.dof[0] * 0.35); set(Pp, 'uFocusR', 2.4); set(Pp, 'uSkyCoc', 1 - 0.9 * L.night);
+    set(Pp, 'uCocK', S.dof * 48 * (HH / 540)); set(Pp, 'uCocMaxN', q.dof[0] * 0.75); set(Pp, 'uCocMaxF', q.dof[0] * 0.35); set(Pp, 'uFocusR', 2.4); set(Pp, 'uSkyCoc', (1 - 0.9 * L.night) * atmosphere);
   };
   if (dofOn){
     const Dp = P.dofPrep; use(Dp); gl.bindFramebuffer(gl.FRAMEBUFFER, dofPrepFBO); gl.viewport(0, 0, HW, HH);
@@ -2023,7 +2197,7 @@ function frame(now){
     use(Bp); gl.bindFramebuffer(gl.FRAMEBUFFER, bloomDF[0]); gl.viewport(0, 0, bloomSz[0][0], bloomSz[0][1]);
     const legacyThreshold = 0.76 - 0.15 * L.glowF;
     tex(Bp, 'uSrc', gl.TEXTURE_2D, sceneTex); set(Bp, 'uSrcTexel', 1 / W, 1 / H);
-    set(Bp, 'uThresh', hdrActive ? legacyThreshold + (1 - legacyThreshold) * hdrBlend : legacyThreshold); set(Bp, 'uHdrBlend', hdrBlend);
+    set(Bp, 'uThresh', hdrActive ? legacyThreshold + (1 - legacyThreshold) * hdrBlend : legacyThreshold); set(Bp, 'uHdrBlend', hdrBlend); set(Bp, 'uChartBloom', +chartBloom); set(Bp, 'uLegacyThresh', legacyThreshold);
     draw();
     for (let i = 1; i < bloomD.length; i++){
       const Dn = P.down; use(Dn); gl.bindFramebuffer(gl.FRAMEBUFFER, bloomDF[i]); gl.viewport(0, 0, bloomSz[i][0], bloomSz[i][1]);
@@ -2039,6 +2213,7 @@ function frame(now){
     draw();
     bloomOut = bloomU[i];
   }
+  let lensFrame = null;
   {
     /* lens rain: simulate and draw the water map, then return to the screen */
     const lensOn = S.lensDrops && (localRain > 0.01 || LR.drops.length > 0);
@@ -2049,6 +2224,14 @@ function frame(now){
       gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
     } else if (!S.lensDrops) LR.drops.length = 0;
     LR.lastYaw = cam.yaw;
+    lensFrame = lensOn && LR.tex ? LR.tex : null;
+    if (atmosphere < 1) {
+      chartCelestials ||= createChartCelestials(gl, { makeProgram, use, set, tex });
+      gl.bindFramebuffer(gl.FRAMEBUFFER, chartFBO); gl.viewport(0, 0, W, H);
+      chartCelestials.render({ amount: 1 - atmosphere, sun: AST.sun, moon: AST.moon, north: moonNorthDirection(eqMat),
+        basis: B, tan: [tanX, tanY], res: [W, H], css: [cssW, cssH], cloud: hist[cur], depth: depthTex, surface: moonSurface.texture,
+        fog: fogW, fogSky, hdr: hdrActive, hdrBlend, sunHandoff, moonColor: light.moonDisk, lowSaturation: S.lowSaturation, realistic: S.nightSkyStyle === 'realistic' });
+    }
     const Fi = hdrActive && hdrBlend < 1 ? P.twilightFinal : P.final;
     use(Fi); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
     set(Fi, 'uLowSaturation', S.lowSaturation ? 1 : 0);
@@ -2057,9 +2240,22 @@ function frame(now){
     tex(Fi, 'uDof', gl.TEXTURE_2D, dofTex); tex(Fi, 'uBloom', gl.TEXTURE_2D, bloomOut);
     set(Fi, 'uSat', L.grade.sat); set(Fi, 'uShTint', L.grade.sh); set(Fi, 'uHiTint', L.grade.hi); set(Fi, 'uLift', L.grade.lift);
     set(Fi, 'uDrops', lensOn && LR.tex ? 1 : 0); if (LR.tex) tex(Fi, 'uLens', gl.TEXTURE_2D, LR.tex);
-    set(Fi, 'uHdrBlend', hdrBlend); set(Fi, 'uLegacyBloomI', S.lowSaturation ? 0.055 + 0.07 * L.glowF : 0.16 + 0.2 * L.glowF);
-    set(Fi, 'uDofOn', dofOn ? 1 : 0); set(Fi, 'uBloomI', hdrActive ? (S.lowSaturation ? .055 : .10) : S.lowSaturation ? 0.055 + 0.07 * L.glowF : 0.16 + 0.2 * L.glowF); set(Fi, 'uNight', L.night); set(Fi, 'uNightSky', nightSky.darkness); set(Fi, 'uFrameN', frameNo % 997); set(Fi, 'uRes', W, H); setPost(Fi);
+    set(Fi, 'uHdrBlend', hdrBlend); set(Fi, 'uChartBloom', +chartBloom); set(Fi, 'uLegacyBloomI', (S.lowSaturation ? 0.055 + 0.07 * L.glowF : 0.16 + 0.2 * L.glowF));
+    set(Fi, 'uDofOn', dofOn ? 1 : 0); set(Fi, 'uBloomI', (hdrActive ? (S.lowSaturation ? .055 : .10) : S.lowSaturation ? 0.055 + 0.07 * L.glowF : 0.16 + 0.2 * L.glowF)); set(Fi, 'uNight', L.night); set(Fi, 'uNightSky', nightSky.darkness); set(Fi, 'uFrameN', frameNo % 997); set(Fi, 'uRes', W, H); setPost(Fi);
     draw();
+  }
+
+  if (S.constel || S.stargazing || constellationOverlay) {
+    constellationOverlay ||= createConstellationOverlay(gl, { makeProgram, use, set, tex }, constellationDirections, constellationStars, constellationCatalogs);
+    constellationOverlay.render({ settings: S, language: getLanguage(), eq: eqMat, basis: B, tan: [tanX, tanY],
+      res: [W, H], css: [cssW, cssH], lens: lensFrame, cloud: hist[cur], depth: depthTex, sun: AST.sun, moon: L.moonD, moonWash: observationAstronomy.moonBright * smooth(0, .2, L.moonD[1]), sky: skyTex, hdr: hdrActive,
+      rawEndpointI: baseStarI,
+      atmosphere, sunAltitude: visualSunAltitude, now,
+      endpointI: baseStarI * (hdrActive ? expoS : 1),
+    }, Math.min(elapsedMs / 1000, .1), (id, kind) => {
+      if (kind === 'select') selectConstellation(id, false);
+    });
+    gl.bindVertexArray(emptyVAO);
   }
 
   histIdx = 1 - histIdx; frameNo++;
@@ -2117,7 +2313,7 @@ function syncSceneControls() {
   for (const { el, paint, key } of rangeControls) { el.value = S[key]; paint(S[key]); }
   for (const [id, key] of Object.entries(toggles)) $(id).checked = S[key];
   $('lowSaturation').checked = S.lowSaturation;
-  syncNightSkyControls();
+  syncNightSkyControls(); syncStargazingControls();
   for (const [name, key] of [['sdist', 'streamDist'], ['wxMode', 'wxMode']]) document.querySelectorAll(`input[name="${name}"]`).forEach(r => { r.checked = r.value === S[key]; });
   $('wxManual').hidden = S.wxMode !== 'manual'; markWxChips(); publishTimeControls(); wxStatus();
   document.dispatchEvent(new CustomEvent('worldscenechange', { detail: { previewing: Boolean(preview), freeze: { ...sceneFreeze } } }));
@@ -2137,6 +2333,7 @@ function resumeWeatherTarget() {
   else if (S.wxMode === 'off') wxSetTarget('clear', wxPreset('clear'), 15);
 }
 function applySceneCamera(camera) {
+  stargazingPosition = null; constellationFocus = -1; constellationOverlay?.clear();
   Object.assign(S, { x: camera.x, z: camera.z, agl: camera.agl, fovY: camera.fov });
   Object.assign(cam, { y: camera.y ?? groundH(S.x, S.z) + S.agl, yaw: camera.yaw, pitch: camera.pitch,
     yawT: camera.yaw, pitchT: camera.pitch, pitchBase: camera.pitch, roll: camera.roll, fov: camera.fov, vx: 0, vz: 0 });
@@ -2166,6 +2363,7 @@ function loadScene(scene) {
   prev = null; needReset = true; lightKey = ''; skyKey = ''; expo = NaN;
   nightObservation.reset();
   trailHist.length = 0; LR.drops.length = 0; streamG = NaN; streamAge = 0; streamOpacity = 0; bolt.t = 99;
+  if (S.stargazing) { S.auto = false; sprintUntil = 0; }
   last = performance.now(); syncSceneControls();
   if (S.wxMode === 'follow' && !sceneFreeze.weather) { consumeObservedWeather(); void syncWeather(); }
 }
@@ -2271,6 +2469,7 @@ function tick(now) {
   }
 }
 if (restoredScene) loadScene(sceneForStartup(restoredScene, startupCamera, S.rememberPosition));
+if (S.stargazing) setStargazing(true);
 worldReady = true;
 publishObservation();
 for (const eventName of ['input', 'change']) document.addEventListener(eventName, event => {

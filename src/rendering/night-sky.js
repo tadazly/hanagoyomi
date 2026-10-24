@@ -1,5 +1,6 @@
 // 只控制夜间天体；日间光照、大气与太阳继续使用主干实现。
 export const MOON_RADIUS = .0115;
+export const SUN_RADIUS = .0095;
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 export function nightSkyStyle(saved) {
   return saved?.nightSkyStyle === 'realistic' ? 'realistic' : 'default';

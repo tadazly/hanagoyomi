@@ -334,3 +334,16 @@ body[data-wallpaper='true'] .help-controls, body[data-wallpaper='true'] .touch-h
 .scene-controls:disabled { opacity: .55; }
 .scene-lock-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; }
 .scene-lock-row button { min-height: 44px; padding: 7px 13px; border: 1px solid #8a8f80; border-radius: 8px; background: transparent; color: inherit; font: inherit; }
+
+/* 天空有独立分类；五个分类在手机与短横屏中仍保持可达。 */
+.panel .tabs button { min-width: 0; padding-inline: 3px; }
+.sky-finder { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; margin-top: 18px; }
+.sky-finder label { grid-column: 1/-1; font-size: 13px; }
+.sky-finder select { min-width: 0; width: 100%; min-height: 44px; border: 1px solid var(--track); border-radius: 8px; padding: 8px; color: var(--ink); background: rgba(255,255,255,.4); font: inherit; font-size: 13px; }
+.switch:has(input:disabled) { opacity: .55; }
+.stargazing-status { position: fixed; z-index: 6; top: calc(env(safe-area-inset-top,0px) + 76px); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 20px; background: rgba(12,18,25,.72); color: #e5e9e9; font-size: 12px; white-space: nowrap; }
+.stargazing-status[hidden] { display: none; }
+.stargazing-status button { color: #efdfae; background: transparent; border: 0; padding: 4px; min-height: 28px; }
+@media(max-width:700px) { .stargazing-status { top: calc(env(safe-area-inset-top,0px) + 140px); } }
+
+body[data-panel-open='true'] .stargazing-status { visibility: hidden; }

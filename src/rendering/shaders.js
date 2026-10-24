@@ -3,6 +3,7 @@ import { WEATHER_FOG_GLSL } from './weather-fog.js';
 import { FLOWER_PETALS } from './flower-mesh.js';
 import { ANIMATION_GLSL } from './animation-time.js';
 import { MAGNITUDE_EXPONENT } from './stellar-photometry.js';
+import { MOON_RADIUS, SUN_RADIUS } from './night-sky.js';
 const VS_FULL = `#version 300 es
 out vec2 vUv;
 void main(){ vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)); vUv = p; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
@@ -180,7 +181,7 @@ void main(){
 const CLOUD_FS = HEAD + COMMON + `
 uniform vec3 uRight, uUp, uFwd; uniform vec2 uTan;
 uniform vec3 uSunColor; uniform vec3 uAmbTop, uAmbBottom;
-uniform int uSteps, uLightSteps; uniform float uFrame, uPixAngle, uFogK, uFwdScat, uAmbOcc;
+uniform int uSteps, uLightSteps; uniform float uFrame, uPixAngle, uFogK, uFwdScat, uAmbOcc, uAtmosphere, uRayLimit;
 uniform vec4 uFlashP; uniform vec3 uFlashC;
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oDepth;
@@ -208,7 +209,9 @@ void main(){
   if (hc < uLayer.x){ if (!(iG.x > 0.0)){ t0 = iB.y; t1 = iT.y; } }
   else if (hc < uLayer.y){ t0 = 0.0; t1 = iB.x > 0.0 ? iB.x : iT.y; }
   else if (iT.x > 0.0){ t0 = iT.x; t1 = iB.x > 0.0 ? iB.x : iT.y; }
-  const float FAR = 95.0;
+  // 无天空散射时，95 km 的云硬裁剪会露出地平线缺口。
+  // 只在该视图按相机高度延长到球面可见地平线之外，保持原有步数和云段预算。
+  float FAR = uRayLimit;
   if (t0 < 0.0 || t0 > FAR){ oColor = vec4(0.0, 0.0, 0.0, 1.0); oDepth = vec4(FAR); return; }
   t1 = min(t1, t0 + 60.0); float seg = t1 - t0;
   if (seg <= 0.0){ oColor = vec4(0.0, 0.0, 0.0, 1.0); oDepth = vec4(FAR); return; }
@@ -259,6 +262,11 @@ void main(){
   float depth = wsum > 1e-4 ? dsum / wsum : t0 + min(seg, 6.0) * 0.5;
   float e = exp(-depth * uFogK);
   L = L * e + skyLookup(rd) * (1.0 - T) * (1.0 - e);
+  if (uAtmosphere < 1.0){
+    // 扩展部分在自身截止处完全透明；95 km 内保持原样，切换中也没有移动硬边。
+    float fade = smoothstep(max(95.0, FAR * .9), FAR, t0);
+    L *= 1.0 - fade; T = mix(T, 1.0, fade);
+  }
   oColor = vec4(L, T); oDepth = vec4(depth, 0.0, 0.0, 1.0);
 }`;
 
@@ -777,20 +785,68 @@ float discMask(vec3 d, vec3 centre, float radius, float pixelAngle){
   float r = length(cross(d, centre)), aa = max(pixelAngle * .65, 1e-6);
   return 1.0 - smoothstep(sin(radius) - aa, sin(radius) + aa, r);
 }
+// 星图中的日月与环境光分离；整个月盘（含暗面）仍遮挡后方天体。
+float chartOccultation(vec3 d, vec3 sun, vec3 moon, float amount, float pixelAngle){
+  if (amount <= 0.0) return 1.0;
+  return 1.0 - amount * max(discMask(d, sun, ${SUN_RADIUS}, pixelAngle), discMask(d, moon, ${MOON_RADIUS}, pixelAngle));
+}
 float stellarExtinction(float altitude){
   float altDeg = degrees(asin(clamp(altitude, 0.0, 1.0)));
   float airMass = 1.0 / (max(altitude, 0.0) + .50572 * pow(altDeg + 6.07995, -1.6364));
   return exp(-.20 * airMass) * smoothstep(0.0, .025, altitude);
 }
+float stellarFlux(float mag, float intensity, bool hdr){
+  if (hdr) return intensity * pow(10.0, ${MAGNITUDE_EXPONENT.toFixed(1)} * (mag - 6.0)) * .855;
+  float energy = intensity * pow(10.0, -.30 * (mag - 6.0)) * 1.9;
+  return 18.0 * energy / (18.0 + energy);
+}
+float stellarContrast(float peak, float skyL){
+  return smoothstep(-2.0, 2.0, log2(max(peak / (12.0 * skyL + 1e-9), 1e-9)));
+}
+float stellarMoonGlare(vec3 d, vec3 moon, float wash){
+  float distance = length(d - moon);
+  return 1.0 - .8 * wash * exp(-distance * distance / .012);
+}
+// 星图点源只压缩已经饱和的亮核，避免过量能量进入全局泛光；弱星和 RGB 比例保持原值。
+vec3 chartPointShoulder(vec3 value, float ceiling){
+  float peak=max(value.r,max(value.g,value.b)),knee=1.6;
+  if(peak<=knee)return value;
+  float excess=peak-knee;
+  return value*((knee+excess/(1.0+excess/(ceiling-knee)))/peak);
+}
+
 `;
-const SKYPASS_FS = HEAD + COMMON + DISPLAY + WEATHER_FOG_GLSL + CELESTIAL_GLSL + ANIMATION_GLSL + `
+// 默认风格在自然与星图中共用程序月面，避免切换时改用写实贴图或旋转花纹。
+const DEFAULT_MOON_GLSL = `
+vec4 hashS(vec2 p){ vec4 p4 = fract(vec4(p.xyxy) * vec4(0.1031, 0.1030, 0.0973, 0.1099)); p4 += dot(p4, p4.wzxy + 33.33); return fract((p4.xxyz + p4.yzzw) * p4.zywx); }
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hashS(i).x, hashS(i + vec2(1.0, 0.0)).x, f.x), mix(hashS(i + vec2(0.0, 1.0)).x, hashS(i + vec2(1.0, 1.0)).x, f.x), f.y);
+}
+// 返回未乘亮度的月面与边缘覆盖率，保持原有月相柔边与海纹。
+vec2 defaultMoonSurface(vec3 rd, vec3 moon, vec3 sun, float pixelAngle){
+  const float MR = 0.0115;
+  if (dot(rd, moon) < cos(MR * 1.08)) return vec2(0.0);
+  vec3 mR = normalize(cross(vec3(0.0, 1.0, 0.0), moon) + vec3(1e-5, 0.0, 0.0)); vec3 mU = cross(moon, mR);
+  vec2 q = vec2(dot(rd, mR), dot(rd, mU)) / MR;
+  float r = length(q), aa = pixelAngle / MR * 1.2;
+  float edge = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, r);
+  if (edge <= 0.0) return vec2(0.0);
+  vec3 n = mR * q.x + mU * q.y - moon * sqrt(max(1.0 - r * r, 0.0));
+  float lit = smoothstep(-0.04, 0.12, dot(n, sun));
+  float maria = vnoise(q * 2.3 + 4.1) * 0.6 + vnoise(q * 5.1 + 1.7) * 0.4;
+  return vec2(lit * mix(1.0, 0.62, smoothstep(0.45, 0.75, maria)) + 0.012, edge);
+}
+`;
+
+const SKYPASS_FS = HEAD + COMMON + DISPLAY + WEATHER_FOG_GLSL + CELESTIAL_GLSL + ANIMATION_GLSL + DEFAULT_MOON_GLSL + `
 uniform sampler2D uCloud, uCloudDepth; uniform vec2 uCloudSize;
 uniform vec3 uRight, uUp, uFwd; uniform vec2 uTan;
 uniform vec3 uSunTrue, uMoonDir, uSunDisk, uMoonDisk;
 uniform vec3 uPole, uSouthEq, uWestEq; uniform float uSidereal, uStarI, uPixAngS;
 uniform sampler2D uMoonSurface, uGalaxy;
 uniform mat3 uEq; uniform vec3 uMoonNorth;
-uniform float uMoonRadius, uEarthshine, uNightSky, uGalaxyI;
+uniform float uMoonRadius, uEarthshine, uNightSky, uGalaxyI, uAtmosphere, uSunHandoff;
 uniform vec3 uFlashSky, uFlashDir;
 out vec4 o;
 vec4 catmullRom(sampler2D tex, vec2 uv, vec2 size){
@@ -801,11 +857,6 @@ vec4 catmullRom(sampler2D tex, vec2 uv, vec2 size){
   return textureLod(tex, vec2(t0.x, t0.y), 0.0) * w0.x * w0.y + textureLod(tex, vec2(t12.x, t0.y), 0.0) * w12.x * w0.y + textureLod(tex, vec2(t3.x, t0.y), 0.0) * w3.x * w0.y
        + textureLod(tex, vec2(t0.x, t12.y), 0.0) * w0.x * w12.y + textureLod(tex, vec2(t12.x, t12.y), 0.0) * w12.x * w12.y + textureLod(tex, vec2(t3.x, t12.y), 0.0) * w3.x * w12.y
        + textureLod(tex, vec2(t0.x, t3.y), 0.0) * w0.x * w3.y + textureLod(tex, vec2(t12.x, t3.y), 0.0) * w12.x * w3.y + textureLod(tex, vec2(t3.x, t3.y), 0.0) * w3.x * w3.y;
-}
-vec4 hashS(vec2 p){ vec4 p4 = fract(vec4(p.xyxy) * vec4(0.1031, 0.1030, 0.0973, 0.1099)); p4 += dot(p4, p4.wzxy + 33.33); return fract((p4.xxyz + p4.yzzw) * p4.zywx); }
-float vnoise(vec2 p){
-  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hashS(i).x, hashS(i + vec2(1.0, 0.0)).x, f.x), mix(hashS(i + vec2(0.0, 1.0)).x, hashS(i + vec2(1.0, 1.0)).x, f.x), f.y);
 }
 /* stars fixed on the celestial sphere, turning about the pole with sidereal time */
 vec3 legacyStarField(vec3 rd){
@@ -839,20 +890,13 @@ vec3 legacyStarField(vec3 rd){
 }
 /* moon: lit by the true sun direction, so the phase and terminator come out right */
 vec3 legacyMoonDiskCol(vec3 rd){
-  const float MR = 0.0115;
-  if (dot(rd, uMoonDir) < cos(MR * 1.08)) return vec3(0.0);
-  vec3 mR = normalize(cross(vec3(0.0, 1.0, 0.0), uMoonDir) + vec3(1e-5, 0.0, 0.0)); vec3 mU = cross(uMoonDir, mR);
-  vec2 q = vec2(dot(rd, mR), dot(rd, mU)) / MR;
-  float r = length(q), aa = uPixAngS / MR * 1.2;
-  float edge = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, r);
-  if (edge <= 0.0) return vec3(0.0);
-  vec3 n = mR * q.x + mU * q.y - uMoonDir * sqrt(max(1.0 - r * r, 0.0));
-  float lit = smoothstep(-0.04, 0.12, dot(n, uSunTrue));
-  float maria = vnoise(q * 2.3 + 4.1) * 0.6 + vnoise(q * 5.1 + 1.7) * 0.4;
+  vec2 surface = defaultMoonSurface(rd, uMoonDir, uSunTrue, uPixAngS);
+  if (surface.y <= 0.0) return vec3(0.0);
   /* the disk is capped at 'very bright' so cloud transmittance can hide it; earthshine stays a faint ash-grey */
   float ml = dot(uMoonDisk, vec3(0.2126, 0.7152, 0.0722));
-  vec3 mc = uMoonDisk * (min(ml, 4.0) / max(ml, 1e-6));
-  return mc * (lit * mix(1.0, 0.62, smoothstep(0.45, 0.75, maria)) + 0.012) * edge;
+  // 预曝光能量很大时固定上限会让月盘迟退；限幅也随自然模式权重同步缩小。
+  vec3 mc = uMoonDisk * (min(ml, 4.0 * uAtmosphere) / max(ml, 1e-6));
+  return mc * surface.x * surface.y;
 }
 vec3 starField(vec3 rd, float angularFootprint, float skyL){
   if (uGalaxyI < 1e-5) return vec3(0.0);
@@ -912,19 +956,23 @@ void main(){
   float galaxyFootprint = max(length(dFdx(rd)), length(dFdy(rd)));
   // 与地形雾霭使用同一连续方向；避免水平线两侧突然切换 LUT 采样。
   vec2 skyCoord = skyUV(normalize(vec3(rd.x, max(rd.y, 0.0) + 0.012, rd.z)));
-  vec3 baseSky = textureLod(uSkyLut, skyCoord, 0.0).rgb;
+  vec3 baseSky = textureLod(uSkyLut, skyCoord, 0.0).rgb * uAtmosphere;
   vec3 col = baseSky;
   if (rd.y >= 0.0){
     if (uNightSky > 0.0){
       float lunarMask = discMask(rd, uMoonDir, uMoonRadius, uPixAngS);
-      vec3 nightSky = starField(rd, galaxyFootprint, dot(baseSky, vec3(.2126,.7152,.0722))) * (1.0 - lunarMask) + moonDiskCol(rd, lunarMask);
+      float solarMask = (1.0-uAtmosphere)*discMask(rd,uSunTrue,${SUN_RADIUS},uPixAngS);
+      vec3 nightSky = starField(rd, galaxyFootprint, dot(baseSky, vec3(.2126,.7152,.0722))) * (1.0 - lunarMask) * (1.0-solarMask) + moonDiskCol(rd, lunarMask*uAtmosphere);
       col = baseSky + nightSky;
-      if (uNightSky < 1.0) col = baseSky + mix(legacyStarField(rd) + legacyMoonDiskCol(rd), nightSky, uNightSky);
-    } else col = baseSky + legacyStarField(rd) + legacyMoonDiskCol(rd);
-    float cs = dot(rd, uSunTrue), r = 0.0095, cr = cos(r);
+      if (uNightSky < 1.0) col = baseSky + mix(legacyStarField(rd)*chartOccultation(rd,uSunTrue,uMoonDir,1.0-uAtmosphere,uPixAngS) + legacyMoonDiskCol(rd), nightSky, uNightSky);
+    } else col = baseSky + legacyStarField(rd)*chartOccultation(rd,uSunTrue,uMoonDir,1.0-uAtmosphere,uPixAngS) + legacyMoonDiskCol(rd);
+    float cs = dot(rd, uSunTrue), r = ${SUN_RADIUS}, cr = cos(r);
     if (cs > cr - 2e-5){
       float x = saturate(acos(min(cs, 1.0)) / r);
-      col += min(uSunDisk, vec3(60.0)) * (1.0 - 0.55 * (1.0 - sqrt(max(1.0 - x * x, 0.0)))) * smoothstep(cr - 2e-5, cr + 2e-5, cs);
+      // 与已经线性减弱的自然光盘同步缩小上限，避免高能量限幅造成星图切换时眩光迟退。
+      // 人工星图切换在进入 HDR 前交接高能光盘，避免旧太阳与新光盘中途叠出亮峰。
+      float solarLimit = uSunHandoff > 0.0 ? exp(mix(log(60.0), log(.82), uSunHandoff)) : 60.0;
+      col += min(uSunDisk, vec3(solarLimit * uAtmosphere)) * (1.0 - 0.55 * (1.0 - sqrt(max(1.0 - x * x, 0.0)))) * smoothstep(cr - 2e-5, cr + 2e-5, cs);
     }
   }
   vec4 cl = catmullRom(uCloud, vUv, uCloudSize);
@@ -1007,7 +1055,7 @@ void main(){
 const BLOOMPRE_FS = HEAD + `
 #ifdef TWILIGHT_HDR
 ` + DISPLAY_TRANSFORM + `
-uniform float uHdrBlend;
+uniform float uHdrBlend, uChartBloom, uLegacyThresh;
 #endif
 uniform sampler2D uSrc; uniform vec2 uSrcTexel; uniform float uThresh;
 out vec4 o;
@@ -1016,6 +1064,18 @@ void main(){
   vec3 c = (texture(uSrc, vUv + vec2(-e.x, -e.y)).rgb + texture(uSrc, vUv + vec2(e.x, -e.y)).rgb
           + texture(uSrc, vUv + vec2(-e.x, e.y)).rgb + texture(uSrc, vUv + vec2(e.x, e.y)).rgb) * 0.25;
 #ifdef TWILIGHT_HDR
+  if (uChartBloom > .5){
+    // 人工星图过渡中太阳仍在屏内。RGB 储存线性泛光，闲置 alpha 独立储存显示域亮度，
+    // 避免混合单位后再把 HDR 强光直接加到 SDR。太阳柔晕在此短暂过渡中按无彩色近似。
+    vec3 displayC = srgbOut(aces(max(c, vec3(0.0))));
+    float displayPeak = max(max(displayC.r, displayC.g), displayC.b);
+    float ds = clamp(displayPeak - uLegacyThresh + .18, 0.0, .36); ds = ds * ds / .72;
+    vec3 displayBloom = displayC * max(ds, displayPeak - uLegacyThresh) / max(displayPeak, 1e-4);
+    float peak = max(max(c.r, c.g), c.b);
+    float hs = clamp(peak - 1.0 + .18, 0.0, .36); hs = hs * hs / .72;
+    o = vec4(c * max(hs, peak - 1.0) / max(peak, 1e-4), dot(displayBloom, vec3(.2126,.7152,.0722)));
+    return;
+  }
   // 暮光保留旧泛光的连续观感；太阳降到 -10° 后仅使用线性 HDR 泛光。
   c = mix(srgbOut(aces(max(c, vec3(0.0)))), c, uHdrBlend);
 #endif
@@ -1028,26 +1088,34 @@ uniform sampler2D uSrc; uniform vec2 uSrcTexel;
 out vec4 o;
 void main(){
   vec2 e = uSrcTexel;
-  o = vec4((texture(uSrc, vUv).rgb * 4.0 + texture(uSrc, vUv + vec2(-e.x, -e.y)).rgb + texture(uSrc, vUv + vec2(e.x, -e.y)).rgb
-          + texture(uSrc, vUv + vec2(-e.x, e.y)).rgb + texture(uSrc, vUv + vec2(e.x, e.y)).rgb) / 8.0, 1.0);
+  o = (texture(uSrc, vUv) * 4.0 + texture(uSrc, vUv + vec2(-e.x, -e.y)) + texture(uSrc, vUv + vec2(e.x, -e.y))
+      + texture(uSrc, vUv + vec2(-e.x, e.y)) + texture(uSrc, vUv + vec2(e.x, e.y))) / 8.0;
 }`;
 const UP_FS = HEAD + `
 uniform sampler2D uSrc, uBase; uniform vec2 uSrcTexel;
 out vec4 o;
 void main(){
   vec2 e = uSrcTexel;
-  vec3 up = (texture(uSrc, vUv + vec2(-e.x, 0.0)).rgb + texture(uSrc, vUv + vec2(e.x, 0.0)).rgb
-           + texture(uSrc, vUv + vec2(0.0, -e.y)).rgb + texture(uSrc, vUv + vec2(0.0, e.y)).rgb) * 0.1667
-          + (texture(uSrc, vUv + vec2(-e.x, -e.y)).rgb + texture(uSrc, vUv + vec2(e.x, -e.y)).rgb
-           + texture(uSrc, vUv + vec2(-e.x, e.y)).rgb + texture(uSrc, vUv + vec2(e.x, e.y)).rgb) * 0.0833;
-  o = vec4(texture(uBase, vUv).rgb + up, 1.0);
+  vec4 up = (texture(uSrc, vUv + vec2(-e.x, 0.0)) + texture(uSrc, vUv + vec2(e.x, 0.0))
+           + texture(uSrc, vUv + vec2(0.0, -e.y)) + texture(uSrc, vUv + vec2(0.0, e.y))) * 0.1667
+          + (texture(uSrc, vUv + vec2(-e.x, -e.y)) + texture(uSrc, vUv + vec2(e.x, -e.y))
+           + texture(uSrc, vUv + vec2(-e.x, e.y)) + texture(uSrc, vUv + vec2(e.x, e.y))) * 0.0833;
+  o = texture(uBase, vUv) + up;
 }`;
-const FINAL_FS = HEAD + POSTCOMMON + DISPLAY_TRANSFORM + `
+// 日月遮挡与最终镜头画面共用雨滴折射和模糊足迹；标注几何本身保持屏幕空间。
+const LENS_DISTORTION_GLSL = `
+vec2 lensSampleUV(vec2 uv, vec4 water, vec2 res, out vec2 normal){
+  normal = clamp((water.rg * 2.0 - 1.0) / max(water.a, 0.05), -1.0, 1.0);
+  return clamp(uv - normal * vec2(res.y / res.x, 1.0) * 0.05, 0.0, 1.0);
+}
+vec2 lensBlurOffset(vec2 res){ return vec2(0.003 * res.y / res.x, 0.003); }
+`;
+const FINAL_FS = HEAD + POSTCOMMON + DISPLAY_TRANSFORM + LENS_DISTORTION_GLSL + `
 uniform sampler2D uScene, uDepth, uDof, uBloom;
 uniform float uDofOn, uBloomI, uNight, uFrameN, uSat, uDrops, uVignette, uNightSky;
 uniform sampler2D uLens; uniform vec2 uRes; uniform vec3 uShTint, uHiTint, uLift;
 #ifdef TWILIGHT_HDR
-uniform float uHdrBlend, uLegacyBloomI;
+uniform float uHdrBlend, uLegacyBloomI, uChartBloom;
 #endif
 out vec4 o;
 float ign(vec2 p){ return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
@@ -1060,15 +1128,15 @@ void main(){
     vec4 lw = texture(uLens, vUv);
     wet = lw.a;
     if (wet > 0.004){
-      vec2 n = clamp((lw.rg * 2.0 - 1.0) / max(wet, 0.05), -1.0, 1.0);
-      uv = clamp(vUv - n * vec2(uRes.y / uRes.x, 1.0) * 0.05, 0.0, 1.0);   /* a drop is a tiny lens: it flips what lies behind */
+      vec2 n;
+      uv = lensSampleUV(vUv, lw, uRes, n);   /* a drop is a tiny lens: it flips what lies behind */
       dropShade = wet * smoothstep(0.6, 1.0, length(n));
       glint = wet * pow(max(dot(normalize(vec3(n, 0.55)), normalize(vec3(-0.45, 0.6, 1.0))), 0.0), 40.0);
     }
   }
   vec3 col = texture(uScene, uv).rgb;
   if (wet > 0.004){   /* the water sits on the lens, so what it shows is out of focus */
-    vec2 bo = vec2(0.003 * uRes.y / uRes.x, 0.003);
+    vec2 bo = lensBlurOffset(uRes);
     vec3 blur = (col + texture(uScene, uv + bo).rgb + texture(uScene, uv - bo).rgb + texture(uScene, uv + vec2(bo.x, -bo.y)).rgb + texture(uScene, uv + vec2(-bo.x, bo.y)).rgb) * 0.2;
     col = mix(texture(uScene, vUv).rgb, blur, wet);
   }
@@ -1078,7 +1146,17 @@ void main(){
     vec4 dof = texture(uDof, uv);
     col = mix(col, dof.rgb, smoothstep(0.35, 1.3, max(cf, dof.a)));
   }
-  vec3 bloom = texture(uBloom, uv).rgb;
+  vec4 bloomSample = texture(uBloom, uv);
+  vec3 bloom = bloomSample.rgb;
+#ifdef TWILIGHT_HDR
+  if (uChartBloom > .5){
+    // 分别完成两种泛光的显示变换，再在同一显示域插值；不产生 b*(1-b)*HDR 能量交叉项。
+    vec3 legacy = srgbOut(aces(max(col * (1.0 - .32 * dropShade) + glint * .5, vec3(0.0))))
+      + vec3(bloomSample.a) * uLegacyBloomI;
+    vec3 linear = srgbOut(aces(max((col + bloom * uBloomI) * (1.0 - .32 * dropShade) + glint * .5, vec3(0.0))));
+    col = mix(legacy, linear, uHdrBlend);
+  }else{
+#endif
 #ifdef TWILIGHT_HDR
   col += bloom * uBloomI * uHdrBlend;
 #else
@@ -1091,6 +1169,9 @@ void main(){
 #endif
 #ifdef TWILIGHT_HDR
   col += bloom * uLegacyBloomI * (1.0 - uHdrBlend);
+#endif
+#ifdef TWILIGHT_HDR
+  }
 #endif
   /* 两套配色都随太阳高度变化；低饱和方案以材质配色为主。 */
   float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
@@ -1195,35 +1276,51 @@ precision highp float; precision highp int; precision highp sampler2D;
 layout(location = 0) in vec4 aStar;
 layout(location = 1) in vec3 aCol;
 uniform mat3 uEq; uniform vec3 uR, uU, uF; uniform vec2 uTan;
-uniform float uStarI, uPxScale;
+uniform float uStarI, uPxScale, uAtmosphere;
 uniform sampler2D uCloud;
 ` + ANIMATION_GLSL + `
-out vec3 vCol; out float vI;
+out vec3 vCol; out float vI; out float vClearI; out float vTransmission;
 void main(){
   vec3 d = uEq * aStar.xyz;
   vec4 clip = vec4(dot(d, uR) / uTan.x, dot(d, uU) / uTan.y, 0.0, dot(d, uF));
   clip.z = clip.w;
-  gl_Position = clip; vCol = aCol; vI = 0.0; gl_PointSize = 1.0;
+  gl_Position = clip; vCol = aCol; vI = 0.0; vClearI = 0.0; vTransmission = 0.0; gl_PointSize = 1.0;
   if (d.y < -0.01 || clip.w <= 0.0) return;
   float T = textureLod(uCloud, clamp(clip.xy / clip.w * 0.5 + 0.5, 0.0, 1.0), 0.0).a;
   float mag = aStar.w;
-  float ext = exp(-0.28 / max(d.y, 0.035));
+  float ext = mix(1.0, exp(-0.28 / max(d.y, 0.035)), uAtmosphere);
   float low = 1.0 - smoothstep(0.05, 0.45, d.y);
   float tw = 1.0 + 0.45 * low * sin(animationAngle(6.0 + fract(mag * 13.7) * 10.0, aStar.x * 97.0 + aStar.y * 53.0));
   vI = uStarI * pow(10.0, -0.248 * (mag - 6.0)) * ext * T * tw;
+  if(uAtmosphere<1.0)vClearI=uStarI*pow(10.0,-0.248*(mag-6.0))*ext*tw;
+  vTransmission=T;
   gl_PointSize = uPxScale * clamp(1.5 + 0.5 * (6.0 - mag), 1.5, 7.0);
 }`;
 const PLANET_FS = `#version 300 es
 precision highp float;
-in vec3 vCol; in float vI; out vec4 o;
+in vec3 vCol; in float vI; in float vClearI; in float vTransmission; out vec4 o;
+uniform float uAtmosphere,uPointPeak;
+uniform vec3 uR,uU,uF,uSunDir,uMoonDir; uniform vec2 uTan,uRes;
+` + CELESTIAL_GLSL + `
 void main(){
   vec2 q = gl_PointCoord * 2.0 - 1.0;
-  float a = exp(-dot(q, q) * 3.5);
-  if (vI * a < 2e-4) discard;
+  float r2 = dot(q, q);
+  // 关闭大气后点源清晰可见，圆形柔边防止亮行星暴露点精灵的方形边界。
+  float a = exp(-r2 * 3.5) * mix(1.0 - smoothstep(.64, 1.0, r2), 1.0, uAtmosphere);
+  float occultation=1.0;
+  if(uAtmosphere<1.0){
+    vec2 uv=gl_FragCoord.xy/uRes*2.0-1.0;
+    vec3 d=normalize(uF+uv.x*uTan.x*uR+uv.y*uTan.y*uU);
+    occultation=chartOccultation(d,uSunDir,uMoonDir,1.0-uAtmosphere,2.0*uTan.y/uRes.y);
+  }
+  if (vI * a * occultation < 2e-4) discard;
 #ifdef NIGHT_HDR
-  o = vec4(vCol * vI * a, 1.0);
+  vec3 value=vCol*vI*a;
+  // 在云层和日月遮挡之前压缩，保证薄云仍严格按透射率衰减。
+  if(uAtmosphere<1.0)value=mix(value,chartPointShoulder(vCol*vClearI*a,uPointPeak)*vTransmission,1.0-uAtmosphere);
+  o = vec4(value*occultation, 1.0);
 #else
-  o = vec4(1.0 - exp(-vCol * vI * a), 1.0);
+  o = vec4(1.0 - exp(-vCol * vI * a * occultation), 1.0);
 #endif
 }`;
 const STAR_VS = `#version 300 es
@@ -1231,11 +1328,11 @@ precision highp float; precision highp int; precision highp sampler2D;
 layout(location = 0) in vec4 aStar;
 layout(location = 1) in vec3 aCol;
 uniform mat3 uEq; uniform vec3 uR, uU, uF; uniform vec2 uTan;
-uniform float uStarI, uPxScale, uStellarLimit;
-uniform vec3 uMoonDir; uniform float uMoonRadius, uMoonWash, uScintillation, uPixAngle;
+uniform float uStarI, uPxScale, uStellarLimit, uAtmosphere;
+uniform vec3 uMoonDir,uSunDir; uniform float uMoonRadius, uMoonWash, uScintillation, uPixAngle;
 uniform sampler2D uCloud, uSkyLut;
 ` + ANIMATION_GLSL + `
-out vec3 vEnergy; out float vSigma;
+out vec3 vEnergy; out vec3 vClearEnergy; out float vTransmission; out float vSigma;
 ` + CELESTIAL_GLSL + `
 vec2 stellarSkyUV(vec3 d){
   float el = asin(clamp(d.y, -1.0, 1.0)), az = atan(d.x, d.z);
@@ -1245,82 +1342,61 @@ void main(){
   vec3 d = uEq * aStar.xyz;
   vec4 clip = vec4(dot(d, uR) / uTan.x, dot(d, uU) / uTan.y, 0.0, dot(d, uF));
   clip.z = clip.w;
-  gl_Position = clip; vEnergy = vec3(0); vSigma = 1.0; gl_PointSize = 1.0;
+  gl_Position = clip; vEnergy = vec3(0); vClearEnergy = vec3(0); vTransmission = 0.0; vSigma = 1.0; gl_PointSize = 1.0;
   if (d.y < 0.0 || clip.w <= 0.0) return;
-#ifdef NIGHT_HDR
   if (aStar.w >= uStellarLimit) return;
-#endif
   float T = textureLod(uCloud, clamp(clip.xy / clip.w * 0.5 + 0.5, 0.0, 1.0), 0.0).a;
   float mag = aStar.w;
-  vec3 ext = vec3(stellarExtinction(d.y));
+  vec3 ext = vec3(mix(smoothstep(0.0,.025,d.y), stellarExtinction(d.y), uAtmosphere));
   float phase = dot(aStar.xyz, vec3(97.0, 53.0, 179.0));
   float seed = fract(sin(phase * 1.37) * 43758.5453);
   // pmndrs SkyStars 的独立相位与按高度闪烁；星位及 PSF 宽度不随闪烁改变。
   float rate = 1.5 + 2.5 * seed;
   float shimmer = sin(animationAngle(rate, phase)) * sin(animationAngle(rate * .61, phase * 1.7));
   float tw=1.0+uScintillation*.35*mix(.3,1.0,pow(1.0-max(d.y,0.0),2.0))*shimmer;
-  float moonDistance = length(d - uMoonDir);
-  float glare = 1.0 - .8 * uMoonWash * exp(-moonDistance * moonDistance / .012);
+  float glare = stellarMoonGlare(d, uMoonDir, uMoonWash);
   float occultation = 1.0 - discMask(d, uMoonDir, uMoonRadius, uPixAngle);
+  if(uAtmosphere<1.0) occultation *= 1.0-(1.0-uAtmosphere)*discMask(d,uSunDir,${SUN_RADIUS},uPixAngle);
   float sigma=.7;
 #ifdef NIGHT_HDR
   // 使用实测 V 星等的 Pogson 通量比；眼睛/短曝光的弱星上限连续过渡。
-  float energy=uStarI*pow(10.0,${MAGNITUDE_EXPONENT.toFixed(1)}*(mag-6.0))*.855;
+  float energy=stellarFlux(mag,uStarI,true);
   float visible=1.0-smoothstep(uStellarLimit-.25,uStellarLimit,mag);
 #else
-  float energy=uStarI*pow(10.0,-.30*(mag-6.0))*1.9;
-  energy=18.0*energy/(18.0+energy);
+  float energy=stellarFlux(mag,uStarI,false);
   float peak=energy*dot(ext,vec3(.2126,.7152,.0722))/(6.28318530718*sigma*sigma);
   vec2 skyUV=stellarSkyUV(d);
-  float skyL=dot(textureLod(uSkyLut,skyUV,0.0).rgb,vec3(.2126,.7152,.0722));
-  float visible=smoothstep(-2.0,2.0,log2(max(peak/(12.0*skyL+1e-9),1e-9)));
+  float skyL=dot(textureLod(uSkyLut,skyUV,0.0).rgb,vec3(.2126,.7152,.0722))*uAtmosphere;
+  float visible=stellarContrast(peak,skyL);
 #endif
   // 恒星保持点源；亮度不能把光斑扩张成接近月盘的圆球。
   vSigma=sigma*uPxScale;
   vEnergy=aCol*ext*energy*uPxScale*uPxScale*T*tw*visible*glare*occultation;
+  if(uAtmosphere<1.0)vClearEnergy=aCol*ext*energy*uPxScale*uPxScale*tw*visible*glare;
+  vTransmission=T*occultation;
   gl_PointSize=6.0*vSigma;
 }`;
 const STAR_FS = `#version 300 es
 precision highp float;
-in vec3 vEnergy; in float vSigma; out vec4 o;
-uniform vec3 uR, uU, uF, uMoonDir; uniform vec2 uTan, uRes; uniform float uMoonRadius, uPixAngle;
+in vec3 vEnergy; in vec3 vClearEnergy; in float vTransmission; in float vSigma; out vec4 o;
+uniform vec3 uR, uU, uF, uMoonDir,uSunDir; uniform vec2 uTan, uRes; uniform float uMoonRadius, uPixAngle, uAtmosphere,uPointPeak;
 ` + CELESTIAL_GLSL + `
 void main(){
   vec2 uv = gl_FragCoord.xy / uRes * 2.0 - 1.0;
   vec3 d = normalize(uF + uv.x * uTan.x * uR + uv.y * uTan.y * uU);
   float occultation = 1.0 - discMask(d, uMoonDir, uMoonRadius, uPixAngle);
+  if(uAtmosphere<1.0) occultation *= 1.0-(1.0-uAtmosphere)*discMask(d,uSunDir,${SUN_RADIUS},uPixAngle);
   vec2 q=(gl_PointCoord-.5)*6.0*vSigma;
   float variance=vSigma*vSigma;
   float psf=exp(-dot(q,q)/(2.0*variance))/(6.28318530718*variance);
   vec3 value=vEnergy*psf;
   if(max(value.r,max(value.g,value.b))<2e-4) discard;
 #ifdef NIGHT_HDR
+  if(uAtmosphere<1.0)value=mix(value,chartPointShoulder(vClearEnergy*psf,uPointPeak)*vTransmission,1.0-uAtmosphere);
   o=vec4(value*occultation,1.0);
 #else
   o=vec4((1.0-exp(-value))*occultation,1.0);
 #endif
-}`;
-const LINE_VS = `#version 300 es
-precision highp float;
-layout(location = 0) in vec3 aDir;
-uniform mat3 uEq; uniform vec3 uR, uU, uF; uniform vec2 uTan;
-out float vA;
-void main(){
-  vec3 d = uEq * aDir;
-  vec4 clip = vec4(dot(d, uR) / uTan.x, dot(d, uU) / uTan.y, 0.0, dot(d, uF));
-  clip.z = clip.w; gl_Position = clip;
-  vA = smoothstep(-0.02, 0.08, d.y) * exp(-0.15 / max(d.y, 0.05));
-}`;
-const LINE_FS = `#version 300 es
-precision highp float;
-in float vA; uniform float uLineA; out vec4 o;
-void main(){
-  vec3 c = vec3(0.45, 0.6, 0.95) * uLineA * vA;
-#ifdef NIGHT_HDR
-  // 星座线是低亮度标注，在线性空间校准，避免统一映射后变得刺眼。
-  c *= .18;
-#endif
-  o = vec4(c, 1.0);
 }`;
 /* 5044 stars brighter than mag 6.0 (d3-celestial, from the Yale Bright Star / Hipparcos data), 6 bytes each:
    RA u16, Dec u16, magnitude u8, B-V u8 */
@@ -1589,4 +1665,4 @@ void main(){
 }`;   /* 0.5 m per texel; WebGL2 guarantees 2048, so this fits every device */
 
 
-export { VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CLOUD_FS, TAA_FS, DISPLAY, SCENE, SCENE_FS, VPRE, TERRAIN_VS, TERRAIN_FS, GRASS_VS, GRASS_FS, FLOWER_VS, PETAL_VS, STREAM_VS, PETAL_FS, SKYPASS_FS, GOD_FS, POSTCOMMON, DOFPREP_FS, DOF_FS, BLOOMPRE_FS, DOWN_FS, UP_FS, FINAL_FS, SHELL_VS, SHELL_FS, STAR_VS, STAR_FS, PLANET_VS, PLANET_FS, LINE_VS, LINE_FS, FIREFLY_VS, FIREFLY_FS, FLY_COUNT, GLOW_VS, GLOW_FS, GLOW_N, TOUCH_FS, RESTAMP_VS, RESTAMP_FS, TOUCH_N, PUD_FS, PUD_N, RAIN_VS, RAIN_FS, BOLT_VS, BOLT_FS, RAIN_N, SNOW_VS, SNOW_FS, SNOW_N, DROP_VS, DROP_FS, GLOW_EXT, TOUCH_EXT, PUD_EXT, BOLT_MAX };
+export { DISPLAY_TRANSFORM, DEFAULT_MOON_GLSL, CELESTIAL_GLSL, LENS_DISTORTION_GLSL, VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CLOUD_FS, TAA_FS, DISPLAY, SCENE, SCENE_FS, VPRE, TERRAIN_VS, TERRAIN_FS, GRASS_VS, GRASS_FS, FLOWER_VS, PETAL_VS, STREAM_VS, PETAL_FS, SKYPASS_FS, GOD_FS, POSTCOMMON, DOFPREP_FS, DOF_FS, BLOOMPRE_FS, DOWN_FS, UP_FS, FINAL_FS, SHELL_VS, SHELL_FS, STAR_VS, STAR_FS, PLANET_VS, PLANET_FS, FIREFLY_VS, FIREFLY_FS, FLY_COUNT, GLOW_VS, GLOW_FS, GLOW_N, TOUCH_FS, RESTAMP_VS, RESTAMP_FS, TOUCH_N, PUD_FS, PUD_N, RAIN_VS, RAIN_FS, BOLT_VS, BOLT_FS, RAIN_N, SNOW_VS, SNOW_FS, SNOW_N, DROP_VS, DROP_FS, GLOW_EXT, TOUCH_EXT, PUD_EXT, BOLT_MAX };

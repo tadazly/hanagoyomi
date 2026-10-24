@@ -4,7 +4,7 @@ Hanagoyomi 项目代码使用 MIT License。以下数据、服务和算法参考
 
 ## 星表与星座连线 — d3-celestial
 
-内嵌星表（可视星等 ≤ 6，源于 Yale Bright Star Catalogue / Hipparcos）与星座连线从 Olaf Frohn 的 [d3-celestial](https://github.com/ofrohn/d3-celestial) 转换而来，保留以下 BSD 许可：
+内嵌星表（可视星等 ≤ 6，源于 Yale Bright Star Catalogue / Hipparcos）、星座连线、88 个现代星座的名称与分组从 Olaf Frohn 的 [d3-celestial](https://github.com/ofrohn/d3-celestial) 转换而来，保留以下 BSD 许可：
 
 ```
 Copyright (c) 2015, Olaf Frohn

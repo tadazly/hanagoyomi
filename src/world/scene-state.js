@@ -71,7 +71,7 @@ export function validateScene(input) {
     const c = input.camera || {};
     const camera = { x: number(c.x, -2801.597137599582, -1e8, 1e8), z: number(c.z, 4700.742448387173, -1e8, 1e8),
       agl: number(c.agl, 2.2, VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX), yaw: number(c.yaw, 3.9269908169872414, -1e9, 1e9),
-      pitch: number(c.pitch, .04, -1.5, 1.5), roll: number(c.roll, 0, -Math.PI, Math.PI), fov: number(c.fov, 60, 28, 95) };
+      pitch: number(c.pitch, .04, -Math.PI / 2, Math.PI / 2), roll: number(c.roll, 0, -Math.PI, Math.PI), fov: number(c.fov, 60, 28, 95) };
     if (c.y !== undefined) camera.y = number(c.y, undefined, -1e6, 1e6);
     if (c.focus !== undefined) camera.focus = number(c.focus, undefined, 1.5, 600);
     const e = input.environment || {};

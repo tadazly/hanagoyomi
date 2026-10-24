@@ -37,6 +37,7 @@
     <button class="icon-button" id="immersiveBtn" aria-label="Enter immersive mode" data-i18n-aria-label="immersive.enter" title="Immersive mode · H" data-i18n-title="immersive.title"><span data-icon="eye-off"></span></button>
     <button class="icon-button" id="panelToggle" aria-label="Open world settings" data-i18n-aria-label="panel.open" aria-expanded="false" aria-controls="panel" title="World settings" data-i18n-title="panel.title"><span data-icon="sliders"></span></button>
   </nav>
+  <div id="stargazingStatus" class="stargazing-status chrome" hidden><span data-i18n="sky.stargazingActive"></span><button type="button" id="exitStargazing" data-i18n="sky.exit">Exit</button></div>
   <aside class="time-popover glass chrome" id="timePopover" role="dialog" aria-labelledby="timePopoverTitle" hidden>
     <div class="panel-heading"><h2 id="timePopoverTitle" data-i18n="time.settings">Time settings</h2><button class="plain-icon" id="timePopoverClose" type="button" aria-label="Close time settings" data-i18n-aria-label="time.close"><span data-icon="close"></span></button></div>
     <div class="time-popover-body" id="quickTimeControls"></div>
@@ -47,6 +48,7 @@
       <button role="tab" id="tab-now" aria-controls="pane-now" aria-selected="true" data-tab="now" data-i18n="tab.now">Basics</button>
       <button role="tab" id="tab-weather" aria-controls="pane-weather" aria-selected="false" tabindex="-1" data-tab="weather" data-i18n="tab.weather">Weather</button>
       <button role="tab" id="tab-landscape" aria-controls="pane-landscape" aria-selected="false" tabindex="-1" data-tab="landscape" data-i18n="tab.landscape">Visuals</button>
+      <button role="tab" id="tab-sky" aria-controls="pane-sky" aria-selected="false" tabindex="-1" data-tab="sky" data-i18n="tab.sky">Sky</button>
       <button role="tab" id="tab-components" aria-controls="pane-components" aria-selected="false" tabindex="-1" data-tab="components" data-i18n="tab.components">Interface</button>
     </div>
     <div class="panel-body" id="panelBody">
@@ -146,18 +148,52 @@
         <label class="switch"><span data-i18n="camera.scale">Scale petals with distance</span><input type="checkbox" id="streamScale"><i></i></label>
         <label class="switch"><span data-i18n="camera.sway">Camera motion</span><input type="checkbox" id="sway"><i></i></label>
         <label class="switch"><span data-i18n="weather.lensDrops">Lens raindrops</span><input type="checkbox" id="lensDrops"><i></i></label></div></details>
-        <details class="advanced"><summary><span data-i18n="settings.skyDetails"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body"><p class="ctl-label" id="nightSkyStyleLabel" data-i18n="astronomy.nightSkyStyle">Night sky style</p>
-        <div class="seg seg2" role="radiogroup" aria-labelledby="nightSkyStyleLabel">
-          <label><input type="radio" name="nightSkyStyle" value="default" checked><span data-i18n="astronomy.nightSkyDefault">Default</span></label>
-          <label><input type="radio" name="nightSkyStyle" value="realistic"><span data-i18n="astronomy.nightSkyRealistic">Realistic</span></label>
-        </div><label class="switch"><span data-i18n="astronomy.constellations">Constellation lines</span><input type="checkbox" id="constel"><i></i></label>
-        <label class="switch"><span data-i18n="locks.clouds"></span><input type="checkbox" id="cloudLock"><i></i></label>
-        <p class="settings-helper" data-i18n="locks.cloudHelp"></p>
-        <label class="ctl"><span data-i18n="astronomy.orientation">Orientation</span><output for="sunAz"></output><input type="range" id="sunAz" min="0" max="360" step="1"></label>
-        <label class="switch"><span data-i18n="quality.godRays">Volumetric light</span><input type="checkbox" id="god"><i></i></label></div></details>
         <details class="advanced"><summary><span data-i18n="rendering.title">Rendering info</span><span data-icon="chevron"></span></summary>
           <div class="stats"><p><span id="fps">--</span> FPS</p><p id="ms">Frame time -- ms</p><p id="res">Cloud buffer --</p><p id="clock">Local time --</p><p id="blades">Grass blades --</p><p id="gpu"></p></div>
         </details>
+      </section>
+      <section id="pane-sky" role="tabpanel" aria-labelledby="tab-sky" hidden>
+        <h2 data-i18n="sky.title">Sky and stargazing</h2>
+<p class="ctl-label" id="nightSkyStyleLabel" data-i18n="astronomy.nightSkyStyle">Night sky style</p>
+        <div class="seg seg2" role="radiogroup" aria-labelledby="nightSkyStyleLabel">
+          <label><input type="radio" name="nightSkyStyle" value="default" checked><span data-i18n="astronomy.nightSkyDefault">Default</span></label>
+          <label><input type="radio" name="nightSkyStyle" value="realistic"><span data-i18n="astronomy.nightSkyRealistic">Realistic</span></label>
+        </div>
+        <p class="ctl-label" id="skyDisplayLabel" data-i18n="sky.displayMode">Sky display</p>
+        <div class="seg seg2" role="radiogroup" aria-labelledby="skyDisplayLabel" aria-describedby="skyDisplayHelp">
+          <label><input type="radio" name="skyDisplay" value="natural" checked><span data-i18n="sky.natural">Natural</span></label>
+          <label><input type="radio" name="skyDisplay" value="chart"><span data-i18n="sky.chart">Star chart</span></label>
+        </div>
+        <p class="settings-helper" id="skyDisplayHelp" data-i18n="sky.displayModeHelp"></p>
+        <h2 data-i18n="sky.constellationMode">Constellation mode</h2>
+        <label class="switch"><span data-i18n="sky.stargazing">Stargazing mode</span><input type="checkbox" id="stargazing" aria-describedby="stargazingHelp"><i></i></label>
+        <p class="settings-helper" id="stargazingHelp" data-i18n="sky.stargazingHelp"></p>
+        <label class="switch"><span data-i18n="sky.showConstellations">Show constellations</span><input type="checkbox" id="constel"><i></i></label>
+        <label class="switch"><span data-i18n="sky.interaction">Constellation interaction</span><input type="checkbox" id="constelInteract"><i></i></label>
+        <p class="settings-helper" data-i18n="sky.interactionHelp"></p>
+        <p class="ctl-label" id="constelStyleLabel" data-i18n="sky.lineStyle">Line visibility</p>
+        <div class="seg seg2" role="radiogroup" aria-labelledby="constelStyleLabel">
+          <label><input type="radio" name="constelStyle" value="immersive" checked><span data-i18n="sky.immersive">Immersive</span></label>
+          <label><input type="radio" name="constelStyle" value="always"><span data-i18n="sky.always">Always visible</span></label>
+        </div>
+        <p class="settings-helper" data-i18n="sky.lineHelp"></p>
+        <label class="switch"><span data-i18n="sky.names">Constellation names</span><input type="checkbox" id="constelNames" checked><i></i></label>
+        <label class="switch" id="bilingualOption"><span data-i18n="sky.bilingual">Bilingual names</span><input type="checkbox" id="constelBilingual"><i></i></label>
+        <div class="sky-finder"><label for="constellationSelect" data-i18n="sky.find">Find a constellation</label><select id="constellationSelect"></select></div>
+        <p class="settings-helper" id="constellationInfo" role="status" aria-live="polite"></p>
+        <details class="advanced"><summary><span data-i18n="sky.display">Display adjustment</span><span data-icon="chevron"></span></summary><div class="settings-detail-body">
+          <label class="ctl"><span data-i18n="sky.width">Line thickness</span><output for="constelWidth"></output><input type="range" id="constelWidth" min="0.6" max="2" step="0.05"></label>
+          <label class="ctl"><span data-i18n="sky.clarity">Annotation contrast</span><output for="constelClarity"></output><input type="range" id="constelClarity" min="0.4" max="2" step="0.05"></label>
+          <label class="ctl"><span data-i18n="sky.font">Name size</span><output for="constelFont"></output><input type="range" id="constelFont" min="10" max="22" step="1"></label>
+          <p class="settings-helper" data-i18n="sky.displayHelp"></p>
+          <button class="btn outline" type="button" id="resetConstellationDisplay" data-i18n="sky.reset">Reset display</button>
+        </div></details>
+        <details class="advanced"><summary><span data-i18n="sky.environment"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body">
+        <label class="switch"><span data-i18n="locks.clouds"></span><input type="checkbox" id="cloudLock"><i></i></label>
+        <p class="settings-helper" data-i18n="locks.cloudHelp"></p>
+        <label class="ctl"><span data-i18n="astronomy.orientation">Orientation</span><output for="sunAz"></output><input type="range" id="sunAz" min="0" max="360" step="1"></label>
+        <label class="switch"><span data-i18n="quality.godRays">Volumetric light</span><input type="checkbox" id="god"><i></i></label>
+        </div></details>
       </section>
       <section id="pane-components" role="tabpanel" aria-labelledby="tab-components" hidden>
         <label class="language-field"><span data-i18n="language.label">Language</span><select id="languageSelect" aria-label="Language" data-i18n-aria-label="language.label"><option value="auto" data-i18n="language.auto">Automatic</option><option value="en" lang="en">English</option><option value="zh" lang="zh-CN">简体中文</option><option value="ja" lang="ja">日本語</option></select></label>
