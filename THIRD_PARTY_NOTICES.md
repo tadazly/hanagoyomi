@@ -2,6 +2,18 @@
 
 Hanagoyomi 项目代码使用 MIT License。以下数据、服务和算法参考的许可独立于项目许可。
 
+## 写实体积云 — blackrack / Environmental Visual Enhancements
+
+写实云参考 **RaymarchedVolumetricsEarlyAccess03_01_26**（03/01/26）版本适配。参考包括 `Scatterer-EVE/RaymarchCloud` V5、`EVE/CloudNoiseGen`、云型 Hermite 高度曲线、三角网格去平铺、光程积分及多重散射近似；原始发行包、DLL、音频及导出的完整着色器未随本项目分发。
+
+`src/data/eve-cloud-types.js` 保留云型配置，`src/data/eve-cloud-noise.js` 是由噪声着色器生成并归一化的 128³ R8 数据。`src/rendering/realistic-clouds.js` 将相关算法适配到 WebGL2。它们涉及的第三方部分保留原权利声明，不适用本仓库的 MIT License。原包 `License.txt` 的体积云声明为：
+
+```
+This preview build of the volumetric clouds is All rights reserved
+```
+
+本次适配沿用花暦宏观天气与云形包络、1500–4000 m 云层和 6371 km 地球尺度，保留 EVE 噪声侵蚀、云型密度曲线、光程积分、多重散射与体积光照缓存；未引入原行星天气图、轨道地表或全局大气切换。
+
 ## 星表与星座连线 — d3-celestial
 
 内嵌星表（可视星等 ≤ 6，源于 Yale Bright Star Catalogue / Hipparcos）、星座连线、88 个现代星座的名称与分组从 Olaf Frohn 的 [d3-celestial](https://github.com/ofrohn/d3-celestial) 转换而来，保留以下 BSD 许可：

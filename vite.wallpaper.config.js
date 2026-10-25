@@ -7,7 +7,7 @@ import { workshopLocalizations } from './wallpaper/workshop-copy.js';
 
 export default mergeConfig(base, defineConfig({
   base: './',
-  resolve: { alias: { '#scene-qr': fileURLToPath(new URL('./src/platform/wallpaper-qr.js', import.meta.url)) } },
+  resolve: { alias: { '#cloud-noise': fileURLToPath(new URL('./src/platform/wallpaper-cloud-noise.js', import.meta.url)), '#scene-qr': fileURLToPath(new URL('./src/platform/wallpaper-qr.js', import.meta.url)) } },
   plugins: [{
     name: 'hanagoyomi-wallpaper-engine',
     transformIndexHtml: {

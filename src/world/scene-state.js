@@ -8,13 +8,13 @@ export const SCENE_VERSION = 1;
 export const SCENE_SETTINGS = Object.freeze({
   auto: false, god: true, petals: true, sway: false, constel: false, flies: true,
   flowerGlow: false, bloom: true, streamScale: false, infMem: false, lensDrops: true,
-  lowSaturation: false, streamDist: 'near', bloomR: 4, sunAz: 317, dof: .6,
+  lowSaturation: false, cloudStyle: 'default', streamDist: 'near', bloomR: 4, sunAz: 317, dof: .6,
   wxMode: 'manual', wxType: 'clear', coverage: .16, density: .8, wind: 18,
   breeze: .3, fogVisS: 1000, rainAmt: 0, snowAmt: 0, boltFreq: 0, puddle: 0, snowMax: 0,
 });
 export const WEATHER_SETTINGS = Object.freeze(['wxMode', 'wxType', 'coverage', 'density', 'wind', 'breeze', 'fogVisS', 'rainAmt', 'snowAmt', 'boltFreq', 'puddle', 'snowMax']);
 const RANGES = { bloomR: [1.5, 10], sunAz: [0, 360], dof: [0, 1], coverage: [0, 1], density: [.3, 2.5], wind: [0, 200], breeze: [0, 1], fogVisS: [0, 1000], rainAmt: [0, 1], snowAmt: [0, 1], boltFreq: [0, 4], puddle: [0, 1], snowMax: [0, 1] };
-const ENUMS = { streamDist: ['near', 'mid', 'far'], wxMode: ['follow', 'dynamic', 'manual', 'off'], wxType: Object.keys(WX_TYPES) };
+const ENUMS = { cloudStyle: ['default', 'realistic'], streamDist: ['near', 'mid', 'far'], wxMode: ['follow', 'dynamic', 'manual', 'off'], wxType: Object.keys(WX_TYPES) };
 const object = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const validTimezones = new Set();
 function skyLocation(value) {

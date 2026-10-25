@@ -6,7 +6,7 @@ const version = JSON.parse(readFileSync(new URL('./package.json', import.meta.ur
 
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(version) },
-  resolve: { alias: { '#scene-qr': fileURLToPath(new URL('./src/platform/scene-qr.js', import.meta.url)) } },
+  resolve: { alias: { '#cloud-noise': fileURLToPath(new URL('./src/platform/cloud-noise.js', import.meta.url)), '#scene-qr': fileURLToPath(new URL('./src/platform/scene-qr.js', import.meta.url)) } },
   plugins: [{
     name: 'hanagoyomi-release-metadata',
     generateBundle() {

@@ -1,3 +1,5 @@
+import { REALISTIC_DENSITY_GLSL, REALISTIC_RAYMARCH_GLSL, CLOUD_TRANSMITTANCE_GLSL, CLOUD_IRRADIANCE_GLSL, CLOUD_LIGHT_VOLUME_GLSL, CLOUD_LIGHT_REPROJECT_GLSL } from './realistic-clouds.js';
+import { ATMOSPHERE_GLSL } from './cloud-atmosphere.js';
 import { TERRAIN_GLSL } from './terrain.js';
 import { WEATHER_FOG_GLSL } from './weather-fog.js';
 import { FLOWER_PETALS } from './flower-mesh.js';
@@ -96,7 +98,7 @@ vec2 skyUV(vec3 d){
 vec3 skyLookup(vec3 d){ return textureLod(uSkyLut, skyUV(d), 0.0).rgb; }
 float heightGradient(float h, float type){ float top = mix(0.5, 1.0, type); return smoothstep(0.0, 0.07, h) * (1.0 - smoothstep(top * 0.4, top, h)); }
 float lodOf(float fp, float texel){ return max(0.0, log2(max(fp, 1e-6) / texel)); }
-float cloudBase(vec3 pw, float h01, float fp){
+float defaultCloudBase(vec3 pw, float h01, float fp){
   if (h01 <= 0.0 || h01 >= 1.0) return 0.0;
   vec3 ps = pw + uWind; ps.xz += uWindDir * (h01 * 0.6);
   vec2 wt = textureLod(uWeather, ps.xz * WEATHER_FREQ, 0.0).rg;
@@ -121,6 +123,14 @@ float erode(float c, vec3 pw, float h01, float fp){
 float hg(float g, float c){ float g2 = g * g; return (1.0 - g2) / (4.0 * PI * pow(max(1.0 + g2 - 2.0 * g * c, 1e-4), 1.5)); }
 float ign(vec2 p){ return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
 `;
+
+const CLOUD_COMMON = COMMON + ATMOSPHERE_GLSL + REALISTIC_DENSITY_GLSL + `
+float cloudBase(vec3 pw,float h01,float fp){return uCloudStyle==1?eveDensity(eveAtAltitude(pw.xz,pw.y),h01,fp).x/max(uDensity*SIGMA,.001):defaultCloudBase(pw,h01,fp);}
+`;
+export const CLOUD_LIGHT_VOLUME_FS=HEAD+CLOUD_COMMON+CLOUD_LIGHT_VOLUME_GLSL;
+export const CLOUD_LIGHT_REPROJECT_FS=HEAD+CLOUD_COMMON+CLOUD_LIGHT_REPROJECT_GLSL;
+export const CLOUD_TRANSMITTANCE_FS=HEAD+CLOUD_COMMON+CLOUD_TRANSMITTANCE_GLSL;
+export const CLOUD_IRRADIANCE_FS=HEAD+CLOUD_COMMON+CLOUD_IRRADIANCE_GLSL;
 
 const SKYLUT_FS = HEAD + COMMON + `
 uniform float uSunI, uMoonI; uniform vec3 uMoonDir, uGlow, uMS;
@@ -163,7 +173,7 @@ void main(){
   o = vec4(col, 1.0);
 }`;
 
-const CSHADOW_FS = HEAD + COMMON + `
+const CSHADOW_FS = HEAD + CLOUD_COMMON + `
 uniform vec3 uShadowP;
 out vec4 o;
 void main(){
@@ -178,13 +188,15 @@ void main(){
   o = vec4(mix(0.16, 1.0, exp(-od)), 0.0, 0.0, 1.0);
 }`;
 
-const CLOUD_FS = HEAD + COMMON + `
+const CLOUD_FS = HEAD + CLOUD_COMMON + `
 uniform vec3 uRight, uUp, uFwd; uniform vec2 uTan;
+uniform vec2 uRayJitter;
 uniform vec3 uSunColor; uniform vec3 uAmbTop, uAmbBottom;
 uniform int uSteps, uLightSteps; uniform float uFrame, uPixAngle, uFogK, uFwdScat, uAmbOcc, uAtmosphere, uRayLimit;
 uniform vec4 uFlashP; uniform vec3 uFlashC;
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oDepth;
+` + REALISTIC_RAYMARCH_GLSL + `
 float lightOD(vec3 pr, float fp){
   float od = 0.0, prev = 0.0, n = float(uLightSteps);
   for (int i = 0; i < 8; i++){
@@ -202,13 +214,19 @@ float lightOD(vec3 pr, float fp){
   return od;
 }
 void main(){
-  vec3 rd = normalize(uFwd + (vUv.x * 2.0 - 1.0) * uTan.x * uRight + (vUv.y * 2.0 - 1.0) * uTan.y * uUp);
+  vec2 uv=vUv+uRayJitter;
+  vec3 rd = normalize(uFwd + (uv.x * 2.0 - 1.0) * uTan.x * uRight + (uv.y * 2.0 - 1.0) * uTan.y * uUp);
   vec3 ro = vec3(0.0, uCamPos.y, 0.0); float hc = uCamPos.y;
   vec2 iB = raySphere(ro, rd, R_EARTH + uLayer.x), iT = raySphere(ro, rd, R_EARTH + uLayer.y), iG = raySphere(ro, rd, R_EARTH);
   float t0 = -1.0, t1 = -1.0;
   if (hc < uLayer.x){ if (!(iG.x > 0.0)){ t0 = iB.y; t1 = iT.y; } }
   else if (hc < uLayer.y){ t0 = 0.0; t1 = iB.x > 0.0 ? iB.x : iT.y; }
   else if (iT.x > 0.0){ t0 = iT.x; t1 = iB.x > 0.0 ? iB.x : iT.y; }
+  if(uCloudStyle==1){
+    t0=max(0.0,iT.x);t1=iT.y;
+    if(hc<uLayer.x)t0=max(t0,iB.y);
+    if(iG.x>0.0)t1=min(t1,iG.x);
+  }
   // 无天空散射时，95 km 的云硬裁剪会露出地平线缺口。
   // 只在该视图按相机高度延长到球面可见地平线之外，保持原有步数和云段预算。
   float FAR = uRayLimit;
@@ -216,6 +234,7 @@ void main(){
   t1 = min(t1, t0 + 60.0); float seg = t1 - t0;
   if (seg <= 0.0){ oColor = vec4(0.0, 0.0, 0.0, 1.0); oDepth = vec4(FAR); return; }
   float jit = fract(ign(gl_FragCoord.xy) + uFrame * 0.61803398875);
+  if(uCloudStyle==1){eveRaymarch(ro,rd,t0,t1,jit);return;}
   float cosT = dot(rd, uSunDir);
   float ph0 = mix(hg(0.80 * uFwdScat, cosT), hg(-0.25, cosT), 0.30), ph1 = mix(hg(0.40 * uFwdScat, cosT), hg(-0.125, cosT), 0.30);
   float ph2 = mix(hg(0.20, cosT), hg(-0.06, cosT), 0.30), ph3 = 1.0 / (4.0 * PI);
@@ -273,12 +292,13 @@ void main(){
 const TAA_FS = HEAD + `
 uniform sampler2D uCur, uCurDepth, uHist;
 uniform vec3 uRight, uUp, uFwd; uniform vec2 uTan; uniform vec3 uPRight, uPUp, uPFwd; uniform vec2 uPTan;
-uniform vec3 uCamDelta; uniform float uBlend; uniform int uReset; uniform vec2 uTexel;
+uniform vec3 uCamDelta; uniform float uBlend; uniform int uReset; uniform vec2 uTexel,uRayJitter;
 out vec4 o;
 void main(){
-  vec4 cur = textureLod(uCur, vUv, 0.0);
+  vec2 currentUV=vUv-uRayJitter;
+  vec4 cur = textureLod(uCur,currentUV,0.0);
   if (uReset == 1){ o = cur; return; }
-  float dep = textureLod(uCurDepth, vUv, 0.0).r;
+  float dep = textureLod(uCurDepth,currentUV,0.0).r;
   vec3 rd = normalize(uFwd + (vUv.x * 2.0 - 1.0) * uTan.x * uRight + (vUv.y * 2.0 - 1.0) * uTan.y * uUp);
   vec3 p = rd * dep + uCamDelta; float w = dot(p, uPFwd);
   vec2 puv = vec2(dot(p, uPRight) / (w * uPTan.x), dot(p, uPUp) / (w * uPTan.y)) * 0.5 + 0.5;
@@ -286,7 +306,7 @@ void main(){
   vec4 hist = textureLod(uHist, puv, 0.0);
   vec4 mn = cur, mx = cur, m1 = vec4(0.0), m2 = vec4(0.0);
   for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++){
-    vec4 s = textureLod(uCur, vUv + vec2(float(x), float(y)) * uTexel, 0.0);
+    vec4 s = textureLod(uCur,currentUV+vec2(float(x),float(y))*uTexel,0.0);
     mn = min(mn, s); mx = max(mx, s); m1 += s; m2 += s * s;
   }
   m1 /= 9.0; m2 /= 9.0; vec4 sd = sqrt(max(m2 - m1 * m1, 0.0));

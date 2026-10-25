@@ -2,6 +2,10 @@ import { TN, tnData, tnSample, groundH } from './terrain.js';
 import { VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CLOUD_FS, TAA_FS, DISPLAY, SCENE, SCENE_FS, VPRE, TERRAIN_VS, TERRAIN_FS, GRASS_VS, GRASS_FS, FLOWER_VS, PETAL_VS, STREAM_VS, PETAL_FS, SKYPASS_FS, GOD_FS, POSTCOMMON, DOFPREP_FS, DOF_FS, BLOOMPRE_FS, DOWN_FS, UP_FS, FINAL_FS, SHELL_VS, SHELL_FS, STAR_VS, STAR_FS, PLANET_VS, PLANET_FS, FIREFLY_VS, FIREFLY_FS, FLY_COUNT, GLOW_VS, GLOW_FS, GLOW_N, TOUCH_FS, RESTAMP_VS, RESTAMP_FS, TOUCH_N, PUD_FS, PUD_N, RAIN_VS, RAIN_FS, BOLT_VS, BOLT_FS, RAIN_N, SNOW_VS, SNOW_FS, SNOW_N, DROP_VS, DROP_FS, GLOW_EXT, TOUCH_EXT, PUD_EXT, BOLT_MAX } from './shaders.js';
 import { equatorialToWorld } from './celestial-coordinates.js';
 import { createGalaxyTexture } from './galaxy-texture.js';
+import { cloudStyle } from './cloud-style.js';
+import { REALISTIC_CLOUD_QUALITY, cloudCurveTexture, loadCloudNoise, cloudPhases, cloudLightProjection } from './realistic-clouds.js';
+import { CLOUD_TRANSMITTANCE_FS, CLOUD_IRRADIANCE_FS, CLOUD_LIGHT_VOLUME_FS, CLOUD_LIGHT_REPROJECT_FS } from './shaders.js';
+import { cloudWindPhase } from './cloud-coordinates.js';
 import { cloudRayLimit } from './cloud-range.js';
 import { moonlessAstronomy, observationLighting, observationSunAltitude } from './observation-lighting.js';
 import { exposureKey } from './exposure.js';
@@ -167,8 +171,8 @@ try {
     skyLut: makeProgram(VS_FULL, SKYLUT_FS, 'skylut'),
     skyMix: makeProgram(VS_FULL, HEAD + `uniform sampler2D uA, uB; uniform float uMix; out vec4 o;
       void main(){ o = mix(texture(uA, vUv), texture(uB, vUv), uMix); }`, 'skymix'),
-    cshadow: makeProgram(VS_FULL, CSHADOW_FS, 'cshadow'),
-    cloud: makeProgram(VS_FULL, CLOUD_FS, 'cloud'),
+    cshadow: makeProgram(VS_FULL, CSHADOW_FS.replace('uniform int uCloudStyle;', 'const int uCloudStyle=0;'), 'default cloud shadow'),
+    cloud: makeProgram(VS_FULL, CLOUD_FS.replace('uniform int uCloudStyle;', 'const int uCloudStyle=0;'), 'default cloud'),
     taa: makeProgram(VS_FULL, TAA_FS, 'taa'),
     terrain: makeProgram(TERRAIN_VS, TERRAIN_FS, 'terrain'),
     grass: makeProgram(GRASS_VS, GRASS_FS, 'grass'),
@@ -235,6 +239,69 @@ const SHAPE_N = 128, DETAIL_N = 64, WEATHER_N = 512;
 const shapeTex = makeTex3D(SHAPE_N), detailTex = makeTex3D(DETAIL_N);
 const weatherTex = makeTex2D(WEATHER_N, WEATHER_N, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, gl.REPEAT);
 const terrTex = makeTex2D(TN, TN, gl.R16F, gl.RED, gl.FLOAT, gl.LINEAR, gl.REPEAT, tnData);
+let eveNoiseTex = null, eveNoisePromise = null, eveNoiseReady = false;
+let eveCurvesTex;
+let cloudTransTex, cloudTransFBO, cloudIrrTex, cloudIrrFBO;
+
+let cloudLightTextures=[],cloudLightTemp=null,cloudLightTempFBO=null,cloudLightConfig=null,cloudLightState=null,cloudLightCurrent=0;
+let cloudDirectSlice=0,cloudAmbientSlice=0,cloudAmbientUpdates=0;
+// 相机/TAA重置不改变密度场，不应触发昂贵的整卷光照预填。
+let cloudLightInvalidated=true;
+const cloudLightFBO=gl.createFramebuffer();
+function ensureCloudLightVolume(config){
+  if(cloudLightConfig===config)return;
+  gl.bindFramebuffer(gl.FRAMEBUFFER,cloudLightFBO);gl.framebufferTextureLayer(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,null,0,0);
+  cloudLightTextures.forEach(t=>gl.deleteTexture(t));
+  if(cloudLightTemp)gl.deleteTexture(cloudLightTemp);
+  if(cloudLightTempFBO)gl.deleteFramebuffer(cloudLightTempFBO);
+  cloudLightTextures=Array.from({length:2},()=>{
+    const texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_3D,texture);
+    gl.texStorage3D(gl.TEXTURE_3D,1,gl.RG16F,config.grid,config.grid,config.slices);
+    gl.texParameteri(gl.TEXTURE_3D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_3D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    for(const axis of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T,gl.TEXTURE_WRAP_R])gl.texParameteri(gl.TEXTURE_3D,axis,gl.CLAMP_TO_EDGE);
+    return texture;
+  });
+  cloudLightTemp=makeTex2D(config.grid,config.grid,gl.RG16F,gl.RG,gl.HALF_FLOAT,gl.NEAREST,gl.CLAMP_TO_EDGE);
+  cloudLightTempFBO=makeFBO([cloudLightTemp]);
+  cloudLightConfig=config;cloudLightState=null;cloudLightCurrent=0;cloudDirectSlice=cloudAmbientSlice=cloudAmbientUpdates=0;
+}
+let activeCloudStyle = 'default';
+function ensureCloudNoise(){
+  if(eveNoisePromise) return;
+  eveNoisePromise = loadCloudNoise(celestialAssets.cloudNoiseLoader).then(data => {
+    if(contextLost)return;
+    eveNoiseTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_3D,eveNoiseTex);
+    gl.texImage3D(gl.TEXTURE_3D,0,gl.R8,128,128,128,0,gl.RED,gl.UNSIGNED_BYTE,data);
+    gl.texParameteri(gl.TEXTURE_3D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_3D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    for(const axis of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T,gl.TEXTURE_WRAP_R]) gl.texParameteri(gl.TEXTURE_3D,axis,gl.REPEAT);
+    gl.generateMipmap(gl.TEXTURE_3D); eveNoiseReady = true; needReset = true;
+    if(noiseReady) $('loader').classList.add('done');
+  }).catch(error => { console.error('写实体积云资源加载失败',error); fail('error.initialization'); });
+}
+let realisticPrograms=null;
+const defaultCloudPrograms={cloud:dayPrograms.cloud,cshadow:dayPrograms.cshadow};
+function ensureRealisticPrograms(){
+  if(realisticPrograms)return;
+  const previous=P;P={};
+  const fixed=source=>source.replace('uniform int uCloudStyle;','const int uCloudStyle=1;');
+  P.realisticCloud=makeProgram(VS_FULL,fixed(CLOUD_FS),'realistic cloud');
+  P.realisticShadow=makeProgram(VS_FULL,fixed(CSHADOW_FS),'realistic shadow');
+  P.cloudTrans=makeProgram(VS_FULL,fixed(CLOUD_TRANSMITTANCE_FS),'cloud transmittance');
+  P.cloudIrr=makeProgram(VS_FULL,fixed(CLOUD_IRRADIANCE_FS),'cloud irradiance');
+  P.cloudVolume=makeProgram(VS_FULL,fixed(CLOUD_LIGHT_VOLUME_FS),'cloud light volume');
+  P.cloudReproject=makeProgram(VS_FULL,fixed(CLOUD_LIGHT_REPROJECT_FS),'cloud light reprojection');
+  eveCurvesTex=makeTex2D(128,128,gl.RG8,gl.RG,gl.UNSIGNED_BYTE,gl.LINEAR,gl.CLAMP_TO_EDGE,cloudCurveTexture());
+  cloudTransTex=makeTex2D(256,128,gl.RGBA16F,gl.RGBA,gl.HALF_FLOAT,gl.LINEAR,gl.CLAMP_TO_EDGE);
+  cloudTransFBO=makeFBO([cloudTransTex]);
+  cloudIrrTex=makeTex2D(64,32,gl.RGBA16F,gl.RGBA,gl.HALF_FLOAT,gl.LINEAR,gl.CLAMP_TO_EDGE);
+  cloudIrrFBO=makeFBO([cloudIrrTex]);
+  gl.bindVertexArray(emptyVAO);gl.disable(gl.BLEND);gl.disable(gl.DEPTH_TEST);
+  use(P.cloudTrans);gl.bindFramebuffer(gl.FRAMEBUFFER,cloudTransFBO);gl.viewport(0,0,256,128);draw();
+  use(P.cloudIrr);gl.bindFramebuffer(gl.FRAMEBUFFER,cloudIrrFBO);gl.viewport(0,0,64,32);
+  tex(P.cloudIrr,'uCloudAtmoTrans',gl.TEXTURE_2D,cloudTransTex);draw();
+  realisticPrograms=P;P=previous;
+}
 const genFBO = gl.createFramebuffer();
 const genJobs = [{mode: 2}];
 for (let i = 0; i < DETAIL_N; i++) genJobs.push({mode: 1, slice: i});
@@ -718,6 +785,7 @@ const S = {
   heightSlider: 0, dof: 0.6, sway: !reduceMotion, quality: WALLPAPER_MODE ? 'high' : coarse ? 'med' : 'high', god: !coarse, auto: WALLPAPER_MODE || !reduceMotion,
   fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: !WALLPAPER_MODE, autoFollowMouse: false, lowSaturation: false,
   nightSkyStyle: nightSkyStyle(),
+  cloudStyle: cloudStyle(),
   ...RENDER_DEFAULTS,
   ...displayPreferences(),
   ...STARGAZING_DEFAULTS,
@@ -728,7 +796,7 @@ const S = {
 const initialSceneSettings = Object.freeze(Object.fromEntries(Object.keys(SCENE_SETTINGS).map(key => [key, S[key]])));
 /* 本机偏好与完整世界分开保存，未应用的预览始终写回原世界。 */
 const SETTINGS_KEY = storageKey('meadow.settings.v1');
-const PERSIST_KEYS = [...Object.keys(STARGAZING_DEFAULTS), 'nightSkyStyle', 'auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof', 'lowSaturation', 'vignette',
+const PERSIST_KEYS = [...Object.keys(STARGAZING_DEFAULTS), 'cloudStyle', 'nightSkyStyle', 'auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof', 'lowSaturation', 'vignette',
   'heightSlider', 'agl', 'speed', 'streamDist', 'wxMode', 'wxType', 'coverage', 'density', 'wind', 'breeze', 'fogVisS', 'rainAmt', 'snowAmt', 'boltFreq',
   'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind', 'interactionEnabled', 'autoFollowMouse', 'rememberPosition', ...Object.keys(RENDER_DEFAULTS)];
 try {
@@ -816,6 +884,7 @@ const interactionEnabled = () => S.interactionEnabled || S.stargazing;
 const startupCamera = { ...DEFAULT_VIEW, x: S.x, z: S.z, yaw: cam.yaw, y: groundH(S.x, S.z) + DEFAULT_VIEW.agl };
 const initialSunAz = ((startupCamera.yaw * 180 / Math.PI - 38 - 230) % 360 + 360) % 360;
 if (!S.rememberPosition) { S.agl = DEFAULT_VIEW.agl; S.fovY = DEFAULT_VIEW.fov; }
+S.cloudStyle=cloudStyle(S);
 S.heightSlider = sliderFromAgl(S.agl);
 cam.y = groundH(S.x, S.z) + S.agl;
 
@@ -922,7 +991,8 @@ function calculateLighting(AST, moonless = false){
   const overcast = nightF * smooth(0.2, 0.95, cov) * clamp(0.55 + 0.35 * densEff, 0.6, 1.2), dimN = 1 - 0.85 * Math.min(overcast, 1);
   const groundBudget = (lum(lightGround) * ly + lum(skyIrr)) * PE * dimN;
   const groundGain = nightSky.groundNight * nightGroundGain(AST, S.nightSkyStyle, groundBudget);
-  return {lightDir, lightCloud: pe(lightCloud).map(v => v * cloudGain), lightGround: pe(lightGround).map(v => v * dimN * groundGain), sunCam: pe(sunCam), moonCam: pe(moonCam), sunT, moonD,
+  const sourceCloud=(sunWins?[SUN_I,SUN_I,SUN_I]:cool.map(v=>nightI*v*(.1+.5*AST.moonBright)*(.6+.4*moonRise))).map(v=>v*PE*cloudGain);
+  return {lightDir, sourceCloud, lightCloud: pe(lightCloud).map(v => v * cloudGain), lightGround: pe(lightGround).map(v => v * dimN * groundGain), sunCam: pe(sunCam), moonCam: pe(moonCam), sunT, moonD,
     moonI: moonUp ? moonSky : 0, ms: pe(MS), ambTop: pe(ambTop), ambBottom: pe(ambBottom), skyIrr: pe(skyIrr).map(v => v * dimN * groundGain), sunDisk: pe(sunDisk), moonDisk: pe(moonDisk),
     exposure, pe: PE, airglow: nightSky.airglow, night: nightF, glowF: Math.max(nightF, smooth(4, -5, AST.sunAlt / RAD)), fwd: sunWins ? 1 : .3 + .5 * moonRise, ambOcc: 0.15 + 0.85 * nightF, cshAmt: 1, starCat: AIRGLOW * 2.4 * PE, starI: AIRGLOW * 14 * PE, grade: gradeAt(AST.sunAlt / RAD, S.lowSaturation, S.nightSkyStyle === 'realistic')};
 }
@@ -1225,7 +1295,8 @@ function setViewHeight(na) {
   }
 }
 const heightCtl = bindRange('height', 'heightSlider', (v) => fmtAgl(aglFromSlider(v)), () => setViewHeight(aglFromSlider(S.heightSlider)), () => S.stargazing);
-function syncHeightSlider(){ S.heightSlider = sliderFromAgl(S.agl); heightCtl.el.value = S.heightSlider; heightCtl.paint(S.heightSlider); }
+function syncHeightSlider(){ S.cloudStyle=cloudStyle(S);
+S.heightSlider = sliderFromAgl(S.agl); heightCtl.el.value = S.heightSlider; heightCtl.paint(S.heightSlider); }
 const fovCtl = bindRange('fov', 'fovY', (v) => Math.round(v) + '°', () => setViewFov(S.fovY));
 function syncFovSlider(){ fovCtl.el.value = S.fovY; fovCtl.paint(); }
 function setViewFov(value){
@@ -1250,6 +1321,15 @@ function syncAutoFollowMouse(){
   $('autoFollowMouse').checked = S.autoFollowMouse;
   $('autoFollowMouse').disabled = !S.auto || S.stargazing;
 }
+function syncCloudControls(){
+  document.querySelectorAll('input[name="cloudStyle"]').forEach(r=>{r.checked=r.value===S.cloudStyle;});
+}
+syncCloudControls();
+document.querySelectorAll('input[name="cloudStyle"]').forEach(r=>r.addEventListener('change',()=>{
+  if(!r.checked || !['default','realistic'].includes(r.value))return;
+  S.cloudStyle=r.value;needReset=true;prev=null;cloudLightInvalidated=true;
+  syncCloudControls();saveSettings();
+}));
 function syncNightSkyControls(){
   document.querySelectorAll('input[name="nightSkyStyle"]').forEach(r => { r.checked = r.value === S.nightSkyStyle; });
 }
@@ -1710,6 +1790,14 @@ function frame(now){
     if (AST.sunAlt < 2 * RAD || !S.atmosphere) getNightPrograms(false);
     genStep(14); return;
   }
+  if(S.cloudStyle==='realistic'){
+    ensureCloudNoise();
+    if(!eveNoiseReady){$('loader').classList.remove('done');return;}
+    ensureRealisticPrograms();$('loader').classList.add('done');
+  }
+  if(activeCloudStyle!==S.cloudStyle){
+    activeCloudStyle=S.cloudStyle;needReset=true;prev=null;cloudLightInvalidated=true;
+  }
   resize(false);
   // uint 整秒自然环绕，小数秒精度不随累计运行时间下降。
   if (simTime + dt >= ANIMATION_TIME_PERIOD) for (const point of trailHist) point.t -= ANIMATION_TIME_PERIOD;
@@ -1768,6 +1856,9 @@ function frame(now){
     hdrActive = hdr;
     resize(true);
   }
+  if(realisticPrograms)Object.assign(P,realisticPrograms);
+  P.cloud=S.cloudStyle==='realistic'?realisticPrograms.realisticCloud:defaultCloudPrograms.cloud;
+  P.cshadow=S.cloudStyle==='realistic'?realisticPrograms.realisticShadow:defaultCloudPrograms.cshadow;
   const nightSky = nightSkyAppearance(observationAstronomy, S.nightSkyStyle);
   if (nightSky.darkness > 0 || atmosphere < 1){ moonSurface.load(); galaxy.select(S.quality); loadRealisticStars(); }
   const nightView = nightObservationAppearance(nightObservation.update(elapsedMs / 1000,
@@ -1816,18 +1907,74 @@ function frame(now){
 
   const setCloudCommon = (Pp) => {
     set(Pp, 'uLowSaturation', S.lowSaturation ? 1 : 0);
-    set(Pp, 'uCamPos', camK); set(Pp, 'uSunDir', sun); set(Pp, 'uLayer', LAYER[0], LAYER[1]);
+    set(Pp, 'uCamPos', 0,camK[1],0); set(Pp, 'uSunDir', sun); set(Pp, 'uLayer', LAYER[0], LAYER[1]);
     set(Pp, 'uCoverage', covEff); set(Pp, 'uDensity', densEff);
     // 按纹理共同周期约简后再上传，保持长时间云体/侵蚀的小位移精度。
-    set(Pp, 'uWind', wrap(-windOff[0], 960), wrap(-windOff[1], 7.5), wrap(-windOff[2], 960));
-    set(Pp, 'uWindDetail', wrap(-windOff[0] * 1.6, .7), wrap(-windOff[1] * 3.0 - animationPhase(simTime, .004, .7), .7), wrap(-windOff[2] * 1.6, .7));
+    set(Pp, 'uWind', cloudWindPhase(camK,windOff));
+    set(Pp, 'uWindDetail', cloudWindPhase(camK,windOff,true,simTime));
     set(Pp, 'uWindDir', Math.cos(cloudAngle), Math.sin(cloudAngle));
+    set(Pp,'uEveNoiseLod',-1);
+    set(Pp,'uEveWind',0,wrap(-windOff[1],2.3),0);
+    set(Pp,'uEveMapPhase',cloudPhases(camK,windOff).map);
+    if(cloudLightState){
+      set(Pp,'uCloudLightOrigin',cloudLightState.origin[0]-camK[0],cloudLightState.origin[1],cloudLightState.origin[2]-camK[2]);
+      set(Pp,'uCloudLightCenter',cloudLightState.center[0]-camK[0],cloudLightState.center[1]-camK[2]);
+    }
     set(Pp, 'uRight', B.r); set(Pp, 'uUp', B.u); set(Pp, 'uFwd', B.f); set(Pp, 'uTan', tanX, tanY);
   };
   const bindCloudTex = (Pp) => {
+    tex(Pp,'uEveNoise',gl.TEXTURE_3D,eveNoiseTex);
+    tex(Pp,'uEveCurves',gl.TEXTURE_2D,eveCurvesTex);
+    tex(Pp,'uCloudAtmoTrans',gl.TEXTURE_2D,cloudTransTex);
+    tex(Pp,'uCloudSkyIrr',gl.TEXTURE_2D,cloudIrrTex);
+    tex(Pp,'uCloudLightVolume',gl.TEXTURE_3D,cloudLightTextures[cloudLightCurrent]??null);
     tex(Pp, 'uShape', gl.TEXTURE_3D, shapeTex); tex(Pp, 'uDetail', gl.TEXTURE_3D, detailTex);
     tex(Pp, 'uWeather', gl.TEXTURE_2D, weatherTex); tex(Pp, 'uSkyLut', gl.TEXTURE_2D, skyTex);
   };
+
+  const cloudQuality = S.cloudStyle === 'realistic' ? REALISTIC_CLOUD_QUALITY[S.quality] : q;
+  if(S.cloudStyle==='realistic'){
+    ensureCloudLightVolume(cloudQuality);
+    const projection=cloudLightProjection(camK),initial=!cloudLightState,bootstrap=initial||cloudLightInvalidated;
+    const move=!initial&&(Math.hypot(...projection.origin.map((v,i)=>v-cloudLightState.origin[i]))>.03*Math.min(projection.radius,cloudLightState.radius)
+      ||Math.max(projection.radius,cloudLightState.radius)>1.03*Math.min(projection.radius,cloudLightState.radius));
+    if(bootstrap){
+      cloudLightState={...projection,center:[camK[0],camK[2]]};cloudDirectSlice=cloudAmbientSlice=cloudAmbientUpdates=0;
+      gl.bindFramebuffer(gl.FRAMEBUFFER,cloudLightFBO);gl.viewport(0,0,cloudQuality.grid,cloudQuality.grid);gl.clearColor(0,0,0,0);
+      for(const texture of cloudLightTextures)for(let z=0;z<cloudQuality.slices;z++){
+        gl.framebufferTextureLayer(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,texture,0,z);gl.clear(gl.COLOR_BUFFER_BIT);
+      }
+    }
+    else if(move){
+      const old=cloudLightState,next=1-cloudLightCurrent,Rp=P.cloudReproject;
+      use(Rp);setCloudCommon(Rp);bindCloudTex(Rp);set(Rp,'uCloudLightOrigin',old.origin[0]-camK[0],old.origin[1],old.origin[2]-camK[2]);set(Rp,'uNewCloudLightOrigin',0,projection.origin[1],0);set(Rp,'uCloudLightCenter',old.center[0]-camK[0],old.center[1]-camK[2]);set(Rp,'uNewCloudLightCenter',0,0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER,cloudLightFBO);gl.viewport(0,0,cloudQuality.grid,cloudQuality.grid);
+      for(let z=0;z<cloudQuality.slices;z++){
+        gl.framebufferTextureLayer(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,cloudLightTextures[next],0,z);gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+        set(Rp,'uVolumeSlice',(z+.5)/cloudQuality.slices);draw();
+      }
+      cloudLightCurrent=next;cloudLightState={...projection,center:[camK[0],camK[2]]};cloudAmbientUpdates=0;
+    }
+    const V=P.cloudVolume;use(V);setCloudCommon(V);bindCloudTex(V);set(V,'uEveNoiseLod',3);seti(V,'uVolumeSteps',cloudQuality.volumeSteps);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,cloudLightTempFBO);gl.viewport(0,0,cloudQuality.grid,cloudQuality.grid);gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+    for(const ambient of [false,true]){
+      seti(V,'uVolumeAmbient',ambient?1:0);
+      const updates=ambient?1:Math.max(1,Math.floor(cloudQuality.slices/12));
+      for(let i=0;i<updates;i++){
+        const z=ambient?cloudAmbientSlice:cloudDirectSlice;
+        if(ambient)cloudAmbientSlice=(z+1)%cloudQuality.slices;else cloudDirectSlice=(z+1)%cloudQuality.slices;
+        const cycle=Math.floor(cloudAmbientUpdates/cloudQuality.slices);
+        set(V,'uVolumeCycle',cycle);set(V,'uVolumeSlice',(z+.5)/cloudQuality.slices);
+        // 首轮每层直接写入，后续才渐进平均；重置帧不做整卷积分。
+        set(V,'uVolumeBlend',cycle===0?1:clamp(1/Math.max(1,cycle),.01,.07));
+        draw();
+        gl.bindTexture(gl.TEXTURE_3D,cloudLightTextures[cloudLightCurrent]);
+        gl.copyTexSubImage3D(gl.TEXTURE_3D,0,0,0,z,0,0,cloudQuality.grid,cloudQuality.grid);
+        if(ambient)cloudAmbientUpdates++;
+      }
+    }
+    cloudLightInvalidated=false;
+  }
 
   /* sky LUT：光照与天空使用同一对端点，避免只平滑草地而天空仍阶梯跳变。 */
   const skySampleKey = sample => sample.sunT.join(',') + sample.moonD.join(',') + sample.moonI + '|' + sample.pe + '|' + sample.airglow + '|' + Math.round(cam.y / 100) + (sample.sunI === 0 ? '|moonless' : '');
@@ -1854,17 +2001,23 @@ function frame(now){
   const cshP = [Math.floor(camK[0] / cshTexel) * cshTexel, Math.floor(camK[2] / cshTexel) * cshTexel, CSH_EXT];
   if (frameNo % 2 === 0 || lightChanged){
     use(P.cshadow); gl.bindFramebuffer(gl.FRAMEBUFFER, cshFBO); gl.viewport(0, 0, CSH_N, CSH_N);
-    setCloudCommon(P.cshadow); bindCloudTex(P.cshadow); set(P.cshadow, 'uShadowP', cshP);
+    setCloudCommon(P.cshadow); bindCloudTex(P.cshadow); set(P.cshadow, 'uShadowP', cshP[0]-camK[0],cshP[1]-camK[2],cshP[2]);
     draw();
   }
   /* clouds */
+  const halton=(n,b)=>{let f=1,r=0;while(n>0){f/=b;r+=f*(n%b);n=Math.floor(n/b);}return r;};
+  const jitterIndex=frameNo%32+1;
+  const cloudJitter=S.cloudStyle==='realistic'?[(halton(jitterIndex,2)-.5)/CW,(halton(jitterIndex,3)-.5)/CH]:[0,0];
   use(P.cloud); gl.bindFramebuffer(gl.FRAMEBUFFER, cloudFBO); gl.viewport(0, 0, CW, CH);
   setCloudCommon(P.cloud); bindCloudTex(P.cloud);
+  set(P.cloud,'uRayJitter',cloudJitter);set(P.cloud,'uEveLodScale',.25*CW/W,.25*CH/H);
+  set(P.cloud,'uCloudSource',L.sourceCloud);
+  seti(P.cloud,'uAirSteps',cloudQuality.airSteps??16);
   set(P.cloud, 'uAtmosphere', atmosphere);
   set(P.cloud, 'uRayLimit', cloudRayLimit(camK[1], LAYER[0], atmosphere));
   set(P.cloud, 'uSunColor', L.lightCloud);
-  set(P.cloud, 'uFlashP', bolt.x / 1000, (LAYER[0] + LAYER[1]) * 0.45, bolt.z / 1000, 2.5); set(P.cloud, 'uFlashC', [0.9, 0.92, 1.0].map(v => v * flash * 22)); set(P.cloud, 'uFwdScat', L.fwd); set(P.cloud, 'uAmbOcc', L.ambOcc); set(P.cloud, 'uAmbTop', L.ambTop); set(P.cloud, 'uAmbBottom', L.ambBottom);
-  seti(P.cloud, 'uSteps', q.steps); seti(P.cloud, 'uLightSteps', q.light);
+  set(P.cloud, 'uFlashP', bolt.x / 1000-camK[0], (LAYER[0] + LAYER[1]) * 0.45, bolt.z / 1000-camK[2], 2.5); set(P.cloud, 'uFlashC', [0.9, 0.92, 1.0].map(v => v * flash * 22)); set(P.cloud, 'uFwdScat', L.fwd); set(P.cloud, 'uAmbOcc', L.ambOcc); set(P.cloud, 'uAmbTop', L.ambTop); set(P.cloud, 'uAmbBottom', L.ambBottom);
+  seti(P.cloud, 'uSteps', q.steps); seti(P.cloud, 'uLightSteps', cloudQuality.light);
   set(P.cloud, 'uFrame', frameNo % 1024); set(P.cloud, 'uPixAngle', 2 * tanY / CH); set(P.cloud, 'uFogK', 1 / 42);
   draw();
   /* temporal accumulation */
@@ -1878,6 +2031,7 @@ function frame(now){
     set(T, 'uCamDelta', camK[0] - pv.cam[0], camK[1] - pv.cam[1], camK[2] - pv.cam[2]);
     const turn = Math.acos(Math.min(1, B.f[0] * pv.B.f[0] + B.f[1] * pv.B.f[1] + B.f[2] * pv.B.f[2]));
     set(T, 'uBlend', Math.min(0.7, 0.1 + turn * 6 + (SPEEDS[S.speed | 0] >= 10 ? 0.3 : (lightChanged ? 0.25 : 0)) + (flash > 0.03 ? 0.5 : 0)));
+    set(T,'uRayJitter',cloudJitter);
     set(T, 'uTexel', 1 / CW, 1 / CH);
     seti(T, 'uReset', needReset ? 1 : 0);
     draw();
@@ -2349,13 +2503,14 @@ function createInitialScene() {
     freeze: { time: false, weather: false, clouds: false } });
 }
 function syncSceneControls() {
-  S.heightSlider = sliderFromAgl(S.agl);
+  S.cloudStyle=cloudStyle(S);
+S.heightSlider = sliderFromAgl(S.agl);
   for (const { el, paint, key } of rangeControls) { el.value = S[key]; paint(S[key]); }
   syncFovSlider();
   renderControls.refresh();
   for (const [id, key] of Object.entries(toggles)) $(id).checked = S[key];
   $('lowSaturation').checked = S.lowSaturation;
-  syncNightSkyControls(); syncStargazingControls();
+  syncNightSkyControls(); syncCloudControls(); syncStargazingControls();
   for (const [name, key] of [['sdist', 'streamDist'], ['wxMode', 'wxMode']]) document.querySelectorAll(`input[name="${name}"]`).forEach(r => { r.checked = r.value === S[key]; });
   $('wxManual').hidden = S.wxMode !== 'manual'; markWxChips(); publishTimeControls(); wxStatus();
   document.dispatchEvent(new CustomEvent('worldscenechange', { detail: { previewing: Boolean(preview), freeze: { ...sceneFreeze } } }));
@@ -2402,7 +2557,7 @@ function loadScene(scene) {
   resumeWeatherTarget();
   // 作品可恢复运动相位；旧作品保留当前相位，自然动画继续运行。
   keys.clear(); mouseFlight.reset(); frozenView = null; lastView = null;
-  prev = null; needReset = true; lightKey = ''; skyKey = ''; expo = NaN;
+  prev = null; needReset = true; lightKey = ''; skyKey = ''; expo = NaN; cloudLightInvalidated=true;
   nightObservation.reset();
   trailHist.length = 0; LR.drops.length = 0; streamG = NaN; streamAge = 0; streamOpacity = 0; bolt.t = 99;
   if (S.stargazing) { S.auto = false; sprintUntil = 0; }

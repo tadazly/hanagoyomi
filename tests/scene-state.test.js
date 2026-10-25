@@ -98,7 +98,7 @@ test('精选风景都是可导入的实际世界参数，三语目录完整', ()
   assert.equal(new Set(GALLERY_SCENES.map(item => item.id)).size, GALLERY_SCENES.length);
   for (const item of GALLERY_SCENES) {
     assert.ok(item.scene, item.id);
-    assert.deepEqual(validateScene(item.scene), item.scene);
+    assert.deepEqual(validateScene(item.scene), { ...item.scene, settings: { cloudStyle: 'default', ...item.scene.settings } });
     for (const language of ['zh', 'en', 'ja']) assert.ok(item.title[language]);
     const metadata = describeScene(item.scene);
     assert.equal(metadata.weatherKey, item.scene.environment.weather.type);

@@ -14,13 +14,15 @@ import galaxyUltraUrl from './assets/milky-way-ultra.webp?url';
 import starCatalogUrl from './assets/hipparcos-v7.3.bin?url&no-inline';
 import starCatalogInline from './assets/hipparcos-v7.3.bin?url&inline';
 
+import { loadCloudNoiseData } from '#cloud-noise';
+
 export let world;
 
 if (WALLPAPER_MODE) document.body.dataset.wallpaper = 'true';
 initI18n();
 const shell = initShell();
 try {
-  world = startWorld(updateObservation, { moonSurfaceUrl, starCatalogUrl: import.meta.env.MODE === 'wallpaper' ? starCatalogInline : starCatalogUrl,
+  world = startWorld(updateObservation, { moonSurfaceUrl, cloudNoiseLoader: loadCloudNoiseData, starCatalogUrl: import.meta.env.MODE === 'wallpaper' ? starCatalogInline : starCatalogUrl,
     galaxyUrls: { low: galaxyLowUrl, med: galaxyMediumUrl, high: galaxyUrl, ultra: galaxyUltraUrl } });
   initGallery(world, shell);
   attachWallpaper(world, shell);

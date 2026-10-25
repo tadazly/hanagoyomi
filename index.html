@@ -159,7 +159,12 @@
       </section>
       <section id="pane-sky" role="tabpanel" aria-labelledby="tab-sky" hidden>
         <h2 data-i18n="sky.title">Sky and stargazing</h2>
-<p class="ctl-label" id="nightSkyStyleLabel" data-i18n="astronomy.nightSkyStyle">Night sky style</p>
+        <p class="ctl-label" id="cloudStyleLabel" data-i18n="cloud.style">Volumetric cloud style</p>
+        <div class="seg seg2" role="radiogroup" aria-labelledby="cloudStyleLabel">
+          <label><input type="radio" name="cloudStyle" value="default" checked><span data-i18n="cloud.default">Default</span></label>
+          <label><input type="radio" name="cloudStyle" value="realistic"><span data-i18n="cloud.realistic">Realistic</span></label>
+        </div>
+        <p class="ctl-label" id="nightSkyStyleLabel" data-i18n="astronomy.nightSkyStyle">Night sky style</p>
         <div class="seg seg2" role="radiogroup" aria-labelledby="nightSkyStyleLabel">
           <label><input type="radio" name="nightSkyStyle" value="default" checked><span data-i18n="astronomy.nightSkyDefault">Default</span></label>
           <label><input type="radio" name="nightSkyStyle" value="realistic"><span data-i18n="astronomy.nightSkyRealistic">Realistic</span></label>
