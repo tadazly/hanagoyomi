@@ -5,7 +5,7 @@ export function createFrameGate() {
     reset() { next = 0; },
     ready(now, fps) {
       if (Number.isFinite(fps) && fps <= 0) { next = 0; previousFPS = 0; return true; }
-      const rate = Number.isFinite(fps) ? Math.max(1, Math.min(240, fps)) : 30;
+      const rate = Number.isFinite(fps) ? Math.max(1, fps) : 30;
       if (rate !== previousFPS) { previousFPS = rate; next = 0; }
       if (now + 0.5 < next) return false;
       const interval = 1000 / rate;

@@ -2,12 +2,14 @@
 .ctl span, .ctl output { font-size: 14px; line-height: 1.5; }
 .ctl output { font-variant-numeric: tabular-nums; }
 .ctl input { grid-column: 1/-1; }
-input[type='range'] { appearance: none; width: 100%; height: 22px; background: transparent; margin: 0; --fill: 50%; cursor: pointer; }
-input[type='range']::-webkit-slider-runnable-track { height: 3px; border-radius: 3px; background: linear-gradient(to right, var(--sun) var(--fill), rgba(255,255,255,.75) var(--fill)); }
-input[type='range']::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--thumb); margin-top: -6.5px; box-shadow: 0 2px 5px rgba(0,0,0,.2); }
-input[type='range']::-moz-range-track { height: 3px; border-radius: 2px; background: rgba(255,255,255,.75); }
-input[type='range']::-moz-range-progress { height: 3px; background: var(--sun); }
-input[type='range']::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: var(--thumb); box-shadow: 0 2px 5px rgba(0,0,0,.2); }
+input[type='range'] { -webkit-appearance: none; appearance: none; min-width: 0; width: 100%; height: 44px; background: transparent; margin: 0; --fill: 50%; cursor: pointer; touch-action: pan-y; border-radius: 10px; }
+input[type='range']::-webkit-slider-runnable-track { height: 20px; border-radius: 10px; background: linear-gradient(to right, var(--sun) var(--fill), var(--track) var(--fill)); box-shadow: inset 0 0 0 1px rgba(70,76,64,.08); }
+input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; box-shadow: none; opacity: 0; }
+input[type='range']::-moz-range-track { height: 20px; border-radius: 10px; background: var(--track); box-shadow: inset 0 0 0 1px rgba(70,76,64,.08); }
+input[type='range']::-moz-range-progress { height: 20px; border-radius: 10px 0 0 10px; background: var(--sun); }
+input[type='range']::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; box-shadow: none; opacity: 0; }
+input[type='range']:focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
+input[type='range']:disabled { opacity: .45; cursor: default; }
 .search-field { position: relative; margin: 12px 0 11px; }
 .search-field > span { position: absolute; top: 11px; left: 12px; color: var(--ink-soft); pointer-events: none; }
 .search-field svg { width: 18px; height: 18px; }

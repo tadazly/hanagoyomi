@@ -6,10 +6,10 @@ import { describeScene } from '../src/world/scene-share.js';
 import { zonedHours } from '../src/world/clock.js';
 
 test('场景导入使用白名单，不携带设备画质、城市、组件或语言偏好', () => {
-  const scene = validateScene({ version: 1, settings: { quality: 'ultra', language: 'ja', showWeather: false, interactionEnabled: true, vignette: false },
+  const scene = validateScene({ version: 1, settings: { quality: 'ultra', language: 'ja', showWeather: false, interactionEnabled: true, autoFollowMouse: true, vignette: false },
     location: { name: 'Paris' }, camera: { x: 123, z: -456 } });
   assert.ok(scene);
-  for (const key of ['quality', 'language', 'showWeather', 'interactionEnabled', 'vignette']) assert.equal(key in scene.settings, false);
+  for (const key of ['quality', 'language', 'showWeather', 'interactionEnabled', 'autoFollowMouse', 'vignette']) assert.equal(key in scene.settings, false);
   assert.equal('location' in scene, false);
   assert.deepEqual({ x: scene.camera.x, z: scene.camera.z }, { x: 123, z: -456 });
 });

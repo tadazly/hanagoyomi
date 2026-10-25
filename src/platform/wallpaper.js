@@ -3,7 +3,7 @@ import { setLanguage } from '../i18n/index.js';
 import { createHostPropertySnapshot } from './host-properties.js';
 import { setWallpaperSettingsMode } from '../ui/wallpaper-settings-mode.js';
 
-export const wallpaperSettings = { fps: 30, paused: false, renderScale: 1 };
+export const wallpaperSettings = { fps: 30, paused: false };
 export const HOST_PROPERTIES_KEY = storageKey('hanagoyomi.host-properties.v1');
 
 export function attachWallpaper(world, shell) {
@@ -26,10 +26,6 @@ export function connectWallpaperHost(world, shell, { host, document, storage, on
   const supported = new Set(['city', 'quality', 'renderscale', 'interaction', 'autoflight', 'weathermode',
     'weatherpreset', 'realtime', 'timeofday', 'showlogo', 'logoposition', 'showclock', 'clockposition',
     'temperatureunit', 'petals', 'lowsaturation', 'vignette', 'constellations', 'lensdrops', 'dof', 'rememberposition', 'language']);
-  const resizeScale = value => {
-    const scale = Math.max(.5, Math.min(1, value));
-    if (wallpaperSettings.renderScale !== scale) { wallpaperSettings.renderScale = scale; world.resize(); }
-  };
   const change = (id, value, type = 'change') => {
     const element = document.getElementById(id);
     if (!element) return;
@@ -62,8 +58,7 @@ export function connectWallpaperHost(world, shell, { host, document, storage, on
       queueMicrotask(() => document.dispatchEvent?.(new CustomEvent('wallpaperscenelink', { detail: { link } })));
     }
     if (useWorldSettings) {
-      // 世界模式没有隐藏的原生渲染比例；画质和其余偏好均由内置设置决定。
-      resizeScale(1);
+      // 保留内置渲染比例，隐藏的宿主属性不能覆盖本机偏好。
       return;
     }
     // 每次启动、或刚从世界模式切入时，完整应用已收到的原生值；旧快照不得阻止覆盖。
@@ -98,7 +93,7 @@ export function connectWallpaperHost(world, shell, { host, document, storage, on
         else change('time', Number.isFinite(host.properties.timeofday?.value) ? host.properties.timeofday.value : Number(document.getElementById('time').value), 'input');
       }
       else if (key === 'timeofday' && Number.isFinite(value) && host.properties.realtime?.value === false) change('time', Math.max(0, Math.min(23.99, value)), 'input');
-      else if (key === 'renderscale' && Number.isFinite(value)) resizeScale(value);
+      else if (key === 'renderscale' && Number.isFinite(value)) change('renderScale', Math.max(.5, Math.min(1.5, value)), 'input');
       else if (key === 'dof' && Number.isFinite(value)) change('dof', Math.max(0, Math.min(1, value)), 'input');
       else if (key === 'showlogo') shell.components.set('logo', { visible: Boolean(value) });
       else if (key === 'showclock') shell.components.set('observation', { visible: Boolean(value) });
@@ -126,7 +121,10 @@ export function connectWallpaperHost(world, shell, { host, document, storage, on
     snapshot.remember(settings);
   };
   const general = values => {
-    if (Number.isFinite(values.fps) && values.fps >= 0) wallpaperSettings.fps = Math.min(240, values.fps);
+    if (Number.isFinite(values.fps) && values.fps >= 0) {
+      wallpaperSettings.fps = values.fps === 0 ? 0 : Math.max(1, Math.floor(values.fps));
+      world.syncRenderSettings?.();
+    }
   };
   const pause = paused => {
     if (wallpaperSettings.paused === paused) return;

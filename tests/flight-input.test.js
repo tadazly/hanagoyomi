@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { bindMouseFlightInput, flightStickAxes } from '../src/rendering/flight-input.js';
 
-function fixture() {
+function fixture({ followMouse = false } = {}) {
   const canvas = new EventTarget(), classes = new Set(), timers = new Map(), actions = [];
   canvas.classList = { add: name => classes.add(name), remove: name => classes.delete(name) };
   canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 600 });
@@ -10,6 +10,7 @@ function fixture() {
   let time = 1000, nextTimer = 0, flying = true, enabled = true;
   const input = bindMouseFlightInput({
     canvas, isFlying: () => flying, isEnabled: () => enabled,
+    followsMouse: () => followMouse,
     look: (x, y) => actions.push(['look', x, y]), dash: () => actions.push('dash'), turn: () => actions.push('turn'),
     toggleFlight: () => { actions.push('toggle'); flying = !flying; input.reset(); }, now: () => time,
     schedule: (fn, delay) => { const id = ++nextTimer; timers.set(id, { fn, at: time + delay }); return id; },
@@ -31,7 +32,8 @@ function fixture() {
     advance(30); emit('pointerup', { button, ...data });
   };
   return { canvas, input, classes, actions, emit, click, advance,
-    setFlying: value => { flying = value; input.reset(); }, setEnabled: value => { enabled = value; }, isFlying: () => flying };
+    setFlying: value => { flying = value; input.reset(); }, setEnabled: value => { enabled = value; },
+    setFollowMouse: value => { followMouse = value; input.reset(); }, isFlying: () => flying };
 }
 
 test('左键双击立即冲刺，单击不触发也不停飞', () => {
@@ -79,7 +81,7 @@ test('慢速、远距离点击与拖动不组合成双击', () => {
 });
 
 test('自动飞行悬空移动鼠标等同触屏摇杆，中心回中、上下升降、左右转向', () => {
-  const f = fixture();
+  const f = fixture({ followMouse: true });
   for (const [clientX, clientY, expectedX, expectedY] of [
     [500, 300, 0, 0], [650, 300, 1, 0], [350, 300, -1, 0], [500, 150, 0, -1], [500, 450, 0, 1],
   ]) {
@@ -108,7 +110,7 @@ test('暂停时悬空移动无效，左键拖动环顾，右键拖动不环顾',
 });
 
 test('离开画布、失焦清理、帮助弹窗和触屏事件不会留下鼠标操纵或迟到的动作', () => {
-  const f = fixture(); f.emit('pointermove', { clientX: 650 }); f.emit('pointerleave');
+  const f = fixture({ followMouse: true }); f.emit('pointermove', { clientX: 650 }); f.emit('pointerleave');
   assert.equal(f.input.stick.active, false);
   f.click(2); f.click(2); f.input.reset(); f.advance(600); assert.deepEqual(f.actions, []);
   f.setEnabled(false); f.click(); f.click(); f.emit('pointermove', { clientX: 650 });
@@ -117,4 +119,30 @@ test('离开画布、失焦清理、帮助弹窗和触屏事件不会留下鼠�
   f.setEnabled(true); f.emit('pointermove', { pointerType: 'touch', clientX: 650 });
   assert.equal(f.input.stick.active, false);
   assert.equal(f.emit('contextmenu').defaultPrevented, true);
+});
+
+test('默认不跟随未按键的鼠标，左右键按住仍可操纵，松开立即回中', () => {
+  for (const button of [0, 2]) {
+    const f = fixture();
+    f.emit('pointermove', { clientX: 650, clientY: 150 });
+    assert.equal(f.input.stick.active, false);
+    assert.equal(f.isFlying(), true);
+    f.emit('pointerdown', { button, buttons: button === 0 ? 1 : 2 });
+    f.emit('pointermove', { button, clientX: 650, clientY: 150 });
+    assert.deepEqual(flightStickAxes(f.input.stick, 1000, 600), { x: 1, y: -1 });
+    f.emit('pointerup', { button, clientX: 650, clientY: 150 });
+    assert.deepEqual(flightStickAxes(f.input.stick, 1000, 600), { x: 0, y: 0 });
+    f.emit('pointermove', { clientX: 350, clientY: 450 });
+    assert.equal(f.input.stick.active, false);
+    assert.deepEqual(f.actions, []);
+  }
+});
+
+test('关闭跟随清除残留操纵，重新开启后恢复悬空跟随', () => {
+  const f = fixture({ followMouse: true });
+  f.emit('pointermove', { clientX: 650 }); assert.equal(f.input.stick.active, true);
+  f.setFollowMouse(false); assert.equal(f.input.stick.active, false);
+  f.emit('pointermove', { clientX: 350 }); assert.equal(f.input.stick.active, false);
+  f.setFollowMouse(true); f.emit('pointermove', { clientX: 350 });
+  assert.equal(flightStickAxes(f.input.stick, 1000, 600).x, -1);
 });

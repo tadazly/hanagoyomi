@@ -32,6 +32,8 @@ import { bindMouseFlightInput, flightStickAxes } from './flight-input.js';
 import { WALLPAPER_MODE, storageKey } from '../platform/environment.js';
 import { wallpaperSettings } from '../platform/wallpaper.js';
 import { createFrameGate } from '../platform/frame-gate.js';
+import { RENDER_DEFAULTS, renderPreferences, effectiveFrameLimit, qualityFrameBudget } from './render-preferences.js';
+import { bindRenderSettings } from '../ui/render-settings.js';
 import { readWeatherCache, saveWeatherCache } from '../world/weather-cache.js';
 import { gradeAt } from './landscape-look.js';
 import { weatherFogDensity, groundStormFogBlend } from './weather-fog.js';
@@ -714,8 +716,9 @@ let sceneFreeze = { time: false, weather: false, clouds: false }, thumbnailJob =
 const S = {
   time: 0, speed: 1, wxSync: true, constel: false, flies: true, flowerGlow: false, bloom: true, streamDist: 'near', streamScale: false, infMem: false, bloomR: 4, wxMode: 'follow', wxType: 'cloudy', fogVisS: 1000, rainAmt: 0, snowAmt: 0, boltFreq: 0, puddle: 0, snowMax: 0, lensDrops: true, sunAz: 0, coverage: 0.58, density: 1.0, wind: 40, breeze: 0.65, petals: true,
   heightSlider: 0, dof: 0.6, sway: !reduceMotion, quality: WALLPAPER_MODE ? 'high' : coarse ? 'med' : 'high', god: !coarse, auto: WALLPAPER_MODE || !reduceMotion,
-  fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: !WALLPAPER_MODE, lowSaturation: false,
+  fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: !WALLPAPER_MODE, autoFollowMouse: false, lowSaturation: false,
   nightSkyStyle: nightSkyStyle(),
+  ...RENDER_DEFAULTS,
   ...displayPreferences(),
   ...STARGAZING_DEFAULTS,
   ...startupPreferences(),
@@ -727,15 +730,16 @@ const initialSceneSettings = Object.freeze(Object.fromEntries(Object.keys(SCENE_
 const SETTINGS_KEY = storageKey('meadow.settings.v1');
 const PERSIST_KEYS = [...Object.keys(STARGAZING_DEFAULTS), 'nightSkyStyle', 'auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof', 'lowSaturation', 'vignette',
   'heightSlider', 'agl', 'speed', 'streamDist', 'wxMode', 'wxType', 'coverage', 'density', 'wind', 'breeze', 'fogVisS', 'rainAmt', 'snowAmt', 'boltFreq',
-  'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind', 'interactionEnabled', 'rememberPosition'];
+  'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind', 'interactionEnabled', 'autoFollowMouse', 'rememberPosition', ...Object.keys(RENDER_DEFAULTS)];
 try {
   const sv = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
   if (sv && typeof sv === 'object' && !Array.isArray(sv)){
     Object.assign(S, displayPreferences(sv), stargazingPreferences(sv));
+    Object.assign(S, renderPreferences(sv));
     S.nightSkyStyle = nightSkyStyle(sv);
     Object.assign(S, startupPreferences(sv));
     for (const k of PERSIST_KEYS) {
-      if (!Object.hasOwn(sv, k) || k === 'nightSkyStyle' || Object.hasOwn(STARGAZING_DEFAULTS, k)) continue;
+      if (!Object.hasOwn(sv, k) || k === 'nightSkyStyle' || Object.hasOwn(STARGAZING_DEFAULTS, k) || Object.hasOwn(RENDER_DEFAULTS, k)) continue;
       const value = sv[k];
       if (Object.hasOwn(SCENE_SETTINGS, k)) {
         if (!validateScene({ version: 1, settings: { [k]: value } })) continue;
@@ -962,10 +966,10 @@ function freeTargets(){
 function resize(force){
   if (contextLost) return;
   const q = QUALITY[S.quality];
-  const dpr = Math.min(window.devicePixelRatio || 1, q.dpr) * (WALLPAPER_MODE ? wallpaperSettings.renderScale : 1);
+  const dpr = Math.min(window.devicePixelRatio || 1, q.dpr) * S.renderScale;
   cssW = canvas.clientWidth; cssH = canvas.clientHeight;
   const { width: w, height: h } = renderSize(cssW, cssH, { dpr, ...targetLimits, maxPixels: WALLPAPER_MODE ? 3840 * 2160 : Infinity });
-  const cloudSize = renderSize(cssW, cssH, { dpr: q.cloud, ...targetLimits, maxPixels: 1.15e6 });
+  const cloudSize = renderSize(cssW, cssH, { dpr: q.cloud * S.renderScale, ...targetLimits, maxPixels: 1.15e6 });
   const cw = Math.max(16, cloudSize.width), ch = Math.max(16, cloudSize.height);
   const signature = [w, h, cw, ch, S.quality, hdrActive].join('|');
   if (signature === targetSignature) return;
@@ -1043,6 +1047,7 @@ const stick = {active: false, id: -1, ox: 0, oy: 0, x: 0, y: 0};
 let gesture = null, lastTap = {n: 0, t: 0}, lastSteerAt = -1e9, sprintUntil = 0;
 const mouseFlight = bindMouseFlightInput({
   canvas, isFlying: () => S.auto, isEnabled: () => S.interactionEnabled && !S.stargazing && !$('helpDialog').open,
+  followsMouse: () => S.autoFollowMouse,
   look: (dx, dy) => {
     constellationFocus = -1; constellationOverlay?.cancelPick();
     const k = (S.fovY / 60) * 0.0032;
@@ -1091,12 +1096,13 @@ const endPointer = (e) => {
   }
 };
 canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
-canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (interactionEnabled()) { constellationFocus = -1; S.fovY = clamp(S.fovY * Math.exp(e.deltaY * 0.0012), 28, 95); saveSettings(); } }, {passive: false});
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (interactionEnabled()) { setViewFov(S.fovY * Math.exp(e.deltaY * 0.0012)); saveSettings(); } }, {passive: false});
 
 /* ================================================================== */
 /*  UI                                                                 */
 /* ================================================================== */
 const rangeControls = [];
+const renderControls = bindRenderSettings({ settings: S, wallpaper: WALLPAPER_MODE, hostSettings: wallpaperSettings, resize: () => resize(true) });
 function bindRange(id, key, fmt, onChange, isLocked = () => false){
   const el = $(id), out = document.querySelector(`output[for="${id}"]`);
   const paint = (displayValue) => { const v = displayValue ?? parseFloat(el.value); out.textContent = fmt(v); el.style.setProperty('--fill', ((v - el.min) / (el.max - el.min) * 100) + '%'); };
@@ -1220,6 +1226,15 @@ function setViewHeight(na) {
 }
 const heightCtl = bindRange('height', 'heightSlider', (v) => fmtAgl(aglFromSlider(v)), () => setViewHeight(aglFromSlider(S.heightSlider)), () => S.stargazing);
 function syncHeightSlider(){ S.heightSlider = sliderFromAgl(S.agl); heightCtl.el.value = S.heightSlider; heightCtl.paint(S.heightSlider); }
+const fovCtl = bindRange('fov', 'fovY', (v) => Math.round(v) + '°', () => setViewFov(S.fovY));
+function syncFovSlider(){ fovCtl.el.value = S.fovY; fovCtl.paint(); }
+function setViewFov(value){
+  constellationFocus = -1;
+  S.fovY = clamp(value, 28, 95); cam.fov = S.fovY;
+  // 固定相机与作品预览仍允许通过设置调整镜头，不必先开启手动操纵。
+  if (frozenView) frozenView.fov = S.fovY;
+  syncFovSlider();
+}
 document.querySelectorAll('[data-height-preset]').forEach(button => button.addEventListener('click', () => {
   const height = HEIGHT_PRESETS[button.dataset.heightPreset];
   if (!Number.isFinite(height)) return;
@@ -1229,8 +1244,12 @@ document.querySelectorAll('[data-height-preset]').forEach(button => button.addEv
 }));
 $('rememberPosition').checked = S.rememberPosition;
 $('rememberPosition').addEventListener('change', event => { S.rememberPosition = event.target.checked; saveSettings(); });
-const toggles = {auto: 'auto', god: 'god', petals: 'petals', sway: 'sway', constel: 'constel', flies: 'flies', flowerGlow: 'flowerGlow', bloom: 'bloom', streamScale: 'streamScale', infMem: 'infMem', lensDrops: 'lensDrops', vignette: 'vignette'};
-for (const [id, key] of Object.entries(toggles)){ const el = $(id); el.checked = S[key]; el.addEventListener('change', () => { if (key === 'auto') setAuto(el.checked); else { S[key] = el.checked; if (key === 'constel' && !el.checked) clearConstellation(); } }); }
+const toggles = {auto: 'auto', autoFollowMouse: 'autoFollowMouse', god: 'god', petals: 'petals', sway: 'sway', constel: 'constel', flies: 'flies', flowerGlow: 'flowerGlow', bloom: 'bloom', streamScale: 'streamScale', infMem: 'infMem', lensDrops: 'lensDrops', vignette: 'vignette'};
+for (const [id, key] of Object.entries(toggles)){ const el = $(id); el.checked = S[key]; el.addEventListener('change', () => { if (key === 'auto') setAuto(el.checked); else { S[key] = el.checked; if (key === 'autoFollowMouse') mouseFlight.reset(); if (key === 'constel' && !el.checked) clearConstellation(); } }); }
+function syncAutoFollowMouse(){
+  $('autoFollowMouse').checked = S.autoFollowMouse;
+  $('autoFollowMouse').disabled = !S.auto || S.stargazing;
+}
 function syncNightSkyControls(){
   document.querySelectorAll('input[name="nightSkyStyle"]').forEach(r => { r.checked = r.value === S.nightSkyStyle; });
 }
@@ -1273,6 +1292,7 @@ window.addEventListener('pagehide', () => { if (S.infMem){ memDirty = true; memS
 function setAuto(value){
   if (S.stargazing) value = false;
   S.auto = value; $('auto').checked = value; mouseFlight.reset();
+  syncAutoFollowMouse();
   if (!value) { sprintUntil = 0; cam.pitchBase = cam.pitchT = cam.pitch; }
   if (!S.interactionEnabled){
     frozenView = value ? null : lastView;
@@ -1345,6 +1365,7 @@ function syncStargazingControls() {
   $('constelInteract').checked = S.constelInteract || S.stargazing; $('constelInteract').disabled = S.stargazing;
   $('interactionEnabled').checked = interactionEnabled(); $('interactionEnabled').disabled = S.stargazing;
   $('auto').checked = S.auto && !S.stargazing; $('auto').disabled = S.stargazing;
+  syncAutoFollowMouse();
   $('height').disabled = S.stargazing;
   document.querySelectorAll('[data-height-preset]').forEach(el => { el.disabled = S.stargazing; });
   document.querySelectorAll('input[name="constelStyle"]').forEach(el => { el.checked = el.value === S.constelStyle; });
@@ -2282,11 +2303,12 @@ function frame(now){
     statAcc = 0; statFrames = 0; statT = 0;
   }
   if (!userPickedQuality && downgrades < 2 && frameNo > 30){
-    perfFrames++; perfAcc += dt;
+    perfFrames++; perfAcc += elapsedMs / 1000;
     if (perfFrames >= 90){
       const avg = perfAcc / perfFrames; perfFrames = 0; perfAcc = 0;
       const order = ['low', 'med', 'high', 'ultra'], idx = order.indexOf(S.quality);
-      if (avg > 0.042 && idx > 0){ downgrades++; setQuality(order[idx - 1]); }
+      const limit = effectiveFrameLimit(S.fpsLimit, WALLPAPER_MODE ? wallpaperSettings.fps : undefined);
+      if (avg > qualityFrameBudget(limit) && idx > 0){ downgrades++; setQuality(order[idx - 1]); }
     }
   }
 }
@@ -2329,6 +2351,8 @@ function createInitialScene() {
 function syncSceneControls() {
   S.heightSlider = sliderFromAgl(S.agl);
   for (const { el, paint, key } of rangeControls) { el.value = S[key]; paint(S[key]); }
+  syncFovSlider();
+  renderControls.refresh();
   for (const [id, key] of Object.entries(toggles)) $(id).checked = S[key];
   $('lowSaturation').checked = S.lowSaturation;
   syncNightSkyControls(); syncStargazingControls();
@@ -2477,7 +2501,8 @@ function tick(now) {
   animationFrame = 0;
   if (contextLost || (WALLPAPER_MODE && wallpaperSettings.paused)) return;
   animationFrame = requestAnimationFrame(tick);
-  if (WALLPAPER_MODE && (document.hidden || !frameGate.ready(now, wallpaperSettings.fps))) return;
+  if (WALLPAPER_MODE && document.hidden) return;
+  if (!frameGate.ready(now, effectiveFrameLimit(S.fpsLimit, WALLPAPER_MODE ? wallpaperSettings.fps : undefined))) return;
   try { frame(now); }
   catch (error) {
     rejectThumbnail(error);
@@ -2515,6 +2540,7 @@ return {
     syncSceneControls();
   },
   resize: () => resize(true),
+  syncRenderSettings: () => renderControls.refresh(),
   setCity(name) {
     let city = CITIES.find(c => c[1] === name);
     if (name === 'system') {

@@ -25,7 +25,7 @@ add('about', 'text', '', '未勾选：WE 中的选项会立即应用，并在每
 add('sceneimportlink', 'textinput', '', '导入场景链接（粘贴后返回桌面画廊预览）', 'Import scene link (paste, then preview in the desktop gallery)');
 localization['ja-jp'][properties.sceneimportlink.text] = 'シーンの共有リンク（貼り付け後、デスクトップのギャラリーでプレビュー）';
 add('quality', 'combo', 'high', '画质', 'Quality', { options: [option('low','低','Low','低'),option('med','中','Medium','中'),option('high','高（默认）','High (default)','高（既定）'),option('ultra','极高','Ultra','最高')] });
-add('renderscale', 'slider', 1, '渲染比例', 'Render scale', { min: .5, max: 1, step: .05, precision: 2, fraction: true });
+add('renderscale', 'slider', 1, '渲染比例', 'Render scale', { min: .5, max: 1.5, step: .05, precision: 2, fraction: true });
 add('interaction', 'bool', false, '场景交互', 'Manual scene interaction');
 add('autoflight', 'bool', true, '自动飞行', 'Automatic flight');
 add('city', 'combo', 'system', '观测地点', 'Observation city', { options: [option('system','跟随系统时区','Match system time zone','システムのタイムゾーンに合わせる'), ...CITIES.map(c => option(c[1], c[0], c[1], c[5]))] });

@@ -68,6 +68,7 @@
         <div id="timeControls"></div><p id="locSun" class="sr-only"></p>
         <h2 data-i18n="settings.explore">Exploration</h2>
         <label class="switch"><span data-i18n="camera.auto">Auto flight</span><input type="checkbox" id="auto"><i></i></label>
+        <label class="switch"><span data-i18n="camera.autoFollowMouse">Follow mouse during auto flight</span><input type="checkbox" id="autoFollowMouse"><i></i></label>
         <label class="switch"><span data-i18n="components.interaction">Scene interaction</span><input type="checkbox" id="interactionEnabled" checked><i></i></label>
         <p class="settings-helper" data-i18n="settings.interactionNote"></p>
         <label class="ctl"><span data-i18n="camera.height">Height above ground</span><output for="height"></output><input type="range" id="height" min="0" max="1000" step="1"></label>
@@ -76,6 +77,7 @@
           <button type="button" data-height-preset="hills" aria-pressed="false" data-i18n="settings.heightHills">Hills</button>
           <button type="button" data-height-preset="clouds" aria-pressed="false" data-i18n="settings.heightClouds">Clouds</button>
         </div>
+        <label class="ctl"><span data-i18n="camera.fov">Field of view</span><output for="fov"></output><input type="range" id="fov" min="28" max="95" step="1" value="60" aria-label="Field of view" data-i18n-aria-label="camera.fov"></label>
       </section>
       <section id="pane-weather" role="tabpanel" aria-labelledby="tab-weather" hidden>
         <h2 data-i18n="weather.mode">Weather mode</h2>
@@ -125,6 +127,9 @@
         <label><input type="radio" name="q" value="ultra"><span data-i18n="quality.ultra">Ultra</span></label>
       </div>
         <p class="settings-helper" data-i18n="settings.qualityNote"></p>
+        <label class="ctl"><span data-i18n="quality.renderScale">Render scale</span><output for="renderScale"></output><input type="range" id="renderScale" min="0.5" max="1.5" step="0.05" value="1" aria-label="Render scale" data-i18n-aria-label="quality.renderScale"></label>
+        <label class="ctl"><span data-i18n="quality.fpsLimit">Frame rate limit</span><output for="fpsLimit"></output><input type="range" id="fpsLimit" min="10" max="121" step="1" value="60" aria-label="Frame rate limit" data-i18n-aria-label="quality.fpsLimit" aria-describedby="fpsLimitNote"></label>
+        <p class="settings-helper" id="fpsLimitNote"></p>
         <h2 data-i18n="settings.visualStyle">Visual style</h2>
         <label class="switch"><span data-i18n="landscape.lowSaturation">Low-saturation colours</span><input type="checkbox" id="lowSaturation"><i></i></label>
         <label class="switch"><span data-i18n="visual.vignette">Vignette</span><input type="checkbox" id="vignette" checked><i></i></label>

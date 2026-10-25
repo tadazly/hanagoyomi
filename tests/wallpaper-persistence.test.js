@@ -11,8 +11,8 @@ const storageFixture = () => {
 const props = values => Object.fromEntries(Object.entries(values).map(([key, value]) => [key, { value }]));
 function fixture(values = {}, storage = storageFixture()) {
   const calls = [], controls = {};
-  for (const id of ['dof', 'vignette', 'rememberPosition', 'time', 'auto']) controls[id] = {
-    type: id === 'dof' || id === 'time' ? 'range' : 'checkbox', value: '', checked: false,
+  for (const id of ['dof', 'renderScale', 'vignette', 'rememberPosition', 'time', 'auto']) controls[id] = {
+    type: ['dof', 'renderScale', 'time'].includes(id) ? 'range' : 'checkbox', value: '', checked: false,
     dispatchEvent() { calls.push([id, this.type === 'checkbox' ? this.checked : this.value]); },
   };
   controls.syncNow = { click() { calls.push('sync'); } };
@@ -60,14 +60,14 @@ test('宿主快照识别损坏、不可用及非标量数据', () => {
 
 test('新增模式缺失或明确勾选时忽略所有原生设置，不重放旧渲染比例', () => {
   for (const mode of [undefined, true]) for (const restored of [false, true]) {
-    wallpaperSettings.renderScale = 1;
     const values = { dof: .6, city: 'Tokyo', vignette: true, rememberposition: true, renderscale: .5, language: 'en', settingspanel: true };
     if (mode !== undefined) values.useworldsettings = mode;
     const f = fixture(values); f.world.hasRestoredSettings = restored;
+    f.controls.renderScale.value = '1.25';
     createHostPropertySnapshot(f.storage, HOST_PROPERTIES_KEY).remember(props({ renderscale: .5 }));
     f.connect();
     assert.deepEqual(f.calls, [['mode', true]]);
-    assert.equal(wallpaperSettings.renderScale, 1);
+    assert.equal(f.controls.renderScale.value, '1.25');
   }
 });
 
@@ -106,10 +106,32 @@ test('重新勾选保留当前世界和临时预览，同批隐藏属性与后�
   const f = fixture({ useworldsettings: false, dof: .6, renderscale: .5 });
   f.connect(); f.preview(); f.controls.dof.value = '0.3'; f.calls.length = 0;
   f.host.listener.properties(props({ dof: .8, useworldsettings: true, renderscale: .75 }));
-  assert.equal(f.controls.dof.value, '0.3'); assert.equal(wallpaperSettings.renderScale, 1);
-  assert.deepEqual(f.calls, [['mode', true], 'resize']);
+  assert.equal(f.controls.dof.value, '0.3'); assert.equal(f.controls.renderScale.value, '0.5');
+  assert.deepEqual(f.calls, [['mode', true]]);
   f.calls.length = 0; f.host.listener.properties(props({ dof: .9 }));
   assert.deepEqual(f.calls, [['mode', true]]);
+});
+
+test('原生渲染比例走内置滑条，切回世界模式保留当前比例', () => {
+  const f = fixture({ useworldsettings: false, renderscale: 1.35 }); f.connect();
+  assert.equal(f.controls.renderScale.value, '1.35');
+  assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'renderScale' && call[1] === '1.35'));
+  f.host.listener.properties(props({ renderscale: 2 }));
+  assert.equal(f.controls.renderScale.value, '1.5');
+  f.host.listener.properties(props({ useworldsettings: true, renderscale: .5 }));
+  assert.equal(f.controls.renderScale.value, '1.5');
+});
+
+test('全局 FPS 更新刷新世界滑条，支持高于 120 FPS 的宿主上限', () => {
+  const f = fixture({ useworldsettings: true }); let refreshes = 0;
+  f.world.syncRenderSettings = () => refreshes++;
+  f.host.general.fps = 45; f.connect();
+  assert.equal(wallpaperSettings.fps, 45); assert.equal(refreshes, 1);
+  f.host.listener.general({ fps: 300 });
+  assert.equal(wallpaperSettings.fps, 300); assert.equal(refreshes, 2);
+  f.host.listener.general({ fps: NaN });
+  assert.equal(wallpaperSettings.fps, 300); assert.equal(refreshes, 2);
+  wallpaperSettings.fps = 30;
 });
 
 test('WE 模式运行中只应用变化项，重发旧属性不覆盖桌面或关闭画廊', () => {

@@ -14,7 +14,7 @@ export function flightStickAxes(stick, width, height) {
   return { x, y };
 }
 
-export function bindMouseFlightInput({ canvas, isFlying, isEnabled = () => true, look, dash, turn, toggleFlight,
+export function bindMouseFlightInput({ canvas, isFlying, isEnabled = () => true, followsMouse = () => false, look, dash, turn, toggleFlight,
   now = () => performance.now(), schedule = setTimeout, cancel = clearTimeout }) {
   const stick = { active: false, ox: 0, oy: 0, x: 0, y: 0 };
   let press = null, clicks = null, turnTimer = null;
@@ -66,7 +66,8 @@ export function bindMouseFlightInput({ canvas, isFlying, isEnabled = () => true,
         look(wasMoved ? dx : e.clientX - press.x, wasMoved ? dy : e.clientY - press.y);
       }
     }
-    if (!isFlying()) { stick.active = false; return; }
+    // 鼠标按住时沿用原有操纵；开关仅限制未按键时的跟随。
+    if (!isFlying() || (!followsMouse() && (!press || press.id !== e.pointerId))) { stick.active = false; return; }
     const rect = canvas.getBoundingClientRect();
     // 画面中心回中；鼠标悬停在设置、工具栏等界面上时停止操纵。
     stick.active = true;
@@ -76,6 +77,7 @@ export function bindMouseFlightInput({ canvas, isFlying, isEnabled = () => true,
   canvas.addEventListener('pointerup', e => {
     if (e.pointerType !== 'mouse' || !press || e.pointerId !== press.id || e.button !== press.button) return;
     const p = press; press = null; canvas.classList.remove('dragging');
+    if (!followsMouse()) stick.active = false;
     if (!isEnabled() || p.moved || eventTime(e) - p.t >= 300
       || Math.hypot(e.clientX - p.x, e.clientY - p.y) > TAP_SLOP) { clearClicks(); return; }
     const n = compatible(e) ? clicks.n + 1 : 1;
