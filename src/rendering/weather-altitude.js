@@ -7,8 +7,8 @@ const fade = (start, end, height) => {
 };
 
 // 描述相机周围的天气，不改变区域天气、地面湿润或云中的闪电。
-export function localWeatherAtHeight(height) {
-  const [base, top] = CLOUD_LAYER_METRES;
+export function localWeatherAtHeight(height, layer = CLOUD_LAYER_METRES) {
+  const [base, top] = layer;
   return {
     // 形状噪声和高度梯度会让可见云顶低于包络上界，提前在云层上半部淡出。
     precipitation: fade(base + (top - base) * .28, base + (top - base) * .68, height),

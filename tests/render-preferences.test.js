@@ -5,8 +5,10 @@ import { createFrameGate } from '../src/platform/frame-gate.js';
 import { validateScene, renderSize } from '../src/world/scene-state.js';
 
 test('旧记录默认 100% 与 60 FPS，损坏值回退且比例按 5% 对齐', () => {
-  assert.deepEqual(renderPreferences(), { renderScale: 1, fpsLimit: 60 });
-  assert.deepEqual(renderPreferences({ renderScale: 1.274, fpsLimit: 0 }), { renderScale: 1.25, fpsLimit: 0 });
+  assert.deepEqual(renderPreferences(), { showPerformance: false, renderScale: 1, fpsLimit: 60 });
+  assert.deepEqual(renderPreferences({ renderScale: 1.274, fpsLimit: 0 }), { showPerformance: false, renderScale: 1.25, fpsLimit: 0 });
+  assert.equal(renderPreferences({showPerformance:true}).showPerformance,true);
+  for(const value of [1,'true',null])assert.equal(renderPreferences({showPerformance:value}).showPerformance,false);
   for (const scale of [null, '.5', .49, 1.51, Infinity, NaN]) assert.equal(renderPreferences({ renderScale: scale }).renderScale, 1);
   for (const fps of [null, '60', -1, 9, 60.5, Infinity, NaN]) assert.equal(renderPreferences({ fpsLimit: fps }).fpsLimit, 60);
   for (const fps of [0, 10, 60, 120, 144, 300]) assert.equal(renderPreferences({ fpsLimit: fps }).fpsLimit, fps);
@@ -60,7 +62,8 @@ test('主动设为低帧率不触发自动降画质，明显低于目标仍可�
 test('渲染比例改变像素尺寸，作品不能覆盖设备渲染偏好', () => {
   assert.deepEqual(renderSize(1920, 1080, { dpr: .5 }), { width: 960, height: 540 });
   assert.deepEqual(renderSize(1920, 1080, { dpr: 1.5 }), { width: 2880, height: 1620 });
-  const scene = validateScene({ version: 1, settings: { renderScale: .5, fpsLimit: 10 } });
+  const scene = validateScene({ version: 1, settings: { renderScale: .5, fpsLimit: 10, showPerformance: true } });
   assert.equal(Object.hasOwn(scene.settings, 'renderScale'), false);
   assert.equal(Object.hasOwn(scene.settings, 'fpsLimit'), false);
+  assert.equal(Object.hasOwn(scene.settings, 'showPerformance'), false);
 });

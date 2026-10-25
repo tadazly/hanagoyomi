@@ -3,7 +3,7 @@ import { VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CL
 import { equatorialToWorld } from './celestial-coordinates.js';
 import { createGalaxyTexture } from './galaxy-texture.js';
 import { cloudStyle } from './cloud-style.js';
-import { REALISTIC_CLOUD_QUALITY, cloudCurveTexture, loadCloudNoise, cloudPhases, cloudLightProjection } from './realistic-clouds.js';
+import { realisticCoverage, REALISTIC_CLOUD_LAYER, REALISTIC_CLOUD_QUALITY, cloudCurveTexture, loadCloudNoise, cloudPhases, cloudLightProjection } from './realistic-clouds.js';
 import { CLOUD_TRANSMITTANCE_FS, CLOUD_IRRADIANCE_FS, CLOUD_LIGHT_VOLUME_FS, CLOUD_LIGHT_REPROJECT_FS } from './shaders.js';
 import { cloudWindPhase } from './cloud-coordinates.js';
 import { cloudRayLimit } from './cloud-range.js';
@@ -77,7 +77,7 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let contextLost = false;
 canvas.addEventListener('webglcontextlost', (event) => {
   try { saveSettings(); } catch { /* 即使状态已损坏，也保留恢复入口。 */ }
-  event.preventDefault(); contextLost = true;
+  event.preventDefault(); contextLost = true;cancelCloudWeather();
   rejectThumbnail(new Error('WebGL context lost'));
   fail('error.contextLost');
 });
@@ -266,6 +266,51 @@ function ensureCloudLightVolume(config){
   cloudLightConfig=config;cloudLightState=null;cloudLightCurrent=0;cloudDirectSlice=cloudAmbientSlice=cloudAmbientUpdates=0;
 }
 let activeCloudStyle = 'default';
+// 只保留当前画质的一张天气纹理；异步切档晚到不能覆盖新档。
+let eveWeatherError=false;
+let eveWeatherTex=null,eveWeatherKey='',eveWeatherRequest=null,eveWeatherRetryAt=0,eveWeatherFailures=0;
+const maxWeatherSize=gl.getParameter(gl.MAX_TEXTURE_SIZE);
+function cancelCloudWeather(){
+  if(!eveWeatherRequest)return;
+  const image=eveWeatherRequest.image;
+  eveWeatherRequest=null;image.onload=image.onerror=null;image.src='';
+}
+function ensureCloudWeather(){
+  const key=S.quality==='low'||maxWeatherSize<4096?'low':S.quality==='ultra'&&maxWeatherSize>=8192?'ultra':'high';
+  if(eveWeatherKey===key){cancelCloudWeather();return true;}
+  if(eveWeatherRequest?.key===key||performance.now()<eveWeatherRetryAt)return false;
+  cancelCloudWeather();
+  const image=new Image(),request={key,image};eveWeatherRequest=request;
+  image.onload=()=>{
+    if(eveWeatherRequest!==request)return;
+    if(contextLost){cancelCloudWeather();return;}
+    const texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);
+    const colorSpace=gl.getParameter(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL);
+    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.NONE);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RG8,gl.RG,gl.UNSIGNED_BYTE,image);
+    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,colorSpace);
+    if(gl.getError()!==gl.NO_ERROR){
+      gl.deleteTexture(texture);image.onerror();return;
+    }
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    // 天气场只采样mip0，省去没有收益的整套mip。
+    if(eveWeatherTex)gl.deleteTexture(eveWeatherTex);
+    eveWeatherTex=texture;eveWeatherKey=key;eveWeatherRequest=null;eveWeatherFailures=0;eveWeatherRetryAt=0;
+    image.onload=image.onerror=null;image.src='';
+    if(eveWeatherError){$('error').classList.remove('show');eveWeatherError=false;}
+    cloudLightInvalidated=true;needReset=true;prev=null;
+  };
+  image.onerror=()=>{
+    if(eveWeatherRequest!==request)return;
+    eveWeatherRequest=null;image.onload=image.onerror=null;image.src='';
+    eveWeatherRetryAt=performance.now()+Math.min(60000,1000*2**Math.min(eveWeatherFailures++,6));
+    console.error('写实云天气图加载失败',key);eveWeatherError=true;fail('error.initialization');
+  };
+  image.src=celestialAssets.cloudMapUrls[key];return false;
+}
 function ensureCloudNoise(){
   if(eveNoisePromise) return;
   eveNoisePromise = loadCloudNoise(celestialAssets.cloudNoiseLoader).then(data => {
@@ -1039,7 +1084,7 @@ function resize(force){
   const dpr = Math.min(window.devicePixelRatio || 1, q.dpr) * S.renderScale;
   cssW = canvas.clientWidth; cssH = canvas.clientHeight;
   const { width: w, height: h } = renderSize(cssW, cssH, { dpr, ...targetLimits, maxPixels: WALLPAPER_MODE ? 3840 * 2160 : Infinity });
-  const cloudSize = renderSize(cssW, cssH, { dpr: q.cloud * S.renderScale, ...targetLimits, maxPixels: 1.15e6 });
+  const cloudSize = renderSize(cssW, cssH, { dpr: (S.cloudStyle==='realistic'?REALISTIC_CLOUD_QUALITY[S.quality].cloud:q.cloud) * S.renderScale, ...targetLimits, maxPixels: 1.15e6 });
   const cw = Math.max(16, cloudSize.width), ch = Math.max(16, cloudSize.height);
   const signature = [w, h, cw, ch, S.quality, hdrActive].join('|');
   if (signature === targetSignature) return;
@@ -1792,11 +1837,15 @@ function frame(now){
   }
   if(S.cloudStyle==='realistic'){
     ensureCloudNoise();
-    if(!eveNoiseReady){$('loader').classList.remove('done');return;}
+    const weatherReady=ensureCloudWeather();
+    if(!eveNoiseReady||!weatherReady){$('loader').classList.remove('done');return;}
     ensureRealisticPrograms();$('loader').classList.add('done');
   }
+  if(S.cloudStyle!=='realistic'){cancelCloudWeather();$('loader').classList.add('done');if(eveWeatherError){$('error').classList.remove('show');eveWeatherError=false;}}
   if(activeCloudStyle!==S.cloudStyle){
     activeCloudStyle=S.cloudStyle;needReset=true;prev=null;cloudLightInvalidated=true;
+    const layer=S.cloudStyle==='realistic'?REALISTIC_CLOUD_LAYER:CLOUD_LAYER_METRES;
+    LAYER[0]=layer[0]/1000;LAYER[1]=layer[1]/1000;lightKey='';skyKey='';
   }
   resize(false);
   // uint 整秒自然环绕，小数秒精度不随累计运行时间下降。
@@ -1814,7 +1863,7 @@ function frame(now){
   lastView = view;
   const {yaw, pitch} = view, camM = view.position, camK = camM.map(v => v / 1000);
   const aglReal = camM[1] - groundNow;
-  const localWeather = localWeatherAtHeight(camM[1]);
+  const localWeather = localWeatherAtHeight(camM[1],LAYER.map(h=>h*1000));
 
   advanceCloudOffset(windOff, dt, WP.wind, WIND_ANGLE, sceneFreeze.clouds);
   cloudAngle = advanceCloudAngle(cloudAngle, WIND_ANGLE, dt, sceneFreeze.clouds);
@@ -1908,7 +1957,7 @@ function frame(now){
   const setCloudCommon = (Pp) => {
     set(Pp, 'uLowSaturation', S.lowSaturation ? 1 : 0);
     set(Pp, 'uCamPos', 0,camK[1],0); set(Pp, 'uSunDir', sun); set(Pp, 'uLayer', LAYER[0], LAYER[1]);
-    set(Pp, 'uCoverage', covEff); set(Pp, 'uDensity', densEff);
+    set(Pp, 'uCoverage', S.cloudStyle==='realistic'?realisticCoverage(covEff):covEff); set(Pp, 'uDensity', densEff);
     // 按纹理共同周期约简后再上传，保持长时间云体/侵蚀的小位移精度。
     set(Pp, 'uWind', cloudWindPhase(camK,windOff));
     set(Pp, 'uWindDetail', cloudWindPhase(camK,windOff,true,simTime));
@@ -1925,6 +1974,7 @@ function frame(now){
   const bindCloudTex = (Pp) => {
     tex(Pp,'uEveNoise',gl.TEXTURE_3D,eveNoiseTex);
     tex(Pp,'uEveCurves',gl.TEXTURE_2D,eveCurvesTex);
+    tex(Pp,'uEveWeather',gl.TEXTURE_2D,eveWeatherTex);
     tex(Pp,'uCloudAtmoTrans',gl.TEXTURE_2D,cloudTransTex);
     tex(Pp,'uCloudSkyIrr',gl.TEXTURE_2D,cloudIrrTex);
     tex(Pp,'uCloudLightVolume',gl.TEXTURE_3D,cloudLightTextures[cloudLightCurrent]??null);
@@ -2012,6 +2062,7 @@ function frame(now){
   setCloudCommon(P.cloud); bindCloudTex(P.cloud);
   set(P.cloud,'uRayJitter',cloudJitter);set(P.cloud,'uEveLodScale',.25*CW/W,.25*CH/H);
   set(P.cloud,'uCloudSource',L.sourceCloud);
+  if(cloudQuality.step)set(P.cloud,'uViewStep',cloudQuality.step);
   seti(P.cloud,'uAirSteps',cloudQuality.airSteps??16);
   set(P.cloud, 'uAtmosphere', atmosphere);
   set(P.cloud, 'uRayLimit', cloudRayLimit(camK[1], LAYER[0], atmosphere));
@@ -2449,6 +2500,10 @@ function frame(now){
     const fps = statFrames / statAcc;
     $('fps').textContent = fps.toFixed(1); setMessage($('ms'), 'rendering.frameTime', { value: (1000 / fps).toFixed(1) });
     setMessage($('blades'), grassOn ? 'rendering.blades' : 'rendering.noGrass', { count: Math.round(bladeEst).toLocaleString(getLocale()) });
+    if(S.showPerformance){
+      $('performanceOverlay').textContent=[`${fps.toFixed(1)} FPS · ${(1000/fps).toFixed(1)} ms`, $('res').textContent, $('blades').textContent, $('gpu').textContent].filter(Boolean).join('\n');
+      renderControls.placePerformance();
+    }
     wxStatus();
     renderClock();
     $('locSun').textContent = riseSetText(simMs);

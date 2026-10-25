@@ -5,7 +5,7 @@ import { deflateSync, inflateRawSync } from 'node:zlib';
 import { deflateSync as compressScene } from 'fflate';
 import { cloudStyle } from '../src/rendering/cloud-style.js';
 import { cloudWindPhase } from '../src/rendering/cloud-coordinates.js';
-import { cloudPhases, cloudLightProjection, cloudCurveTexture, loadCloudNoise, REALISTIC_CLOUD_LAYER } from '../src/rendering/realistic-clouds.js';
+import { realisticCoverage, cloudPhases, cloudLightProjection, cloudCurveTexture, loadCloudNoise, REALISTIC_CLOUD_LAYER } from '../src/rendering/realistic-clouds.js';
 import { validateScene } from '../src/world/scene-state.js';
 import { createSceneLink, parseSceneLink, SceneLinkError } from '../src/world/scene-share.js';
 
@@ -90,19 +90,19 @@ test('宏观共同周期及细节周期衔接，镜头与风共同平移不改�
   }
 });
 
-test('EVE 侵蚀移动角度遵循宿主 6371 km 半径，跨相位边界连续', () => {
-  const circumference = 2 * Math.PI * 6371, camera = [1e5, 3, -1e5], wind = [21.5, 0, -8];
+test('EVE 侵蚀移动角度遵循源天气场 600 km 半径，跨相位边界连续', () => {
+  const circumference = 2 * Math.PI * 600, camera = [1e5, 3, -1e5], wind = [21.5, 0, -8];
   const before = cloudPhases(camera, wind).map;
   const after = cloudPhases([camera[0] + 1, camera[1], camera[2] + 1], wind).map;
   close(periodicDelta(before[0], after[0], 1), 1 / circumference, 1e-13);
-  close(periodicDelta(before[1], after[1], 2 * Math.PI), 1 / 6371, 1e-13);
+  close(periodicDelta(before[1], after[1], 2 * Math.PI), 1 / 600, 1e-13);
   const repeated = cloudPhases([camera[0] + circumference, camera[1], camera[2] + circumference], wind).map;
   close(periodicDelta(before[0], repeated[0], 1), 0, 1e-13);
   close(periodicDelta(before[1], repeated[1], 2 * Math.PI), 0, 1e-13);
 });
 
 test('光照投影在地面、云内、主干上限及极高相机下保持有限且保留水平原点', () => {
-  assert.deepEqual(REALISTIC_CLOUD_LAYER, [1500, 4000]);
+  assert.deepEqual(REALISTIC_CLOUD_LAYER, [1750, 7450]);
   for (const height of [0, 1.5, 2.5, 4, 6.5012, 100, 10000, 1e6]) {
     const projection = cloudLightProjection([-1e5, height, 1e5]);
     assert.ok(projection.origin.every(Number.isFinite), `高度 ${height}`);
@@ -124,4 +124,16 @@ test('云型 RG8 曲线包含有效高度变化，生产噪声恰为既定 128³
   assert.equal(createHash('sha256').update(noise).digest('hex'), 'ebd8831f4fb2b5633e3d68b1c29fa1cf8d5f00f3412e31f7712ddd27718d8cf9');
   const invalid = deflateSync(new Uint8Array(128)).toString('base64');
   await assert.rejects(loadCloudNoise(async () => ({ default: invalid })), /噪声数据长度无效/);
+});
+
+
+test('覆盖度校准全域单调、晴空和厚云端点不变，不修改云型数据', () => {
+  assert.equal(realisticCoverage(0),0);
+  assert.equal(realisticCoverage(.88),.88);
+  for(const value of [.9,.95,1])assert.equal(realisticCoverage(value),value);
+  let previous=0;
+  for(let i=0;i<=1000;i++){
+    const value=realisticCoverage(i/1000);
+    assert.ok(value>=previous&&value<=1);previous=value;
+  }
 });

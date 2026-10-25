@@ -1,19 +1,32 @@
 import { unzlibSync } from 'fflate';
 import { EVE_CLOUD_TYPES } from '../data/eve-cloud-types.js';
-import { CLOUD_LAYER_METRES } from './weather-altitude.js';
 const CLOUD_PLANET_RADIUS_KM = 6371;
+// 天气图和侵蚀场保持原作600 km尺度；宿主球面相交仍使用地球半径。
+const EVE_WEATHER_RADIUS_KM = 600;
 
-export const REALISTIC_CLOUD_LAYER = CLOUD_LAYER_METRES;
+export const REALISTIC_CLOUD_LAYER = Object.freeze([1750, 7450]);
 export const REALISTIC_CLOUD_QUALITY = Object.freeze({
-  low: { light: 2, grid:48, slices:16, volumeSteps:24, airSteps:8 },
-  med: { light: 4, grid:64, slices:24, volumeSteps:32, airSteps:12 },
-  high: { light: 4, grid:96, slices:32, volumeSteps:50, airSteps:16 },
-  ultra: { light: 4, grid:128, slices:32, volumeSteps:50, airSteps:24 },
+  low: { cloud: .35, step:[.225,.018], light: 2, grid:48, slices:16, volumeSteps:24, airSteps:8 },
+  med: { cloud: .6, step:[.16875,.0135], light: 4, grid:64, slices:24, volumeSteps:32, airSteps:12 },
+  high: { cloud: .75, step:[.1125,.009], light: 4, grid:96, slices:32, volumeSteps:50, airSteps:16 },
+  ultra: { cloud: 1.25, step:[.075,.006], light: 4, grid:128, slices:32, volumeSteps:50, airSteps:24 },
 });
 
-// EVE 侵蚀场使用宿主球面尺度；CPU double 先约简位置/风相位。
+// 把宿主覆盖度校准到源天气图的阈值区间；只平移覆盖阈值，保留空间云型与侵蚀。
+// 0保持晴空，浓云及云海(.88以上)保持源值，避免改动源的厚云形态。
+export function realisticCoverage(value){
+  const points=[[0,0],[.035,.035],[.07,.59],[.09,.61],[.16,.665],[.4,.738],[.45,.765],[.6,.802],[.88,.88],[1,1]];
+  const c=Math.max(0,Math.min(1,value));
+  for(let i=1;i<points.length;i++){
+    const [x,y]=points[i],a=points[i-1];
+    if(c<=x)return a[1]+(y-a[1])*(c-a[0])/(x-a[0]);
+  }
+  return 1;
+}
+
+// 原天气图按600 km绘制；CPU double先约简位置/风相位。
 export function cloudPhases(cameraKm, windKm) {
-  const wrap=(v,p)=>((v%p)+p)%p, radius=CLOUD_PLANET_RADIUS_KM;
+  const wrap=(v,p)=>((v%p)+p)%p, radius=EVE_WEATHER_RADIUS_KM;
   const x=cameraKm[0]-windKm[0],z=cameraKm[2]-windKm[2];
   return {
     map:[wrap(.2723+x/(2*Math.PI*radius),1),wrap((.4666-.5)*Math.PI+z/radius,2*Math.PI)],
@@ -49,7 +62,7 @@ export function cloudCurveTexture(size = 128) {
     const a = EVE_CLOUD_TYPES[i], b = EVE_CLOUD_TYPES[Math.min(i + 1, EVE_CLOUD_TYPES.length - 1)];
     const bottom = a.minAltitude * (1 - f) + b.minAltitude * f, top = a.maxAltitude * (1 - f) + b.maxAltitude * f;
     for (let y = 0; y < size; y++) {
-      const h = 1750 + (7450 - 1750) * y / (size - 1);
+      const h = REALISTIC_CLOUD_LAYER[0] + (REALISTIC_CLOUD_LAYER[1] - REALISTIC_CLOUD_LAYER[0]) * y / (size - 1);
       const t = (h - bottom) / (top - bottom), at = (x + y * size) * 2;
       const coverageAt = type => {
         const v = type.interpolateCloudHeights === false ? (h - type.minAltitude) / (type.maxAltitude - type.minAltitude) : t;
@@ -72,6 +85,8 @@ export async function loadCloudNoise(loader) {
 export const REALISTIC_DENSITY_GLSL = `
 uniform sampler3D uEveNoise;
 uniform sampler2D uEveCurves;
+uniform sampler2D uEveWeather;
+const float EVE_WEATHER_RADIUS=600.0;
 uniform sampler2D uCloudAtmoTrans,uCloudSkyIrr;
 uniform vec3 uEveWind;
 uniform float uEveNoiseLod;
@@ -120,7 +135,12 @@ vec3 eveAtAltitude(vec2 xz,float h){
 
 // 源cloudRotation后的Y为纬度轴，q与去平铺法线必须使用同一球面坐标。
 vec3 eveCloudPosition(vec3 p){
-  vec3 q=vec3(p.x-uCamPos.x,p.y+R_EARTH,p.z-uCamPos.z);
+  // 把当地水平距离映射到独立天气球面，避免随宿主半径放大团块10.6倍。
+  // 指数映射在光照缓存远端仍连续，无sqrt半球域外塌到赤道的问题。
+  vec2 xz=p.xz-uCamPos.xz;
+  float radius=EVE_WEATHER_RADIUS+eveHeight(p),theta=length(xz)/radius;
+  float sinc=theta<.0001?1.0-theta*theta/6.0:sin(theta)/theta;
+  vec3 q=vec3(xz.x*sinc,radius*cos(theta),xz.y*sinc);
   float c=cos(uEveMapPhase.y),s=sin(uEveMapPhase.y);
   q.yz=vec2(c*q.y-s*q.z,s*q.y+c*q.z);
   q=q.xzy;
@@ -139,7 +159,7 @@ vec3 eveHash(uvec2 p){
 float eveNoise(vec3 p, float fp){
   vec3 source=eveCloudPosition(p),n=normalize(source);
   vec2 uv = n.yx / dot(abs(n), vec3(1.0)) * .5 + .5;
-  uv *= floor((R_EARTH+uLayer.x)*2.93/2.3);
+  uv *= floor((EVE_WEATHER_RADIUS+uLayer.x)*2.93/2.3);
   vec2 cell = floor(uv), f = fract(uv);
   vec3 w = vec3(1.0 - f.x - f.y, f.x, f.y);
   vec2 a = cell, b = cell + vec2(1,0), c = cell + vec2(0,1);
@@ -153,24 +173,33 @@ float eveNoise(vec3 p, float fp){
     textureLod(uEveNoise, q + eveHash(uvec2(ivec2(c))), lod).r));
 }
 
+vec2 eveMapUV(vec3 p){
+  vec3 n=normalize(eveCloudPosition(p));
+  // DDS到WebP保持原始行顺序，上传未翻Y；与源V5的北极v=0一致。
+  return vec2(atan(n.x,n.z)/(2.0*PI)+.5,acos(clamp(n.y,-1.0,1.0))/PI);
+}
+vec2 eveMappedWeather(vec3 p,float fp){
+  return textureLod(uEveWeather,eveMapUV(p),0.0).rg;
+}
 // 返回 x=消光系数/km，y=宏观覆盖梯度，z=多重散射亮度，w=侵蚀后的剩余量。
 vec4 eveDensity(vec3 pw, float h01, float fp){
   if(h01 <= 0.0 || h01 >= 1.0) return vec4(0.0);
-  vec3 p = pw;
-  // 主干天气与形状包络锁定云量/位置；只替换侵蚀和光学积分，避免二次扣覆盖度。
-  float macro = defaultCloudBase(vec3(p.x,eveHeight(p),p.z), h01, fp);
-  if (macro <= .002) return vec4(0);
-  vec2 wt = textureLod(uWeather, (p.xz + uWind.xz) * WEATHER_FREQ, 0.0).rg;
-  float type = wt.g;
+  vec3 p = pw; p.xz += uWindDir * (h01 * .6);
+  vec2 wt = eveMappedWeather(p,fp);
+  // 原 coverage/type 图保留清空、致密核心和六类云；天气控制只平移覆盖阈值。
+  float coverage = saturate(wt.r + (uCoverage-.62)*1.35);
+  if(coverage<.01)return vec4(0);
+  float type=saturate(wt.g+max(uDensity-1.05,0.0)*.12);
   vec2 curve = textureLod(uEveCurves, vec2(type, h01), 0.0).rg;
-  // 主干侵蚀决定云团支撑域，EVE噪声在云内部细化密度，避免风格切换改变天气。
-  vec3 macroPoint=vec3(p.x,eveHeight(p),p.z);
-  float envelope=erode(macro,macroPoint,h01,fp);
-  if(envelope<=.002)return vec4(0);
-  float detail=eveNoise(p,fp);
-  float d=envelope*mix(.65,1.35,detail);
-  return vec4(d*60.0*max(curve.g,.25)*uDensity,saturate(macro),mix(.8,1.0,type),envelope);
-
+  float macro = curve.r + coverage - 1.0;
+  if (macro < .01) return vec4(0.0);
+  const float density[6] = float[6](1.5,12.0,12.0,12.0,6.0,6.0);
+  const float edge[6] = float[6](.1,.03,.03,.03,.03,.03);
+  float it = type * 5.0, f = fract(it); int i = int(it), j = min(i+1,5);
+  float softness = mix(edge[i],edge[j],f), sigma = mix(density[i],density[j],f);
+  float d = 1.0, residual = 1.0;
+  if (macro < softness + .65){residual=macro-.65*(1.0-eveNoise(p,fp));d=saturate(residual/softness);}
+  return vec4(d > .01 ? d * sigma * curve.g * uDensity : 0.0, saturate(macro), mix(.8,1.0,saturate(it)),residual);
 }
 `;
 
@@ -274,6 +303,7 @@ void main(){
 `;
 
 export const REALISTIC_RAYMARCH_GLSL = `
+uniform vec2 uViewStep;
 uniform vec3 uCloudSource;
 uniform int uAirSteps;
 // 原HG使用π/4；宿主预曝光尺度独立于相函数定义。
@@ -331,20 +361,23 @@ void eveRaymarch(vec3 ro,vec3 rd,float t0,float t1,float jit){
   float directPhase=.1*eveHG(.95,mu)+.2*eveHG(.8,mu);
   float multiplePhase=3.0*eveHG(.2,mu)+.3*eveHG(-.4,mu);
   vec3 L=vec3(0); float T=1.0, ds=0.0, ws=0.0,ambientWeight=0.0;
-  // 沿用宿主完整云段分区：云量与默认使用同样的宏观采样足迹，且最多160步。
-  float nearWeight=1.0-smoothstep(0.0,.3,t0);
-  int stepCount=min(uSteps,max(1,int(ceil(seg/.022))));
-  float nSteps=float(stepCount),quadratic=seg*nearWeight/(nSteps*nSteps);
-  float dt=seg*(1.0-nearWeight)/nSteps+quadratic,dtIncrease=2.0*quadratic;
-  float t=t0+dt*jit;
-  for(int i=0;i<160;i++){
-    if(i>=stepCount)break;
+  // V5：基础步长+绝对镜头距离的自适应项，薄段缩短基础步长。
+  float base=uViewStep.x;
+  if(seg<=10.0*base)base*=.3+.7*seg/(10.0*base);
+  float t=t0;
+  for(int i=0;i<512;i++){
+    // 两段共享透射和辐亮度累积；跳过没有云的内球区间，避免远侧云底漏采。
     if(inner.x>0.0 && t>=inner.x && t<inner.y)t=inner.y;
     if(t>=t1)break;
     if(T<.002){T=0.0;break;}
+    float dt=min(base+uViewStep.y*t,1.5);
+    if(T<.04){float r=5.0+2.0*jit;dt*=r+(1.0-r)*max(50.0*T-1.0,0.0);}
+    if(i==0)dt*=jit;
+    float end=inner.x>t?min(t1,inner.x):t1;
+    dt=min(dt,end-t);t+=dt;
     vec3 pr=ro+rd*t; float h=length(pr-PC)-R_EARTH;
     vec3 pw=vec3(pr.x+uCamPos.x,pr.y,pr.z+uCamPos.z);
-    float fp=t*uPixAngle;
+    float fp=max(max(t*uPixAngle,dt*.3),.012);
     eveViewLod=mix(ln,lf,clamp((t-t0)/seg,0.0,1.0));
     vec4 den=eveDensity(pw,(h-uLayer.x)/(uLayer.y-uLayer.x),fp);
     if(den.x>0.0){
@@ -361,7 +394,6 @@ void eveRaymarch(vec3 ro,vec3 rd,float t0,float t1,float jit){
       float representativeWeight=T*T*den.x*dt;
       ds+=representativeWeight*t;ws+=representativeWeight;T*=Ts;
     }
-    t+=dt+dtIncrease*jit;dt+=dtIncrease;
   }
   if(T>=1.0){oColor=vec4(0,0,0,1);oDepth=vec4(t1,0,0,1);return;}
   float depth=ws>1e-5?ds/ws:t0+min(seg,6.0)*.5;

@@ -2,6 +2,7 @@ import { ABOUT_PAGES } from '../content/seo.js';
 
 // 每条文案依次为英语、简体中文、日语；界面通过稳定的 key 引用。
 const entries = {
+  'rendering.showOnScreen': ['Show on main screen', '显示在主界面', 'メイン画面に表示'],
   'sky.environment': ['Sky environment', '天空环境', '空の環境'],
   'sky.hint': ['Drag to look · Tap a constellation to centre · Scroll to zoom', '拖动环顾 · 点选星座居中 · 滚轮缩放', 'ドラッグで見回す・星座をタップして中央へ・スクロールで拡大'],
   "tab.sky": ["Sky", "天空", "空"],

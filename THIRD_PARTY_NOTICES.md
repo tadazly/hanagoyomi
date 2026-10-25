@@ -12,7 +12,7 @@ Hanagoyomi 项目代码使用 MIT License。以下数据、服务和算法参考
 This preview build of the volumetric clouds is All rights reserved
 ```
 
-本次适配沿用花暦宏观天气与云形包络、1500–4000 m 云层和 6371 km 地球尺度，保留 EVE 噪声侵蚀、云型密度曲线、光程积分、多重散射与体积光照缓存；未引入原行星天气图、轨道地表或全局大气切换。
+本次适配保留源 coverage/type 天气图（三档 `src/assets/eve-weather-*.webp`）、六类云型的覆盖度与密度曲线、1750–7450 m 云层、侵蚀、自适应步进、光程积分、多重散射及体积光照缓存。天气与侵蚀保持 600 km 虚拟球面尺度，宿主几何保持 6371 km 地球尺度；未迁入轨道地表、镜头高度上限或全局大气切换。
 
 ## 星表与星座连线 — d3-celestial
 

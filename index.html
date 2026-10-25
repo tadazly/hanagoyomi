@@ -26,6 +26,7 @@
 <body>
   <canvas id="view" tabindex="-1" aria-label="Live meadow, flowers and volumetric clouds; move the mouse to steer in auto flight, double-click left to dash, double-click right to turn, triple-click right to pause or resume" data-i18n-aria-label="app.canvas"></canvas>
   <div id="componentBounds" aria-hidden="true"></div>
+  <div id="performanceOverlay" class="performance-overlay" hidden></div>
   <header class="masthead chrome ui-component" data-ui-component="logo">
     <div class="brand"><span data-icon="flower" class="brand-mark" aria-hidden="true"></span><div><h1 translate="no">花暦</h1><a class="wordmark about-link" href="/about/" data-about-link aria-label="About Hanagoyomi" data-i18n-aria-label="about.open">HANAGOYOMI</a></div></div>
   </header>
@@ -154,6 +155,7 @@
         <label class="switch"><span data-i18n="camera.sway">Camera motion</span><input type="checkbox" id="sway"><i></i></label>
         <label class="switch"><span data-i18n="weather.lensDrops">Lens raindrops</span><input type="checkbox" id="lensDrops"><i></i></label></div></details>
         <details class="advanced"><summary><span data-i18n="rendering.title">Rendering info</span><span data-icon="chevron"></span></summary>
+          <label class="switch"><span data-i18n="rendering.showOnScreen">Show on main screen</span><input type="checkbox" id="showPerformance"><i></i></label>
           <div class="stats"><p><span id="fps">--</span> FPS</p><p id="ms">Frame time -- ms</p><p id="res">Cloud buffer --</p><p id="clock">Local time --</p><p id="blades">Grass blades --</p><p id="gpu"></p></div>
         </details>
       </section>

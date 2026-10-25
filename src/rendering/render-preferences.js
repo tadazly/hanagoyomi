@@ -1,9 +1,10 @@
-export const RENDER_DEFAULTS = Object.freeze({ renderScale: 1, fpsLimit: 60 });
+export const RENDER_DEFAULTS = Object.freeze({ renderScale: 1, fpsLimit: 60, showPerformance: false });
 
 // 渲染偏好属于本机设备，不进入画廊作品或分享链接。
 export function renderPreferences(saved) {
   const scale = saved?.renderScale, fps = saved?.fpsLimit;
   return {
+    showPerformance: saved?.showPerformance === true,
     renderScale: Number.isFinite(scale) && scale >= .5 && scale <= 1.5 ? Math.round(scale * 20) / 20 : 1,
     fpsLimit: Number.isSafeInteger(fps) && (fps === 0 || fps >= 10) ? fps : 60,
   };

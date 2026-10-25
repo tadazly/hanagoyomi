@@ -347,3 +347,14 @@ body[data-wallpaper='true'] .help-controls, body[data-wallpaper='true'] .touch-h
 @media(max-width:700px) { .stargazing-status { top: calc(env(safe-area-inset-top,0px) + 140px); } }
 
 body[data-panel-open='true'] .stargazing-status { visibility: hidden; }
+
+/* 性能文本是主动开启的诊断信息，沉浸模式中仍显示。 */
+.performance-overlay {
+  position: fixed; z-index: 3; pointer-events: none;
+  left: calc(20px + env(safe-area-inset-left, 0px));
+  top: calc(20px + env(safe-area-inset-top, 0px));
+  max-width: calc(100vw - 40px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  white-space: pre-line; overflow-wrap: anywhere;
+  color: #fff; font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-shadow: 0 1px 3px #000, 0 0 6px #000;
+}
