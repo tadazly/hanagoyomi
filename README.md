@@ -8,7 +8,7 @@
 
 **Give this moment to nature.**
 
-A WebGL2 flower meadow and sky that follow local time and weather. Adjust the world, explore it, and save a view you like.
+A flower meadow and sky that follow local time and weather. Roam freely, watch the stars, and save or share a view you like.
 
 [**Try it live ↗**](https://hanagoyomi.luyilabs.com/) · [**Steam Workshop ↗**](https://steamcommunity.com/sharedfiles/filedetails/?id=3815915459)
 
@@ -30,28 +30,29 @@ A WebGL2 flower meadow and sky that follow local time and weather. Adjust the wo
   </tr>
 </table>
 
+## Features
+
+- **Daylight and weather** — Follow the selected city's local time and live weather, or choose your own time, conditions and visual effects.
+- **Free exploration** — Automatic flight, mouse and keyboard or touch controls, with the option to resume from your last position.
+- **Selected landscapes** — 24 scenes spanning mist, rain, snow, sunsets, moonlit nights and constellation watching.
+- **Two night skies** — A brighter default style and a restrained realistic style. In the realistic sky, the Milky Way and faint stars gradually emerge while you watch from a still camera.
+- **Star chart and stargazing** — View the stars even during daytime. Lock your position to highlight, find and smoothly centre constellations.
+- **Constellation display** — Cloud-obscured or always-visible lines, bilingual names, and adjustable line thickness, contrast and name size.
+- **Save and share** — Keep up to 100 local scenes and share them by link or QR code.
+
 ## Use
 
-Choose a location, time, weather and quality in World settings. Enable automatic flight or manual controls to explore. The interface supports Simplified Chinese, Japanese and English. Settings stay in the current browser or wallpaper host.
+Adjust the landscape in World settings; **Sky** contains night sky and stargazing options. The interface supports Simplified Chinese, Japanese and English. Full controls are available in settings.
 
-The gallery includes 20 selected landscapes. Preview a scene, choose **Restore** to return, or **Apply to world** to keep it. Scene time, weather and cloud drift can be locked independently. **Save moment** keeps up to 100 local scenes, which you can share by link or QR code. Saving to your collection and applying a scene are separate actions; collections do not sync between devices.
+Preview, restore or apply scenes from the gallery, with independent locks for scene time, weather and cloud drift. The time and weather widget continues to show the current city's live conditions. The first entry, **Where It All Begins**, restores the initial view and default scene settings while time and weather follow the current city.
 
-| Action | Input |
-| --- | --- |
-| Steer | Move the mouse or swipe on a touchscreen |
-| Dash / Turn around / Pause flight | Left double-click / Right double-click / Right triple-click |
-| Move / Descend and ascend | WASD or arrow keys / Q and E |
-| Fullscreen / Immersive mode / Show interface | F / H / Esc |
-
-Scene inputs are inactive when manual controls are disabled. Full controls are available in World settings.
+Settings and collections stay on the device and do not sync between devices.
 
 ## Wallpaper Engine
 
-Subscribe on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3815915459), or run `npm run build:wallpaper` and import `dist-wallpaper/index.html`.
+Subscribe on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3815915459), or download a standalone wallpaper package from [Releases](https://github.com/tadazly/hanagoyomi/releases). To build your own, run `npm run build:wallpaper` and import `dist-wallpaper/index.html`. See each release's notes for included features.
 
-The v1.4.5 Workshop update is pending. Use the [standalone release package](https://github.com/tadazly/hanagoyomi/releases/tag/v1.4.5) for the features below.
-
-**Use built-in world settings** is enabled by default. Move to the desktop's bottom-right corner to open settings and the gallery. When this option is disabled, WE properties apply immediately and overwrite corresponding world settings on startup. **Import scene link** remains available in either mode: paste a link, return to the desktop to preview it, then choose whether to save or apply it.
+Open world settings, the gallery and scene link imports from the desktop's bottom-right corner. Built-in world settings are used by default; WE native options are also available.
 
 Use [`?wallpaper=1`](https://hanagoyomi.luyilabs.com/?wallpaper=1) for the browser wallpaper layout or Mac Plash. Enable Plash's Browsing Mode to adjust settings. See the [wallpaper guide](docs/WALLPAPER_ENGINE.md).
 

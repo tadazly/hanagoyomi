@@ -1330,6 +1330,8 @@ function selectConstellation(id, fromFinder = false) {
   if (id < 0 || !constellationOverlay) { clearConstellation(); return; }
   const target = constellationTarget(eqMat, constellationOverlay.centers[id], cam.yaw);
   if (target.pitch <= 0) { clearConstellation(); setMessage($('constellationInfo'), 'sky.belowHorizon'); return; }
+  // 列表选择优先于此前仍在等待 GPU 返回的画布点选。
+  if (fromFinder) constellationOverlay.cancelPick();
   if (fromFinder && !S.stargazing) setStargazing(true);
   constellationOverlay.select(id);
   constellationFocus = S.stargazing ? id : -1;
