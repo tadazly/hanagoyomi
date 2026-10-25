@@ -95,6 +95,7 @@ float eveViewLod=-99.0;
 uniform sampler3D uCloudLightVolume;
 uniform vec3 uCloudLightOrigin;uniform vec2 uCloudLightCenter;
 uniform vec2 uEveMapPhase;
+uniform vec2 uCloudLightValid;
 
 vec2 eveAtmosphereUV(vec3 pr,vec3 direction){
   float h=max(0.0,length(pr-PC)-R_EARTH),mu=dot(normalize(pr-PC),direction);
@@ -201,42 +202,61 @@ vec4 eveDensity(vec3 pw, float h01, float fp){
   if (macro < softness + .65){residual=macro-.65*(1.0-eveNoise(p,fp));d=saturate(residual/softness);}
   return vec4(d > .01 ? d * sigma * curve.g * uDensity : 0.0, saturate(macro), mix(.8,1.0,saturate(it)),residual);
 }
+// 同一段积分用于缓存与未回填区域；完整覆盖光程，中点采样避免漏尾。
+float eveShellExit(vec3 pw,vec3 d){
+  vec3 p=vec3(pw.x-uCamPos.x,pw.y,pw.z-uCamPos.z);
+  vec2 top=raySphere(p,d,R_EARTH+uLayer.y),bottom=raySphere(p,d,R_EARTH+uLayer.x);
+  return max(0.0,bottom.x>0.0?min(top.y,bottom.x):top.y);
+}
+float eveOpticalDepth(vec3 p,vec3 d,int steps,float limit){
+  float distance=min(eveShellExit(p,d),limit),od=0.0;
+  if(distance<=0.0)return 0.0;
+  int count=max(1,min(steps,int(ceil(distance/.075))));
+  float savedViewLod=eveViewLod;eveViewLod=3.0;
+  for(int i=0;i<50;i++){
+    if(i>=count)break;
+    // 较密的近端分段保留厚云遮蔽，远端仍覆盖到云壳出口。
+    float a=float(i)/float(count),b=float(i+1)/float(count);
+    a=distance*a*a;b=distance*b*b;
+    vec3 q=p+d*((a+b)*.5);
+    od+=eveDensity(q,(eveHeight(q)-uLayer.x)/(uLayer.y-uLayer.x),.14375).x*(b-a);
+  }
+  eveViewLod=savedViewLod;
+  return od;
+}
+bool eveVolumeReady(vec3 uv,int channel){
+  vec3 size=vec3(textureSize(uCloudLightVolume,0));
+  if(length(uv.xy-.5)>=.5-3.0/min(size.x,size.y))return false;
+  float slices=size.z;
+  float last=min(slices-1.0,floor(uv.z*slices-.5)+2.0);
+  return last<uCloudLightValid[channel];
+}
+float eveAmbientFallback(vec3 p){
+  vec3 up=normalize(vec3(p.x-uCamPos.x,p.y+R_EARTH,p.z-uCamPos.z));
+  return 2.0*eveOpticalDepth(p,up,8,4.0*(uLayer.y-uLayer.x));
+}
+
 `;
 
 // LIGHT_VOLUME_ON：长程太阳OD与径向上半球平均OD，存储原单位OD*.01。
 // RG16F的两通道对应源RHalf体积的前/后半部，逐层FBO代替geometry shader。
 export const CLOUD_LIGHT_VOLUME_GLSL = `
 uniform int uVolumeAmbient,uVolumeSteps;
-uniform float uVolumeSlice,uVolumeBlend,uVolumeCycle;
+uniform float uVolumeSlice,uVolumeBlend;
 out vec4 o;
-float eveShellExit(vec3 pw,vec3 d){
-  vec3 p=vec3(pw.x-uCamPos.x,pw.y,pw.z-uCamPos.z);
-  vec2 top=raySphere(p,d,R_EARTH+uLayer.y),bottom=raySphere(p,d,R_EARTH+uLayer.x);
-  return max(0.0,bottom.x>0.0?min(top.y,bottom.x):top.y);
-}
-float eveVolumeOD(vec3 p,vec3 d,int steps,float limit){
-  float length=min(eveShellExit(p,d),limit),ds=max(length/float(steps),.075),od=0.0;
-  int count=int(floor(length/ds));
-  for(int i=0;i<50;i++){
-    if(i>=count)break;
-    vec3 q=p+d*(ds*(float(i)+1.0));
-    od+=eveDensity(q,(eveHeight(q)-uLayer.x)/(uLayer.y-uLayer.x),.14375).x*ds;
-  }
-  return od;
-}
 void main(){
   if(length(vUv-.5)>=.5){o=vec4(0);return;}
   vec3 p=eveVolumePoint(vUv,mix(uLayer.x,uLayer.y,uVolumeSlice),uCloudLightOrigin,uCloudLightCenter);
   vec2 old=textureLod(uCloudLightVolume,vec3(vUv,uVolumeSlice),0.0).rg;
-  if(uVolumeAmbient==0){o=vec4(eveVolumeOD(p,uSunDir,uVolumeSteps,1e6)*.01,old.y,0,1);return;}
+  if(uVolumeAmbient==0){o=vec4(mix(old.x,eveOpticalDepth(p,uSunDir,uVolumeSteps,1e6)*.01,uVolumeBlend),old.y,0,1);return;}
   vec3 up=normalize(vec3(p.x-uCamPos.x,p.y+R_EARTH,p.z-uCamPos.z));
   vec3 right=normalize(cross(abs(up.z)<.9?vec3(0,0,1):vec3(1,0,0),up)),forward=cross(up,right);
   float od=0.0;
   for(int j=0;j<6;j++){
-    vec3 random=eveHash(uvec2(gl_FragCoord.xy)+uvec2(uint(j)*7919u,uint(uVolumeCycle)*104729u+uint(uVolumeSlice*100000.0)));
-    float y=abs(random.x*2.0-1.0),a=random.y*2.0*PI,r=sqrt(max(0.0,1.0-y*y));
+    vec3 random=eveHash(uvec2(gl_FragCoord.xy)+uvec2(0,uint(uVolumeSlice*100000.0)));
+    float y=(float(j)+.5)/6.0,a=random.x*2.0*PI+float(j)*2.39996323,r=sqrt(max(0.0,1.0-y*y));
     vec3 d=up*y+right*(r*cos(a))+forward*(r*sin(a));
-    od+=eveVolumeOD(p,d,uVolumeSteps/3,4.0*(uLayer.y-uLayer.x));
+    od+=eveOpticalDepth(p,d,uVolumeSteps/3,4.0*(uLayer.y-uLayer.x));
   }
   o=vec4(old.x,mix(old.y,od*(.01/6.0),uVolumeBlend),0,1);
 }
@@ -247,8 +267,10 @@ out vec4 o;
 void main(){
   if(length(vUv-.5)>=.5){o=vec4(0);return;}
   vec3 pw=eveVolumePoint(vUv,mix(uLayer.x,uLayer.y,uVolumeSlice),uNewCloudLightOrigin,uNewCloudLightCenter);
-  vec3 old=eveVolumeUV(pw,uCloudLightOrigin,uCloudLightCenter);vec2 value=vec2(0);
-  if(length(old.xy-.5)<.5)value=eveVolumeCubic(old);
+  vec3 old=eveVolumeUV(pw,uCloudLightOrigin,uCloudLightCenter);
+  vec2 value=eveVolumeCubic(old);
+  if(!eveVolumeReady(old,0))value.x=eveOpticalDepth(pw,uSunDir,12,1e6)*.01;
+  if(!eveVolumeReady(old,1))value.y=eveAmbientFallback(pw)*.01;
   if(any(isnan(value)))value=vec2(0);
   o=vec4(max(value,vec2(0)),0,1);
 }
@@ -335,17 +357,20 @@ vec3 eveAerial(vec3 cloud,float T,vec3 ro,vec3 rd,float depth){
 float eveLight(vec3 pr,vec3 pw,float fp,float viewT,float distance,float jitter){
   // EVE：近于2 km且视线仍透明时加倍；保持源1200 m最大太阳光程。
   int count=(distance<2.0 && viewT>=.75)?uLightSteps*2:uLightSteps;
-  float lengthToTop=max(0.0,raySphere(pr,uSunDir,R_EARTH+uLayer.y).y);
-  float ds=1.2/float(count),od=0.0,t=0.0;
+  float shellExit=eveShellExit(pw,uSunDir),distanceToExit=min(1.2,shellExit);
+  float ds=distanceToExit/float(count),od=0.0;
   for(int i=0;i<8;i++){
-    if(i>=count || t>=lengthToTop)break;
-    float step=min(ds*((count==uLightSteps && i==0)?jitter:1.0),lengthToTop-t);
-    t+=step;
-    vec3 q=pw+uSunDir*t;
-    od+=eveDensity(q,(eveHeight(q)-uLayer.x)/(uLayer.y-uLayer.x),max(.018,fp*.25)).x*step;
+    if(i>=count)break;
+    // 只抖动段内采样位置，不移动积分边界或制造未积分的缺口。
+    float sampleT=(float(i)+fract(jitter+float(i)*.61803398875))*ds;
+    vec3 q=pw+uSunDir*sampleT;
+    od+=eveDensity(q,(eveHeight(q)-uLayer.x)/(uLayer.y-uLayer.x),max(.018,fp*.25)).x*ds;
   }
-  vec3 uv=eveVolumeUV(pw+uSunDir*(t+1.2/float(uLightSteps)),uCloudLightOrigin,uCloudLightCenter);
-  if(length(uv.xy-.5)<.5)od+=100.0*eveVolumeCubic(uv).x;
+  vec3 end=pw+uSunDir*distanceToExit;
+  // 外球出口之后没有剩余云层；不能把高度夹回顶层缓存重复遮蔽。
+  if(shellExit<=1.2 && dot(vec3(end.x-uCamPos.x,end.y+R_EARTH,end.z-uCamPos.z),uSunDir)>=0.0)return od;
+  vec3 uv=eveVolumeUV(end,uCloudLightOrigin,uCloudLightCenter);
+  od+=eveVolumeReady(uv,0)?100.0*eveVolumeCubic(uv).x:eveOpticalDepth(end,uSunDir,12,1e6);
   return od;
 }
 void eveRaymarch(vec3 ro,vec3 rd,float t0,float t1,float jit){
@@ -383,7 +408,8 @@ void eveRaymarch(vec3 ro,vec3 rd,float t0,float t1,float jit){
     if(den.x>0.0){
       float od=eveLight(pr,pw,fp,T,t,fract(jit+float(i)*.61803398875));
       float powder=smoothstep(0.0,1.0,den.y+den.w)*.95+.05;
-      float ms=1.0/(1.0+.35*od+.065*od*od);
+      // 参考 Frostbite 多阶指数透射：保留浅层响应，避免有理式在厚云中留下过亮长尾。
+      float ms=.5*exp(-.25*od)+.5*exp(-.45*od);
       // 源积分×5、云色120/255；源白光1映射到宿主SUN_I=20，预曝光已包含于uCloudSource。
       float sun=((120.0/255.0)*5.0/20.0)*(directPhase*exp(-od)+multiplePhase*ms*powder*den.z);
       float Ts=exp(-den.x*dt), weight=T*(1.0-Ts);
@@ -398,9 +424,8 @@ void eveRaymarch(vec3 ro,vec3 rd,float t0,float t1,float jit){
   if(T>=1.0){oColor=vec4(0,0,0,1);oDepth=vec4(t1,0,0,1);return;}
   float depth=ws>1e-5?ds/ws:t0+min(seg,6.0)*.5;
   vec3 representative=ro+rd*depth,pw=vec3(representative.x+uCamPos.x,representative.y,representative.z+uCamPos.z);
-  vec3 uv=eveVolumeUV(pw,uCloudLightOrigin,uCloudLightCenter);float A=0.0;
-  float radius=length(uv.xy-.5);
-  if(radius<.5)A=eveVolumeCubic(uv).y*100.0*(clamp((.5-radius)/.2,0.0,1.0));
+  vec3 uv=eveVolumeUV(pw,uCloudLightOrigin,uCloudLightCenter);
+  float A=eveVolumeReady(uv,1)?eveVolumeCubic(uv).y*100.0:eveAmbientFallback(pw);
   float ambientVisibility=.3+.7/(1.0+.035*A+.00065*A*A);
   vec3 skyIrr=textureLod(uCloudSkyIrr,eveAtmosphereUV(representative,uSunDir),0.0).rgb*uCloudSource;
   skyIrr*=((120.0/255.0)*200.0*.2/20.0);

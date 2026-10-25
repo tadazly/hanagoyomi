@@ -5,6 +5,7 @@ import { createGalaxyTexture } from './galaxy-texture.js';
 import { cloudStyle } from './cloud-style.js';
 import { realisticCoverage, REALISTIC_CLOUD_LAYER, REALISTIC_CLOUD_QUALITY, cloudCurveTexture, loadCloudNoise, cloudPhases, cloudLightProjection } from './realistic-clouds.js';
 import { CLOUD_TRANSMITTANCE_FS, CLOUD_IRRADIANCE_FS, CLOUD_LIGHT_VOLUME_FS, CLOUD_LIGHT_REPROJECT_FS } from './shaders.js';
+import { cloudLightBlend, cloudLightTemporalChange } from './cloud-lighting-history.js';
 import { cloudWindPhase } from './cloud-coordinates.js';
 import { cloudRayLimit } from './cloud-range.js';
 import { moonlessAstronomy, observationLighting, observationSunAltitude } from './observation-lighting.js';
@@ -244,7 +245,8 @@ let eveCurvesTex;
 let cloudTransTex, cloudTransFBO, cloudIrrTex, cloudIrrFBO;
 
 let cloudLightTextures=[],cloudLightTemp=null,cloudLightTempFBO=null,cloudLightConfig=null,cloudLightState=null,cloudLightCurrent=0;
-let cloudDirectSlice=0,cloudAmbientSlice=0,cloudAmbientUpdates=0;
+let cloudDirectSlice=0,cloudAmbientSlice=0;
+let cloudLightClock=0,cloudLightTimes=[],cloudLightValid=[0,0];
 // 相机/TAA重置不改变密度场，不应触发昂贵的整卷光照预填。
 let cloudLightInvalidated=true;
 const cloudLightFBO=gl.createFramebuffer();
@@ -263,7 +265,8 @@ function ensureCloudLightVolume(config){
   });
   cloudLightTemp=makeTex2D(config.grid,config.grid,gl.RG16F,gl.RG,gl.HALF_FLOAT,gl.NEAREST,gl.CLAMP_TO_EDGE);
   cloudLightTempFBO=makeFBO([cloudLightTemp]);
-  cloudLightConfig=config;cloudLightState=null;cloudLightCurrent=0;cloudDirectSlice=cloudAmbientSlice=cloudAmbientUpdates=0;
+  cloudLightConfig=config;cloudLightState=null;cloudLightCurrent=0;cloudDirectSlice=cloudAmbientSlice=0;
+  cloudLightTimes=[new Float64Array(config.slices).fill(-1),new Float64Array(config.slices).fill(-1)];cloudLightValid=[0,0];
 }
 let activeCloudStyle = 'default';
 // 只保留当前画质的一张天气纹理；异步切档晚到不能覆盖新档。
@@ -1963,6 +1966,7 @@ function frame(now){
     set(Pp, 'uWindDetail', cloudWindPhase(camK,windOff,true,simTime));
     set(Pp, 'uWindDir', Math.cos(cloudAngle), Math.sin(cloudAngle));
     set(Pp,'uEveNoiseLod',-1);
+    set(Pp,'uCloudLightValid',cloudLightValid);
     set(Pp,'uEveWind',0,wrap(-windOff[1],2.3),0);
     set(Pp,'uEveMapPhase',cloudPhases(camK,windOff).map);
     if(cloudLightState){
@@ -1984,12 +1988,15 @@ function frame(now){
 
   const cloudQuality = S.cloudStyle === 'realistic' ? REALISTIC_CLOUD_QUALITY[S.quality] : q;
   if(S.cloudStyle==='realistic'){
+    cloudLightClock+=dt;
     ensureCloudLightVolume(cloudQuality);
+    const cloudWeatherChanging=!sceneFreeze.weather&&WXS.prog<1;
     const projection=cloudLightProjection(camK),initial=!cloudLightState,bootstrap=initial||cloudLightInvalidated;
     const move=!initial&&(Math.hypot(...projection.origin.map((v,i)=>v-cloudLightState.origin[i]))>.03*Math.min(projection.radius,cloudLightState.radius)
       ||Math.max(projection.radius,cloudLightState.radius)>1.03*Math.min(projection.radius,cloudLightState.radius));
     if(bootstrap){
-      cloudLightState={...projection,center:[camK[0],camK[2]]};cloudDirectSlice=cloudAmbientSlice=cloudAmbientUpdates=0;
+      cloudLightState={...projection,center:[camK[0],camK[2]]};cloudDirectSlice=cloudAmbientSlice=0;
+      cloudLightTimes.forEach(times=>times.fill(-1));cloudLightValid=[0,0];
       gl.bindFramebuffer(gl.FRAMEBUFFER,cloudLightFBO);gl.viewport(0,0,cloudQuality.grid,cloudQuality.grid);gl.clearColor(0,0,0,0);
       for(const texture of cloudLightTextures)for(let z=0;z<cloudQuality.slices;z++){
         gl.framebufferTextureLayer(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,texture,0,z);gl.clear(gl.COLOR_BUFFER_BIT);
@@ -2003,24 +2010,25 @@ function frame(now){
         gl.framebufferTextureLayer(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,cloudLightTextures[next],0,z);gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
         set(Rp,'uVolumeSlice',(z+.5)/cloudQuality.slices);draw();
       }
-      cloudLightCurrent=next;cloudLightState={...projection,center:[camK[0],camK[2]]};cloudAmbientUpdates=0;
+      cloudLightCurrent=next;cloudLightState={...projection,center:[camK[0],camK[2]]};
     }
     const V=P.cloudVolume;use(V);setCloudCommon(V);bindCloudTex(V);set(V,'uEveNoiseLod',3);seti(V,'uVolumeSteps',cloudQuality.volumeSteps);
     gl.bindFramebuffer(gl.FRAMEBUFFER,cloudLightTempFBO);gl.viewport(0,0,cloudQuality.grid,cloudQuality.grid);gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
     for(const ambient of [false,true]){
       seti(V,'uVolumeAmbient',ambient?1:0);
-      const updates=ambient?1:Math.max(1,Math.floor(cloudQuality.slices/12));
+      const updates=(ambient?1:Math.max(1,Math.floor(cloudQuality.slices/12)))*(cloudWeatherChanging?2:1);
       for(let i=0;i<updates;i++){
         const z=ambient?cloudAmbientSlice:cloudDirectSlice;
         if(ambient)cloudAmbientSlice=(z+1)%cloudQuality.slices;else cloudDirectSlice=(z+1)%cloudQuality.slices;
-        const cycle=Math.floor(cloudAmbientUpdates/cloudQuality.slices);
-        set(V,'uVolumeCycle',cycle);set(V,'uVolumeSlice',(z+.5)/cloudQuality.slices);
-        // 首轮每层直接写入，后续才渐进平均；重置帧不做整卷积分。
-        set(V,'uVolumeBlend',cycle===0?1:clamp(1/Math.max(1,cycle),.01,.07));
+        const channel=ambient?1:0,last=cloudLightTimes[channel][z];
+        set(V,'uVolumeSlice',(z+.5)/cloudQuality.slices);
+        // 按视觉时钟的切片年龄限制历史；天气渐变不再混入几十秒前的遮蔽。
+        set(V,'uVolumeBlend',last<0?1:cloudLightBlend(cloudLightClock-last,cloudWeatherChanging));
         draw();
         gl.bindTexture(gl.TEXTURE_3D,cloudLightTextures[cloudLightCurrent]);
         gl.copyTexSubImage3D(gl.TEXTURE_3D,0,0,0,z,0,0,cloudQuality.grid,cloudQuality.grid);
-        if(ambient)cloudAmbientUpdates++;
+        if(last<0)cloudLightValid[channel]++;
+        cloudLightTimes[channel][z]=cloudLightClock;
       }
     }
     cloudLightInvalidated=false;
@@ -2081,13 +2089,15 @@ function frame(now){
     set(T, 'uPRight', pv.B.r); set(T, 'uPUp', pv.B.u); set(T, 'uPFwd', pv.B.f); set(T, 'uPTan', pv.tanX, pv.tanY);
     set(T, 'uCamDelta', camK[0] - pv.cam[0], camK[1] - pv.cam[1], camK[2] - pv.cam[2]);
     const turn = Math.acos(Math.min(1, B.f[0] * pv.B.f[0] + B.f[1] * pv.B.f[1] + B.f[2] * pv.B.f[2]));
-    set(T, 'uBlend', Math.min(0.7, 0.1 + turn * 6 + (SPEEDS[S.speed | 0] >= 10 ? 0.3 : (lightChanged ? 0.25 : 0)) + (flash > 0.03 ? 0.5 : 0)));
+    const cloudLight=[...sun,...L.sourceCloud,...L.ambTop,...L.ambBottom];
+    const lightBlend=S.cloudStyle==='realistic'?cloudLightTemporalChange(prev?.cloudLight,cloudLight):(lightChanged?.25:0);
+    set(T, 'uBlend', Math.min(0.7, 0.1 + turn * 6 + (SPEEDS[S.speed | 0] >= 10 ? 0.3 : lightBlend) + (flash > 0.03 ? 0.5 : 0)));
     set(T,'uRayJitter',cloudJitter);
     set(T, 'uTexel', 1 / CW, 1 / CH);
     seti(T, 'uReset', needReset ? 1 : 0);
     draw();
     needReset = false;
-    prev = {B, tanX, tanY, cam: camK.slice()};
+    prev = {B, tanX, tanY, cam: camK.slice(), cloudLight};
   }
 
   /* touch map: where the petal stream passes low, flowers wake and glow (as in Flower), fading over a few minutes */
