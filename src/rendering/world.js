@@ -41,7 +41,7 @@ import { RENDER_DEFAULTS, renderPreferences, effectiveFrameLimit, qualityFrameBu
 import { bindRenderSettings } from '../ui/render-settings.js';
 import { readWeatherCache, saveWeatherCache } from '../world/weather-cache.js';
 import { gradeAt } from './landscape-look.js';
-import { weatherFogDensity, groundStormFogBlend } from './weather-fog.js';
+import { weatherFogDensity, groundFogHorizonBlend } from './weather-fog.js';
 import { CLOUD_LAYER_METRES, localWeatherAtHeight } from './weather-altitude.js';
 import { petalStreamOpacity } from './petal-stream.js';
 import { flowerMesh, FLOWER_CURVE_RADIUS, FLOWER_CURVE_GRID } from './flower-mesh.js';
@@ -1937,7 +1937,7 @@ function frame(now){
   const fogW = [fogDens, WXS.fogH, fogAlt, Math.exp(-fogAlt / WXS.fogH)];
   const fogScale = Math.sqrt(6371000 / (2 * WXS.fogH));
   const fogSky = [fogScale, WXS.fogH * fogScale * Math.sqrt(Math.PI), smooth(2, 10, fogAlt / WXS.fogH), Math.sqrt(2 * fogAlt / 6371000)];
-  const lowStormHorizon = groundStormFogBlend(WXS.type, aglReal);
+  const groundFogHorizon = groundFogHorizonBlend(aglReal);
   const flashTop = [bolt.x - camM[0], LAYER[0] * 1000 + 300 - camM[1], bolt.z - camM[2]], ftl = Math.hypot(...flashTop) || 1;
   const tanY = Math.tan(view.fov * Math.PI / 360), tanX = tanY * aspect;
   /* focus pulls to the petal stream: it is what the shot is about */
@@ -2175,7 +2175,7 @@ function frame(now){
   gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS); gl.depthMask(true);
 
   const setScene = (Pp) => {
-    set(Pp, 'uLowStormHorizon', lowStormHorizon);
+    set(Pp, 'uGroundFogHorizon', groundFogHorizon);
     set(Pp, 'uOpacity', 1);
     set(Pp, 'uLowSaturation', S.lowSaturation ? 1 : 0);
     tex(Pp, 'uTerr', gl.TEXTURE_2D, terrTex); tex(Pp, 'uSkyLut', gl.TEXTURE_2D, skyTex); tex(Pp, 'uCShadow', gl.TEXTURE_2D, cshTex);
@@ -2300,7 +2300,7 @@ function frame(now){
   /* sky + clouds where nothing was drawn */
   {
     const Sk = P.sky; use(Sk);
-    set(Sk, 'uLowStormHorizon', lowStormHorizon); set(Sk, 'uAtmosphere', atmosphere);
+    set(Sk, 'uGroundFogHorizon', groundFogHorizon); set(Sk, 'uAtmosphere', atmosphere);
     gl.depthFunc(gl.LEQUAL); gl.depthMask(false);
     setCloudCommon(Sk); tex(Sk, 'uSkyLut', gl.TEXTURE_2D, skyTex); tex(Sk, 'uCloud', gl.TEXTURE_2D, hist[cur]); tex(Sk, 'uCloudDepth', gl.TEXTURE_2D, cloudDepth);
     set(Sk, 'uCloudSize', CW, CH); set(Sk, 'uSunDisk', L.sunDisk); set(Sk, 'uSunHandoff', sunHandoff); set(Sk, 'uExposure', expoS); set(Sk, 'uRes', W, H);
