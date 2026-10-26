@@ -227,14 +227,21 @@ void main(){
     if(hc<uLayer.x)t0=max(t0,iB.y);
     if(iG.x>0.0)t1=min(t1,iG.x);
   }
-  // 无天空散射时，95 km 的云硬裁剪会露出地平线缺口。
-  // 只在该视图按相机高度延长到球面可见地平线之外，保持原有步数和云段预算。
+  // 写实云和无天空散射视图按球面可见范围延长，避免95 km硬切露出平直云底。
+  // 每条射线仍只积分60 km云段，保留既有步数上限。
   float FAR = uRayLimit;
   if (t0 < 0.0 || t0 > FAR){ oColor = vec4(0.0, 0.0, 0.0, 1.0); oDepth = vec4(FAR); return; }
   t1 = min(t1, t0 + 60.0); float seg = t1 - t0;
   if (seg <= 0.0){ oColor = vec4(0.0, 0.0, 0.0, 1.0); oDepth = vec4(FAR); return; }
   float jit = fract(ign(gl_FragCoord.xy) + uFrame * 0.61803398875);
-  if(uCloudStyle==1){eveRaymarch(ro,rd,t0,t1,jit);return;}
+  if(uCloudStyle==1){
+    eveRaymarch(ro,rd,t0,t1,jit);
+    // 按实际云深度消隐，而非整条射线共享的入层距离，避免地平线形成齐平薄条。
+    // 在球面遮地前收敛到空气背景；95 km内不改近云和云海主体。
+    float fade = smoothstep(95.0, FAR * (.85 / 1.02), oDepth.r);
+    oColor.rgb *= 1.0 - fade; oColor.a = mix(oColor.a, 1.0, fade);
+    return;
+  }
   float cosT = dot(rd, uSunDir);
   float ph0 = mix(hg(0.80 * uFwdScat, cosT), hg(-0.25, cosT), 0.30), ph1 = mix(hg(0.40 * uFwdScat, cosT), hg(-0.125, cosT), 0.30);
   float ph2 = mix(hg(0.20, cosT), hg(-0.06, cosT), 0.30), ph3 = 1.0 / (4.0 * PI);

@@ -327,6 +327,8 @@ void main(){
 export const REALISTIC_RAYMARCH_GLSL = `
 uniform vec2 uViewStep;
 uniform vec3 uCloudSource;
+uniform vec3 uAirSunDir,uAirMoonDir,uAirGlow,uAirMS;
+uniform vec2 uAirSources;
 uniform int uAirSteps;
 // 原HG使用π/4；宿主预曝光尺度独立于相函数定义。
 float eveHG(float g,float mu){return PI*PI*hg(g,mu);}
@@ -336,8 +338,9 @@ vec3 eveAerial(vec3 cloud,float T,vec3 ro,vec3 rd,float depth){
   vec2 hit=raySphere(ro,rd,R_EARTH+atmo_top());
   float start=max(0.0,hit.x),end=min(depth,hit.y);
   if(end<=start || T>=1.0)return cloud;
-  float mu=dot(rd,uSunDir);
+  float mu=dot(rd,uAirSunDir),moonMu=dot(rd,uAirMoonDir);
   float phaseR=3.0/(16.0*PI)*(1.0+mu*mu),phaseM=atmoMiePhase(mu);
+  float moonPhaseR=3.0/(16.0*PI)*(1.0+moonMu*moonMu),moonPhaseM=atmoMiePhase(moonMu);
   vec3 od=vec3(0),air=vec3(0);
   for(int i=0;i<24;i++){
     if(i>=uAirSteps)break;
@@ -347,12 +350,18 @@ vec3 eveAerial(vec3 cloud,float T,vec3 ro,vec3 rd,float depth){
     vec3 d=atmoDensity(h)*(b.y-b.x);
     vec3 middle=od+d*.5;od+=d;
     vec3 att=exp(-atmoExtinction(middle));
-    vec3 radiance=(atmo_rayleigh()*d.x*phaseR+atmo_mie()*d.y*phaseM)*eveAtmosphere(p,uSunDir)*uCloudSource;
+    vec3 radiance=(atmo_rayleigh()*d.x*phaseR+atmo_mie()*d.y*phaseM)*eveAtmosphere(p,uAirSunDir)*uAirSources.x;
+    if(uAirSources.y>0.0)radiance+=(atmo_rayleigh()*d.x*moonPhaseR+atmo_mie()*d.y*moonPhaseM)*eveAtmosphere(p,uAirMoonDir)*uAirSources.y;
 
     air+=att*radiance;
   }
   vec3 viewT=exp(-atmoExtinction(od));
-  return cloud*viewT+air*(1.0-T);
+  // 与宿主天空相同的近地颜色校准；暮光多重散射及空气辉光按已走过的光学路程加入。
+  float hw=pow(1.0-abs(rd.y),5.0)*mix(.15,.75,smoothstep(.03,.35,uAirSunDir.y));
+  air=mix(air,dot(air,vec3(.2126,.7152,.0722))*vec3(.90,.99,1.13),hw);
+  vec3 diffuse=uAirMS*(.6+.4*(1.0-abs(rd.y)))+uAirGlow*(1.0+.6*pow(1.0-abs(rd.y),4.0));
+  air+=diffuse*(1.0-viewT);
+  return cloud*viewT+air*(1.0-T)*uAtmosphere;
 }
 float eveLight(vec3 pr,vec3 pw,float fp,float viewT,float distance,float jitter){
   // EVE：近于2 km且视线仍透明时加倍；保持源1200 m最大太阳光程。

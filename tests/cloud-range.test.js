@@ -29,3 +29,16 @@ test('原有大气视图精确保留95公里，切换时范围连续，高机位
     }
   }
 });
+
+test('写实云在自然天空也覆盖球面云底，不随夜空样式改变远云边界', () => {
+  const radius = 6371, base = 1.75;
+  for (const height of [.0012, .065, .8, 1.749]) {
+    const origin = radius + height;
+    const dip = -Math.acos(radius / origin);
+    const tangentStart = -origin * Math.sin(dip) + Math.sqrt((origin * Math.sin(dip)) ** 2 + (radius + base) ** 2 - origin ** 2);
+    const limit = cloudRayLimit(height, base, 1, true);
+    assert.ok(limit > tangentStart);
+    assert.equal(limit, cloudRayLimit(height, base, 0, true));
+    assert.equal(limit, cloudRayLimit(height, base, .5, true));
+  }
+});

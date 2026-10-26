@@ -8,6 +8,7 @@ import { CLOUD_TRANSMITTANCE_FS, CLOUD_IRRADIANCE_FS, CLOUD_LIGHT_VOLUME_FS, CLO
 import { cloudLightBlend, cloudLightTemporalChange } from './cloud-lighting-history.js';
 import { cloudWindPhase } from './cloud-coordinates.js';
 import { cloudRayLimit } from './cloud-range.js';
+import { cloudAirLight } from './cloud-air-light.js';
 import { moonlessAstronomy, observationLighting, observationSunAltitude } from './observation-lighting.js';
 import { exposureKey } from './exposure.js';
 import { splitAnimationTime, animationPhase, advanceFireflyOffset, advanceWindOffset, ANIMATION_TIME_PERIOD, wrap } from './animation-time.js';
@@ -2070,10 +2071,15 @@ function frame(now){
   setCloudCommon(P.cloud); bindCloudTex(P.cloud);
   set(P.cloud,'uRayJitter',cloudJitter);set(P.cloud,'uEveLodScale',.25*CW/W,.25*CH/H);
   set(P.cloud,'uCloudSource',L.sourceCloud);
+  if (S.cloudStyle === 'realistic') {
+    const air = cloudAirLight(frameSkyLight, frameSkySamples, SUN_I, GLOW);
+    set(P.cloud, 'uAirSunDir', AST.sun); set(P.cloud, 'uAirMoonDir', AST.moon);
+    set(P.cloud, 'uAirSources', air.sources); set(P.cloud, 'uAirGlow', air.glow); set(P.cloud, 'uAirMS', air.ms);
+  }
   if(cloudQuality.step)set(P.cloud,'uViewStep',cloudQuality.step);
   seti(P.cloud,'uAirSteps',cloudQuality.airSteps??16);
   set(P.cloud, 'uAtmosphere', atmosphere);
-  set(P.cloud, 'uRayLimit', cloudRayLimit(camK[1], LAYER[0], atmosphere));
+  set(P.cloud, 'uRayLimit', cloudRayLimit(camK[1], LAYER[0], atmosphere, S.cloudStyle === 'realistic'));
   set(P.cloud, 'uSunColor', L.lightCloud);
   set(P.cloud, 'uFlashP', bolt.x / 1000-camK[0], (LAYER[0] + LAYER[1]) * 0.45, bolt.z / 1000-camK[2], 2.5); set(P.cloud, 'uFlashC', [0.9, 0.92, 1.0].map(v => v * flash * 22)); set(P.cloud, 'uFwdScat', L.fwd); set(P.cloud, 'uAmbOcc', L.ambOcc); set(P.cloud, 'uAmbTop', L.ambTop); set(P.cloud, 'uAmbBottom', L.ambBottom);
   seti(P.cloud, 'uSteps', q.steps); seti(P.cloud, 'uLightSteps', cloudQuality.light);
