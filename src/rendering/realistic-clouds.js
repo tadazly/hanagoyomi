@@ -180,15 +180,18 @@ vec4 eveDensity(vec3 pw, float h01, float fp){
   if(uCoverageSource.x < 1.0){
     // 固定世界统计只校准低云量；不按镜头重算，不替换源天气图。
     vec2 stats = textureLod(uEveWeatherStats,uv,0.0).rg;
-    float score = saturate(.5 + .125 * (wt.r-stats.r) / (.06+.44*stats.g));
-    float delta = score - uCoverage + uCoverageShape.y * smoothstep(.1,.2,wt.g);
-    float calibrated = uCoverageShape.x * (.5 + .5 * delta * inversesqrt(delta*delta + ${CLOUD_COVERAGE_WIDTH ** 2})) * uCoverageShape.z;
-    // min 后的校准值不超过 potential，回归源场时不会局部减云。
-    coverage = mix(min(calibrated,potential),potential,uCoverageSource.x);
     // 低均值源场限制校准力度，避免原本接近的晴朗/少云场景反而偏离。
     // 权重只依固定世界统计，不随云量、机位或时间变化；凸混合仍保持单调。
     float reference = saturate(wt.r + uCoverageSource.z) * uCoverageShape.z;
-    coverage = mix(reference,coverage,smoothstep(.15,.30,stats.r));
+    float trust = smoothstep(.15,.30,stats.r);
+    coverage = reference;
+    if(trust > 0.0){
+      float score = saturate(.5 + .125 * (wt.r-stats.r) / (.06+.44*stats.g));
+      float delta = score - uCoverage + uCoverageShape.y * smoothstep(.1,.2,wt.g);
+      float calibrated = uCoverageShape.x * (.5 + .5 * delta * inversesqrt(delta*delta + ${CLOUD_COVERAGE_WIDTH ** 2})) * uCoverageShape.z;
+      // min 后的校准值不超过 potential，回归源场时不会局部减云。
+      coverage = mix(reference,mix(min(calibrated,potential),potential,uCoverageSource.x),trust);
+    }
   }
   coverage = mix(coverage,1.0,uCoverageShape.w);
   if(coverage<.01)return vec4(0);
