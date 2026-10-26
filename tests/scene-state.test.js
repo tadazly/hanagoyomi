@@ -103,7 +103,9 @@ test('精选风景都是可导入的实际世界参数，三语目录完整', ()
     const metadata = describeScene(item.scene);
     assert.equal(metadata.weatherKey, item.scene.environment.weather.type);
     assert.match(metadata.timeText, /^\d{2}:\d{2}$/);
-    assert.equal(item.thumbnail, `gallery/${item.id}.jpg`);
+    const cloudSea = item.id === 'recommended-cloud-sea-dawn';
+    assert.equal(item.scene.settings.cloudStyle ?? 'default', cloudSea ? 'realistic' : 'default');
+    assert.equal(item.thumbnail, `gallery/${item.id}${cloudSea ? '-realistic' : ''}.jpg`);
     assert.equal(item.nightSkyStyle, ['recommended-milky-way-fireflies', 'recommended-southern-clouds', 'recommended-constellation-summer-triangle', 'recommended-constellation-southern-cross', 'recommended-stargazing-honolulu-scorpius'].includes(item.id) ? 'realistic' : 'default');
   }
 });

@@ -9,7 +9,7 @@ export const REALISTIC_CLOUD_LAYER = Object.freeze([1750, 7450]);
 export const REALISTIC_CLOUD_QUALITY = Object.freeze({
   low: { cloud: .35, step:[.225,.018], light: 2, grid:48, slices:16, volumeSteps:24, airSteps:8 },
   med: { cloud: .6, step:[.16875,.0135], light: 4, grid:64, slices:24, volumeSteps:32, airSteps:12 },
-  high: { cloud: .75, step:[.1125,.009], light: 4, grid:96, slices:32, volumeSteps:50, airSteps:16 },
+  high: { cloud: .65, step:[.1125,.009], light: 4, grid:96, slices:32, volumeSteps:50, airSteps:16 },
   ultra: { cloud: 1.25, step:[.075,.006], light: 4, grid:128, slices:32, volumeSteps:50, airSteps:24 },
 });
 

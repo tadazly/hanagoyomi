@@ -3,10 +3,10 @@ export const RECOMMENDED_SCENES = Object.freeze([
   {
     id: "recommended-cloud-sea-dawn",
     title: {"zh":"云海初阳","en":"Dawn above the Clouds","ja":"雲海の朝日"},
-    thumbnail: "gallery/recommended-cloud-sea-dawn.jpg",
+    thumbnail: "gallery/recommended-cloud-sea-dawn-realistic.jpg",
     scene: {
       version: 1,
-      settings: {"auto":false,"god":true,"petals":false,"sway":false,"constel":false,"flies":false,"flowerGlow":false,"bloom":true,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":false,"streamDist":"near","bloomR":4,"sunAz":22.663466914213075,"dof":0,"wxMode":"manual","wxType":"cloudy","coverage":0.88,"density":1.35,"wind":40,"breeze":0.55,"fogVisS":1000,"rainAmt":0,"snowAmt":0,"boltFreq":0,"puddle":0,"snowMax":0},
+      settings: {"auto":false,"god":true,"petals":false,"sway":false,"constel":false,"flies":false,"flowerGlow":false,"bloom":true,"streamScale":false,"infMem":false,"lensDrops":true,"lowSaturation":false,"cloudStyle":"realistic","streamDist":"near","bloomR":4,"sunAz":22.663466914213075,"dof":0,"wxMode":"manual","wxType":"cloudy","coverage":0.88,"density":1.35,"wind":40,"breeze":0.55,"fogVisS":1000,"rainAmt":0,"snowAmt":0,"boltFreq":0,"puddle":0,"snowMax":0},
       camera: {"x":8000,"z":-750,"agl":4300,"yaw":1.1780972450961724,"pitch":-0.12,"roll":0,"fov":65,"y":4377.16747813907,"focus":120},
       environment: {"time":{"ms":1781496416329.869,"followNow":false,"speedIndex":0},"weather":{"type":"cloudy","current":{"cov":0.88,"dens":1.35,"wind":40,"breeze":0.55,"vis":30000,"rain":0,"snow":0,"bolt":0,"wet":0,"snowCov":0},"wet":0,"snowCover":0},"skyLocation":{"lat":2.9296875,"lon":31.25,"tz":"UTC"},"motion":{"time":8,"windAngle":0.6,"windOffset":[0,0]}},
       freeze: {"time":true,"weather":true,"clouds":false},
