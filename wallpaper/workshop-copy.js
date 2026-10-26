@@ -20,7 +20,7 @@ Visual assets are stored locally, so the scenery works offline. Live weather upd
 [url=https://www.youtube.com/watch?v=oxYg9Qka6ak]Demonstration video[/url]
 [url=https://github.com/tadazly/hanagoyomi]Source code[/url]
 
-Weather: Open-Meteo (CC BY 4.0). Air quality: Open-Meteo / CAMS. Star data: d3-celestial (BSD). Code: MIT. Full notices are bundled with the wallpaper.`,
+Licenses and third-party notices are included in LICENSE and THIRD_PARTY_NOTICES.md.`,
   },
   schinese: {
     title: '花暦 Hanagoyomi｜实时天气与昼夜花海 · Flower Meadow',
@@ -43,7 +43,7 @@ Weather: Open-Meteo (CC BY 4.0). Air quality: Open-Meteo / CAMS. Star data: d3-c
 [url=https://www.youtube.com/watch?v=oxYg9Qka6ak]YouTube 演示视频[/url]
 [url=https://github.com/tadazly/hanagoyomi]源代码[/url]
 
-天气：Open-Meteo（CC BY 4.0）；空气质量：Open-Meteo / CAMS；星表：d3-celestial（BSD）；代码：MIT。完整署名与许可随壁纸提供。`,
+许可与第三方声明随壁纸提供，见 LICENSE 和 THIRD_PARTY_NOTICES.md。`,
   },
   japanese: {
     title: '花暦 Hanagoyomi｜天気と時間で表情を変える花の草原 · Flower Meadow',
@@ -65,6 +65,6 @@ Weather: Open-Meteo (CC BY 4.0). Air quality: Open-Meteo / CAMS. Star data: d3-c
 [url=https://www.youtube.com/watch?v=oxYg9Qka6ak]紹介動画[/url]
 [url=https://github.com/tadazly/hanagoyomi]ソースコード[/url]
 
-天気：Open-Meteo（CC BY 4.0）。大気質：Open-Meteo / CAMS。星データ：d3-celestial（BSD）。コード：MIT。詳細なクレジットとライセンスは壁紙に同梱されています。`,
+ライセンスと第三者の権利表示は LICENSE と THIRD_PARTY_NOTICES.md に同梱されています。`,
   },
 };

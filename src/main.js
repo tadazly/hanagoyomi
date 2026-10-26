@@ -1,4 +1,6 @@
 import './styles/app.css';
+import projectLicense from '../LICENSE?raw';
+import thirdPartyNotices from '../THIRD_PARTY_NOTICES.md?raw';
 import { initShell, updateObservation } from './ui/shell.js';
 import { startWorld } from './rendering/world.js';
 import { initI18n, setMessage } from './i18n/index.js';
@@ -24,7 +26,7 @@ export let world;
 
 if (WALLPAPER_MODE) document.body.dataset.wallpaper = 'true';
 initI18n();
-const shell = initShell();
+const shell = initShell({ licenseText: `${projectLicense}\n\n${thirdPartyNotices}` });
 try {
   world = startWorld(updateObservation, { moonSurfaceUrl, cloudNoiseLoader: loadCloudNoiseData,
     cloudMapUrls: { low: cloudMapLowUrl, high: cloudMapHighUrl, ultra: cloudMapUltraUrl }, cloudStatisticsUrl, starCatalogUrl: import.meta.env.MODE === 'wallpaper' ? starCatalogInline : starCatalogUrl,

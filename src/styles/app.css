@@ -172,6 +172,9 @@ kbd { display: inline-block; min-width: 16px; font: 10px system-ui, sans-serif; 
 .help-dialog::backdrop { background: rgba(20, 35, 27, .35); backdrop-filter: blur(5px); }
 .help-dialog .panel-heading { padding: 25px 0 15px; flex-shrink: 0; }
 .help-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(84, 97, 73, .35) transparent; }
+.license-notices { margin: 15px 0; color: var(--ink-soft); font-size: 11px; }
+.license-notices summary { cursor: pointer; }
+.license-notices pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.7 ui-monospace, monospace; }
 .help-footer { flex-shrink: 0; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--track); }
 .help-dialog p { font-size: 14px; line-height: 1.8; }
 .help-controls { display: grid; grid-template-columns: 1.1fr 1fr; font-size: 13px; line-height: 2.2; }

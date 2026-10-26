@@ -2,7 +2,7 @@ import { unzlibSync } from 'fflate';
 import { EVE_CLOUD_TYPES } from '../data/eve-cloud-types.js';
 import { CLOUD_COVERAGE_WIDTH } from './cloud-coverage.js';
 const CLOUD_PLANET_RADIUS_KM = 6371;
-// 天气图和侵蚀场保持原作600 km尺度；宿主球面相交仍使用地球半径。
+// 天气图和侵蚀场使用 600 km 尺度，宿主球面相交使用地球半径。
 const EVE_WEATHER_RADIUS_KM = 600;
 
 export const REALISTIC_CLOUD_LAYER = Object.freeze([1750, 7450]);
@@ -13,7 +13,7 @@ export const REALISTIC_CLOUD_QUALITY = Object.freeze({
   ultra: { cloud: 1.25, step:[.075,.006], light: 4, grid:128, slices:32, volumeSteps:50, airSteps:24 },
 });
 
-// 原天气图按600 km绘制；CPU double先约简位置/风相位。
+// 天气图半径为 600 km；位置和风相位在 CPU double 中约简。
 export function cloudPhases(cameraKm, windKm) {
   const wrap=(v,p)=>((v%p)+p)%p, radius=EVE_WEATHER_RADIUS_KM;
   const x=cameraKm[0]-windKm[0],z=cameraKm[2]-windKm[2];
@@ -22,7 +22,7 @@ export function cloudPhases(cameraKm, windKm) {
   };
 }
 
-// 原LightVolume.MoveLightVolumeIfNeeded的地下投影点；单位km，镜头当地径向为Y。
+// 光照体积的地下投影点；单位为 km，镜头当地径向为 Y。
 export function cloudLightProjection(cameraKm,layer=REALISTIC_CLOUD_LAYER){
   const radius=CLOUD_PLANET_RADIUS_KM,r=Math.max(radius+cameraKm[1],radius+2.5),inner=radius+layer[0]/1000,outer=radius+layer[1]/1000;
   const R=Math.min(radius,inner),near=Math.sqrt(r*r-R*R),d=near+Math.sqrt(Math.max(0,outer*outer-R*R)),k=near/r;
@@ -31,7 +31,7 @@ export function cloudLightProjection(cameraKm,layer=REALISTIC_CLOUD_LAYER){
 
 export function evePhase(g,mu){return Math.PI*.25*(1-g*g)/Math.pow(1+g*g-2*g*mu,1.5);}
 
-// Unity FloatCurve 的入/出切线按 Hermite 插值，不能用线性插值替代云底和云顶。
+// 高度曲线的入、出切线使用 Hermite 插值。
 export function sampleCloudCurve(keys, value) {
   if (value <= keys[0][0]) return keys[0][1];
   for (let i = 1; i < keys.length; i++) {
@@ -126,7 +126,7 @@ vec3 eveAtAltitude(vec2 xz,float h){
   return vec3(xz.x,sqrt(max(0.0,pow(R_EARTH+h,2.0)-dot(q,q)))-R_EARTH,xz.y);
 }
 
-// 源cloudRotation后的Y为纬度轴，q与去平铺法线必须使用同一球面坐标。
+// Y 为纬度轴，q 与去平铺法线使用同一球面坐标。
 vec3 eveCloudPosition(vec3 p){
   // 把当地水平距离映射到独立天气球面，避免随宿主半径放大团块10.6倍。
   // 指数映射在光照缓存远端仍连续，无sqrt半球域外塌到赤道的问题。
@@ -142,7 +142,7 @@ vec3 eveCloudPosition(vec3 p){
   return q;
 }
 
-// EVE V5 的三角网格去平铺，3 个整数哈希偏移及削去 0.15 的重心权重。
+// 三角网格去平铺使用三个整数哈希偏移及截去 0.15 的重心权重。
 vec3 eveHash(uvec2 p){
   uvec3 q = (p.yxx ^ (p.xyx >> 8u)) * 1103515245u;
   q = (q ^ (q.zxy >> 8u)) * 1103515245u;
@@ -158,7 +158,7 @@ float eveNoise(vec3 p, float fp){
   vec2 a = cell, b = cell + vec2(1,0), c = cell + vec2(0,1);
   if (w.x < 0.0){ a += 1.0; b = cell + vec2(0,1); c = cell + vec2(1,0); w = vec3(-w.x, 1.0-f.x, 1.0-f.y); }
   w = max(w - .15, 0.0); w /= dot(w, vec3(1.0));
-  // 主云按源全分辨率像素导数、0.25足迹及floor选择mip；体积缓存固定mip3。
+  // 主云依据全分辨率导数和 0.25 足迹选择 mip；体积缓存固定 mip3。
   float lod=uEveNoiseLod>=0.0?uEveNoiseLod:eveViewLod> -90.0?floor(eveViewLod):lodOf(fp,2.3/128.0);
   vec3 q = (source + n*uEveWind.y) / 2.3;
   return dot(w, vec3(textureLod(uEveNoise, q + eveHash(uvec2(ivec2(a))), lod).r,
@@ -168,7 +168,7 @@ float eveNoise(vec3 p, float fp){
 
 vec2 eveMapUV(vec3 p){
   vec3 n=normalize(eveCloudPosition(p));
-  // DDS到WebP保持原始行顺序，上传未翻Y；与源V5的北极v=0一致。
+  // 数据纹理不翻转 Y，北极对应 v=0。
   return vec2(atan(n.x,n.z)/(2.0*PI)+.5,acos(clamp(n.y,-1.0,1.0))/PI);
 }
 // 返回 x=消光系数/km，y=宏观覆盖梯度，z=多重散射亮度，w=侵蚀后的剩余量。
@@ -243,8 +243,8 @@ float eveAmbientFallback(vec3 p){
 
 `;
 
-// LIGHT_VOLUME_ON：长程太阳OD与径向上半球平均OD，存储原单位OD*.01。
-// RG16F的两通道对应源RHalf体积的前/后半部，逐层FBO代替geometry shader。
+// 长程太阳 OD 与径向上半球平均 OD 以 OD * .01 存储。
+// RG16F 两通道分别保存太阳 OD 和半球环境 OD。
 export const CLOUD_LIGHT_VOLUME_GLSL = `
 uniform int uVolumeAmbient,uVolumeSteps;
 uniform float uVolumeSlice,uVolumeBlend;
@@ -335,9 +335,9 @@ uniform vec3 uCloudSource;
 uniform vec3 uAirSunDir,uAirMoonDir,uAirGlow,uAirMS;
 uniform vec2 uAirSources;
 uniform int uAirSteps;
-// 原HG使用π/4；宿主预曝光尺度独立于相函数定义。
+// HG 相函数使用 π/4 归一化，预曝光尺度独立于相函数。
 float eveHG(float g,float mu){return PI*PI*hg(g,mu);}
-// Scatterer的视线透射/内散射使用宿主大气数值积分；云前空气与云内消光分开。
+// 视线透射与内散射使用大气数值积分，云前空气与云内消光分离。
 // 不以统一灰色距离雾替代RGB Beer透射，也不把相机外的真空计入光程。
 vec3 eveAerial(vec3 cloud,float T,vec3 ro,vec3 rd,float depth){
   vec2 hit=raySphere(ro,rd,R_EARTH+atmo_top());
@@ -369,7 +369,7 @@ vec3 eveAerial(vec3 cloud,float T,vec3 ro,vec3 rd,float depth){
   return cloud*viewT+air*(1.0-T)*uAtmosphere;
 }
 float eveLight(vec3 pr,vec3 pw,float fp,float viewT,float distance,float jitter){
-  // EVE：近于2 km且视线仍透明时加倍；保持源1200 m最大太阳光程。
+  // 距离小于 2 km 且视线仍透明时加倍采样，太阳光程上限为 1.2 km。
   int count=(distance<2.0 && viewT>=.75)?uLightSteps*2:uLightSteps;
   float shellExit=eveShellExit(pw,uSunDir),distanceToExit=min(1.2,shellExit);
   float ds=distanceToExit/float(count),od=0.0;
@@ -424,7 +424,7 @@ void eveRaymarch(vec3 ro,vec3 rd,float t0,float t1,float jit){
       float powder=smoothstep(0.0,1.0,den.y+den.w)*.95+.05;
       // 参考 Frostbite 多阶指数透射：保留浅层响应，避免有理式在厚云中留下过亮长尾。
       float ms=.5*exp(-.25*od)+.5*exp(-.45*od);
-      // 源积分×5、云色120/255；源白光1映射到宿主SUN_I=20，预曝光已包含于uCloudSource。
+      // 云色为 120/255，积分系数为 5；照明强度 1 对应 SUN_I=20，uCloudSource 使用预曝光单位。
       float sun=((120.0/255.0)*5.0/20.0)*(directPhase*exp(-od)+multiplePhase*ms*powder*den.z);
       float Ts=exp(-den.x*dt), weight=T*(1.0-Ts);
       vec3 illumination=uCloudSource*eveAtmosphere(pr,uSunDir)*sun;

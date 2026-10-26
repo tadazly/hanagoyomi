@@ -319,7 +319,7 @@ export function bindShellContentScrolling({ document: doc = globalThis.document,
   };
 }
 
-export function initShell() {
+export function initShell({ licenseText = '' } = {}) {
   setMessage($('helpVersion'), 'help.version', { version: __APP_VERSION__ });
   initTimeControls();
   populateIcons();
@@ -476,6 +476,9 @@ export function initShell() {
   $('panelHelpBtn').addEventListener('click', openHelp);
   $('helpClose').addEventListener('click', () => $('helpDialog').close());
   $('helpDialog').addEventListener('click', e => { if (e.target === $('helpDialog')) $('helpDialog').close(); });
+  document.querySelector('.license-notices').addEventListener('toggle', event => {
+    if (event.target.open && !$('licenseText').textContent) $('licenseText').textContent = licenseText;
+  });
   $('reloadBtn').addEventListener('click', () => location.reload());
   window.addEventListener('keydown', e => {
     // 快捷面板里的滑块聚焦时，Esc 也只关闭快捷面板。

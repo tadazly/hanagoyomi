@@ -75,6 +75,6 @@ npm run dev
 
 场景由程序生成，不复刻所选地点的地形。实时天气由 [Open-Meteo](https://open-meteo.com/) 提供，需要联网；无法获取时回退动态天气。点击“使用我的位置”并授权后，经纬度会用于查询天气。设置与收藏保存在本机。
 
-灵感来自 thatgamecompany 的《Flower》，与该游戏及其团队无关联。代码采用 [MIT License](LICENSE)，星表、天气服务和其他第三方内容的许可见[第三方声明](THIRD_PARTY_NOTICES.md)。
+许可和第三方来源见 [LICENSE](LICENSE) 与 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 [技术参考](docs/TECHNICAL.md) · [设计说明](docs/DESIGN.md) · [贡献指南](CONTRIBUTING.md)

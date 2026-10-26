@@ -314,6 +314,7 @@ const entries = {
   'help.hideHint': ["Don't show again", '不再显示', '今後は表示しない'],
   'help.restoreHint': ['You can show the controls hint again in World settings → Interface.', '可在「世界设置 → 界面」中重新开启操作提示。', '「世界の設定 → 表示」で操作ヒントを再び表示できます。'],
   'help.title': ['Roam Hanagoyomi', '漫游花暦', '花暦を散策'],
+  'help.licenses': ['Licenses and notices', '版权与许可', '著作権とライセンス'],
   'help.version': ['Version {version}', '版本 {version}', 'バージョン {version}'],
   'help.about': ['en', 'zh', 'ja'].map(language => ABOUT_PAGES[language].homeIntro),
   'help.mouseMove': ['Drag (auto flight)', '按住拖动（自动飞行时）', 'ドラッグ（自動飛行中）'],

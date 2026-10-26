@@ -4,7 +4,7 @@ Hanagoyomi 项目代码使用 MIT License。以下数据、服务和算法参考
 
 ## 写实体积云 — blackrack / Environmental Visual Enhancements
 
-写实云参考 **RaymarchedVolumetricsEarlyAccess03_01_26**（03/01/26）版本适配。参考包括 `Scatterer-EVE/RaymarchCloud` V5、`EVE/CloudNoiseGen`、云型 Hermite 高度曲线、三角网格去平铺、光程积分及多重散射近似；原始发行包、DLL、音频及导出的完整着色器未随本项目分发。
+写实云参考 **RaymarchedVolumetricsEarlyAccess03_01_26**（03/01/26）版本，包括 `Scatterer-EVE/RaymarchCloud` V5、`EVE/CloudNoiseGen`、云型 Hermite 高度曲线、三角网格去平铺、光程积分及多重散射近似。
 
 `src/data/eve-cloud-types.js` 保留云型配置，`src/data/eve-cloud-noise.js` 是由噪声着色器生成并归一化的 128³ R8 数据。`src/rendering/realistic-clouds.js` 将相关算法适配到 WebGL2。它们涉及的第三方部分保留原权利声明，不适用本仓库的 MIT License。原包 `License.txt` 的体积云声明为：
 
@@ -12,7 +12,7 @@ Hanagoyomi 项目代码使用 MIT License。以下数据、服务和算法参考
 This preview build of the volumetric clouds is All rights reserved
 ```
 
-本次适配保留源 coverage/type 天气图（三档 `src/assets/eve-weather-*.webp`）、六类云型的覆盖度与密度曲线、1750–7450 m 云层、侵蚀、自适应步进、光程积分、多重散射及体积光照缓存。天气与侵蚀保持 600 km 虚拟球面尺度，宿主几何保持 6371 km 地球尺度；未迁入轨道地表、镜头高度上限或全局大气切换。
+相关资源还包括 coverage/type 天气图（三档 `src/assets/eve-weather-*.webp`）及其统计数据。
 
 ## 星表与星座连线 — d3-celestial
 
@@ -55,11 +55,11 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 ## 银河全天照片 — ESO/S. Brunier
 
-`src/assets/milky-way*.webp` 来自 [The Milky Way panorama，eso0932a](https://www.eso.org/public/images/eso0932a/)，署名 **ESO/S. Brunier**，使用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)，参见 [ESO 使用条款](https://www.eso.org/public/copyright/)。项目在公开的 6000×3000 JPEG 原片上处理：对相对 5×5 中值明显突出的亮点进行背景替代，其余局部残差保留 75%，以附近天空局部羽化替换一处固定大亮斑，再用 OpenCV fast non-local means（h=4、模板 7×7、搜索 21×21）抑制成像噪声。按画质输出 2048×1024、3072×1536、4096×2048、6000×3000 四种 WebP，品质分别为 90、92、94、95，移除元数据；不再叠加全图高斯低通，也未使用 AI 修改照片。渲染采用标准 sRGB 解码、亮度适配和低照度去色。照片按银道坐标投影，来自长曝光拼接，含拍摄时的恒星和部分行星，不作为精密星图或肉眼颜色标定。帮助界面保留可点击署名。
+`src/assets/milky-way*.webp` 来自 [The Milky Way panorama，eso0932a](https://www.eso.org/public/images/eso0932a/)，署名 **ESO/S. Brunier**，使用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)，参见 [ESO 使用条款](https://www.eso.org/public/copyright/)。项目对原片作了亮点弱化、局部修补、降噪、分辨率调整和 WebP 转换。照片来自长曝光拼接，不作为精密星图或肉眼颜色标定。帮助界面可查看本文件。
 
 ## 月面颜色 — NASA LRO / CGI Moon Kit
 
-`src/assets/moon-albedo.webp` 来自 [NASA CGI Moon Kit](https://svs.gsfc.nasa.gov/4720/) 的 2025 年版本 `lroc_color_2k.jpg`，署名 **NASA's Scientific Visualization Studio**。资料基于 Lunar Reconnaissance Orbiter 的 LROC WAC 色彩拼图（Arizona State University）和 LOLA 数据，由 Ernie Wright 整理。项目缩小为 1024×512 WebP、移除元数据，并在渲染中转换到线性颜色。参见 [NASA 媒体使用政策](https://www.nasa.gov/nasa-brand-center/images-and-media/)；NASA 标志与机构背书不包含在授权内。该纹理本身已为视觉展示优化，不用于科学测量。
+`src/assets/moon-albedo.webp` 来自 [NASA CGI Moon Kit](https://svs.gsfc.nasa.gov/4720/) 的 2025 年版本 `lroc_color_2k.jpg`，署名 **NASA's Scientific Visualization Studio**。资料基于 Lunar Reconnaissance Orbiter 的 LROC WAC 色彩拼图（Arizona State University）和 LOLA 数据，由 Ernie Wright 整理。项目缩小为 1024×512 WebP、移除元数据，并在渲染中转换到线性颜色。参见 [NASA 媒体使用政策](https://www.nasa.gov/nasa-brand-center/images-and-media/)；不包含 NASA 标志使用权或机构背书。该纹理本身已为视觉展示优化，不用于科学测量。
 
 ## 场景链接无损压缩 — fflate
 
@@ -164,5 +164,7 @@ SOFTWARE.
 ```
 
 ## 参考资料与设计图
+
+视觉灵感来自 thatgamecompany 的《Flower》，与该游戏及其团队无关联。
 
 图形学论文、技术文章和 JPL 资料仅作为参考链接，未作为论文资产打包。`docs/images/design-concept.png` 是生成的界面设计概念；README 里的产品截图来自实际浏览器运行。

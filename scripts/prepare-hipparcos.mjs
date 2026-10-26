@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 
-// 输入来自 NASA HEASARC TAP 的原始 VOTable；不在运行时查询外部星表。
+// 输入为原始 VOTable，运行时不查询外部星表。
 const query = 'SELECT hip_number,ra_deg,dec_deg,vmag,bv_color,pm_ra,pm_dec FROM hipparcos WHERE vmag <= 7.3 ORDER BY hip_number';
 const sourceUrl = 'https://heasarc.gsfc.nasa.gov/xamin/vo/tap/sync?' + new URLSearchParams({ REQUEST: 'doQuery', LANG: 'ADQL', MAXREC: '50000', QUERY: query });
 const input = process.argv[2];

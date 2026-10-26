@@ -939,7 +939,7 @@ vec3 starField(vec3 rd, float angularFootprint, float skyL){
   float footprint=angularFootprint*float(textureSize(uGalaxy,0).x)/(2.0*PI);
   float mip=max(0.0,log2(max(footprint,1e-6)));
   vec3 panorama = textureLod(uGalaxy, uv, mip).rgb;
-  // ESO 拼接照片中的固定摄影亮点（6K原片1851,2472），不属于当前时刻的星表。
+  // 全天照片中的固定摄影亮点（6K原片1851,2472），不属于当前时刻的星表。
   // 仅在其局部羽化补入周围漫射背景；实时恒星/行星仍在独立层按天文位置绘制。
   vec2 glareCenter=vec2(1851.5/6000.0,2472.5/3000.0);
   vec2 glare=(uv-glareCenter)*vec2(6000.0,3000.0);
@@ -1428,10 +1428,10 @@ void main(){
   o=vec4((1.0-exp(-value))*occultation,1.0);
 #endif
 }`;
-/* 5044 stars brighter than mag 6.0 (d3-celestial, from the Yale Bright Star / Hipparcos data), 6 bytes each:
-   RA u16, Dec u16, magnitude u8, B-V u8 */
+/* 5044 颗亮于 6.0 等的恒星，每颗 6 字节：
+   赤经 u16、赤纬 u16、星等 u8、B-V u8。 */
 
-/* 743 constellation line segments (d3-celestial), endpoints as RA u16 / Dec u16 */
+/* 743 条星座线段，端点为赤经 u16 / 赤纬 u16。 */
 
 
 /* 萤火虫与地面辉光共用完整运动和明暗；风位移由 CPU 每帧积分。 */
