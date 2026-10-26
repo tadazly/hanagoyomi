@@ -3,7 +3,8 @@ import { VS_FULL, VS_SKY, PRE, HEAD, NOISE_FS, COMMON, SKYLUT_FS, CSHADOW_FS, CL
 import { equatorialToWorld } from './celestial-coordinates.js';
 import { createGalaxyTexture } from './galaxy-texture.js';
 import { cloudStyle } from './cloud-style.js';
-import { realisticCoverage, REALISTIC_CLOUD_LAYER, REALISTIC_CLOUD_QUALITY, cloudCurveTexture, loadCloudNoise, cloudPhases, cloudLightProjection } from './realistic-clouds.js';
+import { REALISTIC_CLOUD_LAYER, REALISTIC_CLOUD_QUALITY, cloudCurveTexture, loadCloudNoise, cloudPhases, cloudLightProjection } from './realistic-clouds.js';
+import { realisticCoverageControls } from './cloud-coverage.js';
 import { CLOUD_TRANSMITTANCE_FS, CLOUD_IRRADIANCE_FS, CLOUD_LIGHT_VOLUME_FS, CLOUD_LIGHT_REPROJECT_FS } from './shaders.js';
 import { cloudLightBlend, cloudLightTemporalChange } from './cloud-lighting-history.js';
 import { cloudWindPhase } from './cloud-coordinates.js';
@@ -272,47 +273,65 @@ function ensureCloudLightVolume(config){
 let activeCloudStyle = 'default';
 // 只保留当前画质的一张天气纹理；异步切档晚到不能覆盖新档。
 let eveWeatherError=false;
-let eveWeatherTex=null,eveWeatherKey='',eveWeatherRequest=null,eveWeatherRetryAt=0,eveWeatherFailures=0;
+let eveWeatherTex=null,eveWeatherStatsTex=null,eveWeatherKey='',eveWeatherRequest=null,eveWeatherRetryAt=0,eveWeatherFailures=0;
 const maxWeatherSize=gl.getParameter(gl.MAX_TEXTURE_SIZE);
 function cancelCloudWeather(){
   if(!eveWeatherRequest)return;
-  const image=eveWeatherRequest.image;
-  eveWeatherRequest=null;image.onload=image.onerror=null;image.src='';
+  const images=eveWeatherRequest.images;
+  eveWeatherRequest=null;
+  for(const image of images){image.onload=image.onerror=null;image.src='';}
 }
 function ensureCloudWeather(){
   const key=S.quality==='low'||maxWeatherSize<4096?'low':S.quality==='ultra'&&maxWeatherSize>=8192?'ultra':'high';
   if(eveWeatherKey===key){cancelCloudWeather();return true;}
   if(eveWeatherRequest?.key===key||performance.now()<eveWeatherRetryAt)return false;
   cancelCloudWeather();
-  const image=new Image(),request={key,image};eveWeatherRequest=request;
-  image.onload=()=>{
+  const image=new Image(),statistics=eveWeatherStatsTex?null:new Image();
+  const images=statistics?[image,statistics]:[image],request={key,images};eveWeatherRequest=request;
+  let loaded=0;
+  const release=()=>{for(const image of images){image.onload=image.onerror=null;image.src='';}};
+  const failed=()=>{
     if(eveWeatherRequest!==request)return;
+    eveWeatherRequest=null;release();
+    eveWeatherRetryAt=performance.now()+Math.min(60000,1000*2**Math.min(eveWeatherFailures++,6));
+    console.error('写实云天气资源加载失败',key);eveWeatherError=true;fail('error.initialization');
+  };
+  const ready=()=>{
+    if(eveWeatherRequest!==request)return;
+    if(++loaded!==images.length)return;
     if(contextLost){cancelCloudWeather();return;}
-    const texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);
+    const allocated=[];
     const colorSpace=gl.getParameter(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL);
-    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.NONE);
-    gl.texImage2D(gl.TEXTURE_2D,0,gl.RG8,gl.RG,gl.UNSIGNED_BYTE,image);
-    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,colorSpace);
-    if(gl.getError()!==gl.NO_ERROR){
-      gl.deleteTexture(texture);image.onerror();return;
+    const upload=image=>{
+      const texture=gl.createTexture();allocated.push(texture);gl.bindTexture(gl.TEXTURE_2D,texture);
+      gl.texImage2D(gl.TEXTURE_2D,0,gl.RG8,gl.RG,gl.UNSIGNED_BYTE,image);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+      return texture;
+    };
+    let texture,statsTexture;
+    try{
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.NONE);
+      texture=upload(image);if(statistics)statsTexture=upload(statistics);
+      if(gl.getError()!==gl.NO_ERROR)throw new Error('天气纹理上传失败');
+    }catch(error){
+      for(const texture of allocated)gl.deleteTexture(texture);
+      failed();return;
+    }finally{
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,colorSpace);
     }
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-    // 天气场只采样mip0，省去没有收益的整套mip。
+    // 天气图单活，统计图跨画质复用；均为RG8/mip0。
     if(eveWeatherTex)gl.deleteTexture(eveWeatherTex);
+    if(statsTexture)eveWeatherStatsTex=statsTexture;
     eveWeatherTex=texture;eveWeatherKey=key;eveWeatherRequest=null;eveWeatherFailures=0;eveWeatherRetryAt=0;
-    image.onload=image.onerror=null;image.src='';
+    release();
     if(eveWeatherError){$('error').classList.remove('show');eveWeatherError=false;}
     cloudLightInvalidated=true;needReset=true;prev=null;
   };
-  image.onerror=()=>{
-    if(eveWeatherRequest!==request)return;
-    eveWeatherRequest=null;image.onload=image.onerror=null;image.src='';
-    eveWeatherRetryAt=performance.now()+Math.min(60000,1000*2**Math.min(eveWeatherFailures++,6));
-    console.error('写实云天气图加载失败',key);eveWeatherError=true;fail('error.initialization');
-  };
+  for(const image of images){image.onload=ready;image.onerror=failed;}
+  if(statistics)statistics.src=celestialAssets.cloudStatisticsUrl;
   image.src=celestialAssets.cloudMapUrls[key];return false;
 }
 function ensureCloudNoise(){
@@ -1958,10 +1977,14 @@ function frame(now){
   gl.bindVertexArray(emptyVAO);
   gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.depthMask(true);
 
+  const cloudCoverage = S.cloudStyle === 'realistic' ? realisticCoverageControls(covEff) : null;
   const setCloudCommon = (Pp) => {
     set(Pp, 'uLowSaturation', S.lowSaturation ? 1 : 0);
     set(Pp, 'uCamPos', 0,camK[1],0); set(Pp, 'uSunDir', sun); set(Pp, 'uLayer', LAYER[0], LAYER[1]);
-    set(Pp, 'uCoverage', S.cloudStyle==='realistic'?realisticCoverage(covEff):covEff); set(Pp, 'uDensity', densEff);
+    set(Pp, 'uCoverage', cloudCoverage ? cloudCoverage.threshold : covEff);
+    if (cloudCoverage) set(Pp, 'uCoverageShape', cloudCoverage.peak, cloudCoverage.typeBias, cloudCoverage.fade, cloudCoverage.fill);
+    if (cloudCoverage) set(Pp, 'uCoverageSource', cloudCoverage.sourceMix, cloudCoverage.sourceOffset, cloudCoverage.referenceOffset);
+    set(Pp, 'uDensity', densEff);
     // 按纹理共同周期约简后再上传，保持长时间云体/侵蚀的小位移精度。
     set(Pp, 'uWind', cloudWindPhase(camK,windOff));
     set(Pp, 'uWindDetail', cloudWindPhase(camK,windOff,true,simTime));
@@ -1980,6 +2003,7 @@ function frame(now){
     tex(Pp,'uEveNoise',gl.TEXTURE_3D,eveNoiseTex);
     tex(Pp,'uEveCurves',gl.TEXTURE_2D,eveCurvesTex);
     tex(Pp,'uEveWeather',gl.TEXTURE_2D,eveWeatherTex);
+    tex(Pp,'uEveWeatherStats',gl.TEXTURE_2D,eveWeatherStatsTex);
     tex(Pp,'uCloudAtmoTrans',gl.TEXTURE_2D,cloudTransTex);
     tex(Pp,'uCloudSkyIrr',gl.TEXTURE_2D,cloudIrrTex);
     tex(Pp,'uCloudLightVolume',gl.TEXTURE_3D,cloudLightTextures[cloudLightCurrent]??null);

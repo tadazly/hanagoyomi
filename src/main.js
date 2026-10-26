@@ -18,6 +18,7 @@ import { loadCloudNoiseData } from '#cloud-noise';
 import cloudMapLowUrl from './assets/eve-weather-low.webp?url';
 import cloudMapHighUrl from './assets/eve-weather-high.webp?url';
 import cloudMapUltraUrl from './assets/eve-weather-ultra.webp?url';
+import cloudStatisticsUrl from './assets/eve-weather-statistics.webp?url';
 
 export let world;
 
@@ -26,7 +27,7 @@ initI18n();
 const shell = initShell();
 try {
   world = startWorld(updateObservation, { moonSurfaceUrl, cloudNoiseLoader: loadCloudNoiseData,
-    cloudMapUrls: { low: cloudMapLowUrl, high: cloudMapHighUrl, ultra: cloudMapUltraUrl }, starCatalogUrl: import.meta.env.MODE === 'wallpaper' ? starCatalogInline : starCatalogUrl,
+    cloudMapUrls: { low: cloudMapLowUrl, high: cloudMapHighUrl, ultra: cloudMapUltraUrl }, cloudStatisticsUrl, starCatalogUrl: import.meta.env.MODE === 'wallpaper' ? starCatalogInline : starCatalogUrl,
     galaxyUrls: { low: galaxyLowUrl, med: galaxyMediumUrl, high: galaxyUrl, ultra: galaxyUltraUrl } });
   initGallery(world, shell);
   attachWallpaper(world, shell);

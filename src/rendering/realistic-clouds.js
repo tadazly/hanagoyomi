@@ -1,5 +1,6 @@
 import { unzlibSync } from 'fflate';
 import { EVE_CLOUD_TYPES } from '../data/eve-cloud-types.js';
+import { CLOUD_COVERAGE_WIDTH } from './cloud-coverage.js';
 const CLOUD_PLANET_RADIUS_KM = 6371;
 // 天气图和侵蚀场保持原作600 km尺度；宿主球面相交仍使用地球半径。
 const EVE_WEATHER_RADIUS_KM = 600;
@@ -11,18 +12,6 @@ export const REALISTIC_CLOUD_QUALITY = Object.freeze({
   high: { cloud: .75, step:[.1125,.009], light: 4, grid:96, slices:32, volumeSteps:50, airSteps:16 },
   ultra: { cloud: 1.25, step:[.075,.006], light: 4, grid:128, slices:32, volumeSteps:50, airSteps:24 },
 });
-
-// 把宿主覆盖度校准到源天气图的阈值区间；只平移覆盖阈值，保留空间云型与侵蚀。
-// 0保持晴空，浓云及云海(.88以上)保持源值，避免改动源的厚云形态。
-export function realisticCoverage(value){
-  const points=[[0,0],[.035,.035],[.07,.59],[.09,.61],[.16,.665],[.4,.738],[.45,.765],[.6,.802],[.88,.88],[1,1]];
-  const c=Math.max(0,Math.min(1,value));
-  for(let i=1;i<points.length;i++){
-    const [x,y]=points[i],a=points[i-1];
-    if(c<=x)return a[1]+(y-a[1])*(c-a[0])/(x-a[0]);
-  }
-  return 1;
-}
 
 // 原天气图按600 km绘制；CPU double先约简位置/风相位。
 export function cloudPhases(cameraKm, windKm) {
@@ -86,10 +75,13 @@ export const REALISTIC_DENSITY_GLSL = `
 uniform sampler3D uEveNoise;
 uniform sampler2D uEveCurves;
 uniform sampler2D uEveWeather;
+uniform sampler2D uEveWeatherStats;
 const float EVE_WEATHER_RADIUS=600.0;
 uniform sampler2D uCloudAtmoTrans,uCloudSkyIrr;
 uniform vec3 uEveWind;
 uniform float uEveNoiseLod;
+uniform vec4 uCoverageShape;
+uniform vec3 uCoverageSource;
 uniform vec2 uEveLodScale;
 float eveViewLod=-99.0;
 uniform sampler3D uCloudLightVolume;
@@ -179,16 +171,26 @@ vec2 eveMapUV(vec3 p){
   // DDS到WebP保持原始行顺序，上传未翻Y；与源V5的北极v=0一致。
   return vec2(atan(n.x,n.z)/(2.0*PI)+.5,acos(clamp(n.y,-1.0,1.0))/PI);
 }
-vec2 eveMappedWeather(vec3 p,float fp){
-  return textureLod(uEveWeather,eveMapUV(p),0.0).rg;
-}
 // 返回 x=消光系数/km，y=宏观覆盖梯度，z=多重散射亮度，w=侵蚀后的剩余量。
 vec4 eveDensity(vec3 pw, float h01, float fp){
-  if(h01 <= 0.0 || h01 >= 1.0) return vec4(0.0);
+  if(h01 <= 0.0 || h01 >= 1.0 || uCoverageShape.z <= 0.0) return vec4(0.0);
   vec3 p = pw; p.xz += uWindDir * (h01 * .6);
-  vec2 wt = eveMappedWeather(p,fp);
-  // 原 coverage/type 图保留清空、致密核心和六类云；天气控制只平移覆盖阈值。
-  float coverage = saturate(wt.r + (uCoverage-.62)*1.35);
+  vec2 uv = eveMapUV(p), wt = textureLod(uEveWeather,uv,0.0).rg;
+  float potential = saturate(wt.r + uCoverageSource.y), coverage = potential;
+  if(uCoverageSource.x < 1.0){
+    // 固定世界统计只校准低云量；不按镜头重算，不替换源天气图。
+    vec2 stats = textureLod(uEveWeatherStats,uv,0.0).rg;
+    float score = saturate(.5 + .125 * (wt.r-stats.r) / (.06+.44*stats.g));
+    float delta = score - uCoverage + uCoverageShape.y * smoothstep(.1,.2,wt.g);
+    float calibrated = uCoverageShape.x * (.5 + .5 * delta * inversesqrt(delta*delta + ${CLOUD_COVERAGE_WIDTH ** 2})) * uCoverageShape.z;
+    // min 后的校准值不超过 potential，回归源场时不会局部减云。
+    coverage = mix(min(calibrated,potential),potential,uCoverageSource.x);
+    // 低均值源场限制校准力度，避免原本接近的晴朗/少云场景反而偏离。
+    // 权重只依固定世界统计，不随云量、机位或时间变化；凸混合仍保持单调。
+    float reference = saturate(wt.r + uCoverageSource.z) * uCoverageShape.z;
+    coverage = mix(reference,coverage,smoothstep(.15,.30,stats.r));
+  }
+  coverage = mix(coverage,1.0,uCoverageShape.w);
   if(coverage<.01)return vec4(0);
   float type=saturate(wt.g+max(uDensity-1.05,0.0)*.12);
   vec2 curve = textureLod(uEveCurves, vec2(type, h01), 0.0).rg;

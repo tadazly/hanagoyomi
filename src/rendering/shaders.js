@@ -215,6 +215,9 @@ float lightOD(vec3 pr, float fp){
 }
 void main(){
   vec2 uv=vUv+uRayJitter;
+  if(uCloudStyle==1 && uCoverageShape.z<=0.0){
+    oColor=vec4(0.0,0.0,0.0,1.0);oDepth=vec4(uRayLimit,0.0,0.0,1.0);return;
+  }
   vec3 rd = normalize(uFwd + (uv.x * 2.0 - 1.0) * uTan.x * uRight + (uv.y * 2.0 - 1.0) * uTan.y * uUp);
   vec3 ro = vec3(0.0, uCamPos.y, 0.0); float hc = uCamPos.y;
   vec2 iB = raySphere(ro, rd, R_EARTH + uLayer.x), iT = raySphere(ro, rd, R_EARTH + uLayer.y), iG = raySphere(ro, rd, R_EARTH);

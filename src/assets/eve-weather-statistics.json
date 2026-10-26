@@ -1,0 +1,25 @@
+{
+  "sourceRef": "b2f4171ef928e444bbd3f0d0022d2ae9db512aad",
+  "canonical": "high",
+  "sigmaKm": 12,
+  "sigmaFloor": 0.06,
+  "fieldSize": [
+    1024,
+    512
+  ],
+  "statistics": "separable spherical approximation; periodic longitude; pole reflection; latitude area weights",
+  "codec": {
+    "python": "3.13.1",
+    "pillow": "12.1.0",
+    "webp": "1.6.0"
+  },
+  "encoding": "R=local mean; G=(max(local sigma,0.06)-0.06)/0.44; normalized score=clamp(0.5+0.125*(sourceR-R)/(0.06+0.44*G),0,1)",
+  "sourceAssets": {
+    "low": "49db7247f4ccf34071adfb426cbff39c13c4f966790bb1c747efc9885015ff01",
+    "high": "02ab5a88c74f9d891874a34f0c6cdb19536bcef380644029b450288d0c383278",
+    "ultra": "d8126d03cd3d8647a794f8e8db004bc2174d9312185d9913c613401650e06a7f"
+  },
+  "sha256": "5be2a5c1fc35ca020e3e21b5e813c1cb3bf7931c02e5cf6b2665b92cd1115467",
+  "decodedPixelSha256": "6e33bb2636fe0c3b9a00c7ccd6525c39e9ff8a600bb3b17e086c0af7ddd27a0a",
+  "bytes": 225068
+}

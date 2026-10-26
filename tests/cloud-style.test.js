@@ -5,7 +5,7 @@ import { deflateSync, inflateRawSync } from 'node:zlib';
 import { deflateSync as compressScene } from 'fflate';
 import { cloudStyle } from '../src/rendering/cloud-style.js';
 import { cloudWindPhase } from '../src/rendering/cloud-coordinates.js';
-import { realisticCoverage, cloudPhases, cloudLightProjection, cloudCurveTexture, loadCloudNoise, REALISTIC_CLOUD_LAYER } from '../src/rendering/realistic-clouds.js';
+import { cloudPhases, cloudLightProjection, cloudCurveTexture, loadCloudNoise, REALISTIC_CLOUD_LAYER } from '../src/rendering/realistic-clouds.js';
 import { validateScene } from '../src/world/scene-state.js';
 import { createSceneLink, parseSceneLink, SceneLinkError } from '../src/world/scene-share.js';
 
@@ -124,16 +124,4 @@ test('云型 RG8 曲线包含有效高度变化，生产噪声恰为既定 128³
   assert.equal(createHash('sha256').update(noise).digest('hex'), 'ebd8831f4fb2b5633e3d68b1c29fa1cf8d5f00f3412e31f7712ddd27718d8cf9');
   const invalid = deflateSync(new Uint8Array(128)).toString('base64');
   await assert.rejects(loadCloudNoise(async () => ({ default: invalid })), /噪声数据长度无效/);
-});
-
-
-test('覆盖度校准全域单调、晴空和厚云端点不变，不修改云型数据', () => {
-  assert.equal(realisticCoverage(0),0);
-  assert.equal(realisticCoverage(.88),.88);
-  for(const value of [.9,.95,1])assert.equal(realisticCoverage(value),value);
-  let previous=0;
-  for(let i=0;i<=1000;i++){
-    const value=realisticCoverage(i/1000);
-    assert.ok(value>=previous&&value<=1);previous=value;
-  }
 });
