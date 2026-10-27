@@ -24,6 +24,7 @@ export function constellationPhotometry(directions, positions, colors, maxAngle 
     grid.get(k).push(i);
   }
   const result = new Float32Array(directions.length / 3 * 4);
+  const indices = new Int32Array(directions.length / 3), magnitudes = new Float32Array(indices.length);
   let matched = 0;
   for (let i = 0; i < directions.length; i += 3) {
     const [x, y, z] = directions.subarray(i, i + 3), key = cellKey(x, y, z);
@@ -37,11 +38,25 @@ export function constellationPhotometry(directions, positions, colors, maxAngle 
           if (d < distance) { distance = d; nearest = j; }
         }
       }
-      entry = nearest < 0 ? [1, 1, 1, .6] : [...colors.subarray(nearest / 4 * 3, nearest / 4 * 3 + 3), lineStellarBrightness(positions[nearest + 3])];
+      entry = { index: nearest < 0 ? -1 : nearest / 4, magnitude: nearest < 0 ? 99 : positions[nearest + 3],
+        color: nearest < 0 ? [1, 1, 1, .6] : [...colors.subarray(nearest / 4 * 3, nearest / 4 * 3 + 3), lineStellarBrightness(positions[nearest + 3])] };
       cache.set(key, entry);
       if (nearest >= 0) matched++;
     }
-    result.set(entry, i / 3 * 4);
+    result.set(entry.color, i / 3 * 4);
+    indices[i / 3] = entry.index; magnitudes[i / 3] = entry.magnitude;
   }
-  return { data: result, matched, endpoints: cache.size };
+  return { data: result, indices, magnitudes, matched, endpoints: cache.size };
+}
+
+// 同一星座共享最亮成员的透明度参考；成员索引去重，供悬浮和选中时提升真实恒星亮度。
+export function constellationGroupPhotometry({ indices, magnitudes }, groups, count) {
+  const brightest = new Float32Array(count).fill(99), members = Array.from({ length: count }, () => new Set());
+  for (let i = 0; i < indices.length; i++) {
+    const group = groups[Math.floor(i / 2)];
+    if (indices[i] < 0) continue;
+    brightest[group] = Math.min(brightest[group], magnitudes[i]);
+    members[group].add(indices[i]);
+  }
+  return { magnitudes: brightest, brightness: Float32Array.from(brightest, lineStellarBrightness), members };
 }

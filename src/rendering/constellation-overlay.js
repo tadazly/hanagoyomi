@@ -1,7 +1,7 @@
 import { CELESTIAL_GLSL, LENS_DISTORTION_GLSL } from './shaders.js';
 import { CONSTELLATIONS, CONSTELLATION_GROUPS } from '../data/constellations.js';
 import { constellationAppearance, constellationSegments } from './constellation-lines.js';
-import { constellationPhotometry } from './stellar-color.js';
+import { constellationPhotometry, constellationGroupPhotometry } from './stellar-color.js';
 import { constellationLabel, skyDirection } from './stargazing.js';
 
 // SDR 标注层：在场景色调映射后合成，不进入曝光积累、景深与泛光。
@@ -11,7 +11,8 @@ uniform mat3 uEq;
 uniform vec3 uR,uU,uF,uMoonDir,uSunDir;
 uniform vec2 uTan,uRes,uPickPoint;
 uniform float uPxScale,uAtmosphere,uLensOn,uImmersive,uEndpointI,uRawEndpointI,uRealistic,uHdr,uMoonWash,uHalo,uShow,uPick;
-uniform float uHighlight[88],uGlow[88];
+// 打包高亮、柔光、最亮星等和透明度，避免超过 WebGL2 最低顶点 uniform 配额。
+uniform vec4 uGroup[88];
 uniform sampler2D uCloud,uDepth,uSkyLut,uLens;
 ${CELESTIAL_GLSL}
 vec4 project(vec3 d){float w=dot(d,uF);return vec4(dot(d,uR)/uTan.x,dot(d,uU)/uTan.y,w,w);}
@@ -41,7 +42,7 @@ float lunar(vec2 uv){
   +discVisibility(sampleUV+vec2(bo.x,-bo.y))+discVisibility(sampleUV+vec2(-bo.x,bo.y)))*.2;
  return mix(clear,blur,wet);
 }
-float visibility(vec2 uv,vec3 d,float reference){
+float visibility(vec2 uv,vec3 d,float reference,float highlight){
  if(texture(uDepth,uv).r<1.0) return 0.0;
  float h=smoothstep(0.0,.035,d.y)*lunar(uv);
  if(uImmersive<.0001)return h;
@@ -60,7 +61,8 @@ float visibility(vec2 uv,vec3 d,float reference){
  float displayed=energy*uEndpointI/max(uRawEndpointI,1e-20);
  // 每个片元在自己的云透射率下先于参考恒星淡出；不跟随长曝光积累。
  float visible=cloudVisibility(t)*min(smoothstep(.0004,.001,energy),smoothstep(.002,.018,displayed));
- return h*mix(1.0,visible,uImmersive);
+ // 高亮统一亮度，只保留逐像素云遮挡，不再随星等、大气消光及月光改变。
+ return h*mix(1.0,mix(visible,cloudVisibility(t),highlight),uImmersive);
 }
 vec2 screenUV(){return uPick>.5?uPickPoint*.5+.5:gl_FragCoord.xy/uRes;}
 `;
@@ -75,9 +77,9 @@ void main(){
  vec4 a=project(uEq*aStart.xyz),b=project(uEq*aEnd.xyz);
  vSource=aSource;vTarget=aTarget;vMix=0.0;vStartUV=vec2(0);vEndUV=vec2(0);
  gl_Position=vec4(2,2,2,1);vAcross=0.0;vAlong=0.0;vLength=0.0;
- vHighlight=uHighlight[int(aGroup)];vGroup=aGroup;vGlow=uGlow[int(aGroup)];vReference=0.0;
+ vHighlight=uGroup[int(aGroup)].x;vGroup=aGroup;vGlow=uGroup[int(aGroup)].y;vReference=0.0;
  if(uHalo>.5&&vGlow<.001)return;
- vReference=clearReference(max(aStart.w,aEnd.w));
+ vReference=clearReference(uGroup[int(aGroup)].z);
  if(max(a.w,b.w)<=.001)return;
  vec2 gap=(uGap.x+uGap.y*clamp((5.0-vec2(aStart.w,aEnd.w))/6.0,0.0,1.0))*uPxScale;
  if(a.w<.001){float t=(.001-a.w)/(b.w-a.w);a=mix(a,b,t);vSource=mix(vSource,vTarget,t);gap.x=0.0;}
@@ -108,7 +110,7 @@ void main(){
   float nearest=clamp(dot(offset,segment)/max(dot(segment,segment),1e-8),0.0,1.0);
   sampleUV=mix(vStartUV,vEndUV,nearest);
  }
- float visible=visibility(sampleUV,direction(sampleUV),vReference)*uShow;
+ float visible=visibility(sampleUV,direction(sampleUV),vReference,vHighlight)*uShow;
  float coverage=1.0;
  if(uPick>.5){
   float along=vAlong*gl_FragCoord.w;
@@ -122,7 +124,7 @@ void main(){
   coverage*=smoothstep(0.0,.8*uPxScale,min(vAlong*gl_FragCoord.w,vLength-vAlong*gl_FragCoord.w));
  }
  float t=clamp(vMix*gl_FragCoord.w,0.0,1.0);
- float intrinsic=mix(vSource.a,vTarget.a,t);
+ float intrinsic=mix(uGroup[int(vGroup)].w,1.0,vHighlight);
  float alpha=coverage*visible*intrinsic*min(.88,uOpacity*(1.0+vHighlight*1.8));
  if(uHalo>.5){
   float distance=abs(vAcross*gl_FragCoord.w)/uPxScale;
@@ -147,7 +149,7 @@ ${common}
 void main(){
  vec3 d=uEq*aAnchor.xyz;vec4 p=project(d);
  vVisible=uLabelVisible[int(aGroup)];vReference=clearReference(max(aProxy.w,aProxyEnd.w));
- vHighlight=uHighlight[int(aGroup)];vGroup=aGroup;
+ vHighlight=uGroup[int(aGroup)].x;vGroup=aGroup;
  vAnchor=p.xy/max(.001,p.w)*.5+.5;
  vec2 q=vec2(gl_VertexID==1||gl_VertexID==2||gl_VertexID==4?1.0:0.0,gl_VertexID==2||gl_VertexID==4||gl_VertexID==5?1.0:0.0);
  vUV=mix(aRect.xy,aRect.zw,vec2(q.x,1.0-q.y));
@@ -163,7 +165,7 @@ out vec4 o;
 ${common}
 ${fragmentCommon}
 void main(){
- float visible=visibility(screenUV(),direction(screenUV()),vReference)*vVisible*uShow;
+ float visible=visibility(screenUV(),direction(screenUV()),vReference,0.0)*vVisible*uShow;
  if(texture(uDepth,vAnchor).r<1.0)visible=0.0;
  float glyph=texture(uAtlas,vUV).r;
  float alpha=glyph*visible*min(.95,uOpacity*(1.0+vHighlight));
@@ -194,12 +196,22 @@ export function createConstellationOverlay(gl, api, directions, stars, catalogs 
   gl.bindVertexArray(null);return {vao,buffer};
  }
  const line=vao(data,[[0,4,0],[1,4,4],[2,1,8],[3,4,9],[4,4,13]],17,gl.DYNAMIC_DRAW);
- let activeCatalog=null;
+ let activeCatalog=null,groupPhotometry=null;
+ const photometryCache=new WeakMap();
+ function catalogPhotometry(catalog){
+  if(!photometryCache.has(catalog)){
+   const photometry=constellationPhotometry(directions,catalog.positions,catalog.colors);
+   photometryCache.set(catalog,{...photometry,...constellationGroupPhotometry(photometry,CONSTELLATION_GROUPS,88),
+    highlights:new Float32Array(catalog.positions.length/4),previous:new Float32Array(88).fill(-1)});
+  }
+  return photometryCache.get(catalog);
+ }
  function updatePhotometry(style){
   const catalog=catalogs[style]||catalogs.default;
   if(!catalog||catalog===activeCatalog)return;
   activeCatalog=catalog;
-  const {data:photometry}=constellationPhotometry(directions,catalog.positions,catalog.colors);
+  groupPhotometry=catalogPhotometry(catalog);
+  const photometry=groupPhotometry.data;
   for(let i=0;i<CONSTELLATION_GROUPS.length;i++)data.set(photometry.subarray(i*8,i*8+8),i*17+9);
   gl.bindBuffer(gl.ARRAY_BUFFER,line.buffer);gl.bufferSubData(gl.ARRAY_BUFFER,0,data);
  }
@@ -210,7 +222,7 @@ export function createConstellationOverlay(gl, api, directions, stars, catalogs 
  gl.bindFramebuffer(gl.FRAMEBUFFER,pickFbo);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,pickTexture,0);
  gl.bindRenderbuffer(gl.RENDERBUFFER,pickDepth);gl.renderbufferStorage(gl.RENDERBUFFER,gl.DEPTH_COMPONENT16,1,1);gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.RENDERBUFFER,pickDepth);
  gl.bindRenderbuffer(gl.RENDERBUFFER,null);gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.bindBuffer(gl.PIXEL_PACK_BUFFER,pbo);gl.bufferData(gl.PIXEL_PACK_BUFFER,4,gl.STREAM_DRAW);gl.bindBuffer(gl.PIXEL_PACK_BUFFER,null);
- const highlight=new Float32Array(88),glow=new Float32Array(88),labelVisible=new Float32Array(88),sizes=Array.from({length:88},()=>[0,0]);
+ const highlight=new Float32Array(88),glow=new Float32Array(88),groupUniforms=new Float32Array(88*4),labelVisible=new Float32Array(88),sizes=Array.from({length:88},()=>[0,0]);
  let atlasKey='',hover=-1,selected=-1,request=null,pending=null,serial=0,cancelGeneration=0,selectSequence=0,show=0,immersive=1,lastPickAt=-Infinity;
  const pixels=new Uint8Array(4);
  function updateAtlas(language,bilingual){
@@ -263,8 +275,7 @@ export function createConstellationOverlay(gl, api, directions, stars, catalogs 
   set(program,'uLensOn',frame.lens?1:0);set(program,'uPxScale',frame.res[0]/frame.css[0]);set(program,'uAtmosphere',frame.atmosphere);
   set(program,'uImmersive',immersive);set(program,'uHalo',0);set(program,'uEndpointI',frame.endpointI);set(program,'uRawEndpointI',frame.rawEndpointI);set(program,'uHdr',frame.hdr?1:0);set(program,'uMoonWash',frame.moonWash);set(program,'uRealistic',frame.settings.nightSkyStyle==='realistic'?1:0);
   set(program,'uShow',show);set(program,'uPick',pick?1:0);set(program,'uPickPoint',pick?[pick.x/frame.css[0]*2-1,1-pick.y/frame.css[1]*2]:[0,0]);
-  if(program.u.uHighlight)gl.uniform1fv(program.u.uHighlight,highlight);
-  if(program.u.uGlow)gl.uniform1fv(program.u.uGlow,glow);
+  gl.uniform4fv(program.u.uGroup,groupUniforms);
   if(frame.lens)tex(program,'uLens',gl.TEXTURE_2D,frame.lens);tex(program,'uCloud',gl.TEXTURE_2D,frame.cloud);tex(program,'uDepth',gl.TEXTURE_2D,frame.depth);tex(program,'uSkyLut',gl.TEXTURE_2D,frame.sky);
  }
  return {
@@ -275,19 +286,31 @@ export function createConstellationOverlay(gl, api, directions, stars, catalogs 
   cancelPick(){serial++;cancelGeneration++;request=null;hover=-1;},
   clearHover(){serial++;hover=-1;if(request?.kind==='hover')request=null;},
   requestPick(x,y,kind='hover',pointerType='mouse'){if(request?.kind==='select'&&kind==='hover')return;request={x,y,kind,pointerType,serial:++serial,cancelGeneration,selectSequence:kind==='select'?++selectSequence:selectSequence};},
-  render(frame,dt,onPick){
+  update(settings,dt,onPick){
    poll(onPick);
+   const enabled=settings.constel||settings.stargazing;
+   // 悬浮移入快速响应；移出渐暗、点击选中与选中柔光保持原速。
+   for(let i=0;i<88;i++){
+    const active=enabled&&(i===hover||i===selected),rate=i===hover&&i!==selected?32:9;
+    highlight[i]+=(+active-highlight[i])*(1-Math.exp(-dt*rate));
+    if(Math.abs(+active-highlight[i])<.0001)highlight[i]=+active;
+    glow[i]+=((enabled&&i===selected?1:0)-glow[i])*(1-Math.exp(-dt*7));
+   }
+  },
+  updateStars(catalog){
+   const state=catalogPhotometry(catalog);
+   if(!highlight.some((value,i)=>value!==state.previous[i]))return;
+   state.previous.set(highlight);state.highlights.fill(0);
+   state.members.forEach((members,group)=>{if(highlight[group]>0)for(const index of members)state.highlights[index]=Math.max(state.highlights[index],highlight[group]);});
+   gl.bindBuffer(gl.ARRAY_BUFFER,catalog.highlightBuffer);gl.bufferSubData(gl.ARRAY_BUFFER,0,state.highlights);
+  },
+  render(frame,dt){
    const enabled=frame.settings.constel||frame.settings.stargazing;
    if(!enabled&&show<.001){show=0;return;}
    show+=(+enabled-show)*(1-Math.exp(-dt*7));
    immersive+=((frame.settings.constelStyle==='immersive'?1:0)-immersive)*(1-Math.exp(-dt*7));
-   // 悬浮移入快速响应；移出渐暗、点击选中与选中柔光保持原速。
-   for(let i=0;i<88;i++){
-    const active=i===hover||i===selected,rate=i===hover&&i!==selected?32:9;
-    highlight[i]+=(+active-highlight[i])*(1-Math.exp(-dt*rate));
-    glow[i]+=((i===selected?1:0)-glow[i])*(1-Math.exp(-dt*7));
-   }
    updateAtlas(frame.language,frame.settings.constelBilingual);updatePhotometry(frame.settings.nightSkyStyle);labelLayout(frame,dt);
+   for(let i=0;i<88;i++)groupUniforms.set([highlight[i],glow[i],groupPhotometry.magnitudes[i],groupPhotometry.brightness[i]],i*4);
    const appearance=constellationAppearance(frame.settings.nightSkyStyle,...frame.css,frame.sunAltitude);
    const visibility=mixVisibility(frame,appearance.visibility,immersive);
    const drawLayer=pick=>{

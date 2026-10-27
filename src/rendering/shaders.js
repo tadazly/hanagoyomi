@@ -1305,30 +1305,33 @@ const PLANET_VS = `#version 300 es
 precision highp float; precision highp int; precision highp sampler2D;
 layout(location = 0) in vec4 aStar;
 layout(location = 1) in vec3 aCol;
+layout(location = 2) in float aHighlight;
 uniform mat3 uEq; uniform vec3 uR, uU, uF; uniform vec2 uTan;
-uniform float uStarI, uPxScale, uAtmosphere;
+uniform float uStarI, uPxScale, uAtmosphere, uHighlightI;
 uniform sampler2D uCloud;
 ` + ANIMATION_GLSL + `
-out vec3 vCol; out float vI; out float vClearI; out float vTransmission;
+out vec3 vCol; out float vI; out float vClearI; out float vTransmission; out float vAtmosphere;
 void main(){
   vec3 d = uEq * aStar.xyz;
   vec4 clip = vec4(dot(d, uR) / uTan.x, dot(d, uU) / uTan.y, 0.0, dot(d, uF));
   clip.z = clip.w;
   gl_Position = clip; vCol = aCol; vI = 0.0; vClearI = 0.0; vTransmission = 0.0; gl_PointSize = 1.0;
+  vAtmosphere=uAtmosphere*(1.0-aHighlight);
   if (d.y < -0.01 || clip.w <= 0.0) return;
   float T = textureLod(uCloud, clamp(clip.xy / clip.w * 0.5 + 0.5, 0.0, 1.0), 0.0).a;
   float mag = aStar.w;
-  float ext = mix(1.0, exp(-0.28 / max(d.y, 0.035)), uAtmosphere);
+  float ext = mix(1.0, exp(-0.28 / max(d.y, 0.035)), vAtmosphere);
   float low = 1.0 - smoothstep(0.05, 0.45, d.y);
   float tw = 1.0 + 0.45 * low * sin(animationAngle(6.0 + fract(mag * 13.7) * 10.0, aStar.x * 97.0 + aStar.y * 53.0));
-  vI = uStarI * pow(10.0, -0.248 * (mag - 6.0)) * ext * T * tw;
-  if(uAtmosphere<1.0)vClearI=uStarI*pow(10.0,-0.248*(mag-6.0))*ext*tw;
+  float intensity=mix(uStarI,max(uStarI,uHighlightI),aHighlight);
+  vI = intensity * pow(10.0, -0.248 * (mag - 6.0)) * ext * T * tw;
+  if(vAtmosphere<1.0)vClearI=intensity*pow(10.0,-0.248*(mag-6.0))*ext*tw;
   vTransmission=T;
   gl_PointSize = uPxScale * clamp(1.5 + 0.5 * (6.0 - mag), 1.5, 7.0);
 }`;
 const PLANET_FS = `#version 300 es
 precision highp float;
-in vec3 vCol; in float vI; in float vClearI; in float vTransmission; out vec4 o;
+in vec3 vCol; in float vI; in float vClearI; in float vTransmission; in float vAtmosphere; out vec4 o;
 uniform float uAtmosphere,uPointPeak;
 uniform vec3 uR,uU,uF,uSunDir,uMoonDir; uniform vec2 uTan,uRes;
 ` + CELESTIAL_GLSL + `
@@ -1336,7 +1339,7 @@ void main(){
   vec2 q = gl_PointCoord * 2.0 - 1.0;
   float r2 = dot(q, q);
   // 关闭大气后点源清晰可见，圆形柔边防止亮行星暴露点精灵的方形边界。
-  float a = exp(-r2 * 3.5) * mix(1.0 - smoothstep(.64, 1.0, r2), 1.0, uAtmosphere);
+  float a = exp(-r2 * 3.5) * mix(1.0 - smoothstep(.64, 1.0, r2), 1.0, vAtmosphere);
   float occultation=1.0;
   if(uAtmosphere<1.0){
     vec2 uv=gl_FragCoord.xy/uRes*2.0-1.0;
@@ -1347,7 +1350,7 @@ void main(){
 #ifdef NIGHT_HDR
   vec3 value=vCol*vI*a;
   // 在云层和日月遮挡之前压缩，保证薄云仍严格按透射率衰减。
-  if(uAtmosphere<1.0)value=mix(value,chartPointShoulder(vCol*vClearI*a,uPointPeak)*vTransmission,1.0-uAtmosphere);
+  if(vAtmosphere<1.0)value=mix(value,chartPointShoulder(vCol*vClearI*a,uPointPeak)*vTransmission,1.0-vAtmosphere);
   o = vec4(value*occultation, 1.0);
 #else
   o = vec4(1.0 - exp(-vCol * vI * a * occultation), 1.0);
@@ -1357,12 +1360,13 @@ const STAR_VS = `#version 300 es
 precision highp float; precision highp int; precision highp sampler2D;
 layout(location = 0) in vec4 aStar;
 layout(location = 1) in vec3 aCol;
+layout(location = 2) in float aHighlight;
 uniform mat3 uEq; uniform vec3 uR, uU, uF; uniform vec2 uTan;
-uniform float uStarI, uPxScale, uStellarLimit, uAtmosphere;
+uniform float uStarI, uPxScale, uStellarLimit, uAtmosphere, uHighlightI;
 uniform vec3 uMoonDir,uSunDir; uniform float uMoonRadius, uMoonWash, uScintillation, uPixAngle;
 uniform sampler2D uCloud, uSkyLut;
 ` + ANIMATION_GLSL + `
-out vec3 vEnergy; out vec3 vClearEnergy; out float vTransmission; out float vSigma;
+out vec3 vEnergy; out vec3 vClearEnergy; out float vTransmission; out float vSigma; out float vAtmosphere;
 ` + CELESTIAL_GLSL + `
 vec2 stellarSkyUV(vec3 d){
   float el = asin(clamp(d.y, -1.0, 1.0)), az = atan(d.x, d.z);
@@ -1373,42 +1377,44 @@ void main(){
   vec4 clip = vec4(dot(d, uR) / uTan.x, dot(d, uU) / uTan.y, 0.0, dot(d, uF));
   clip.z = clip.w;
   gl_Position = clip; vEnergy = vec3(0); vClearEnergy = vec3(0); vTransmission = 0.0; vSigma = 1.0; gl_PointSize = 1.0;
+  vAtmosphere=uAtmosphere*(1.0-aHighlight);
   if (d.y < 0.0 || clip.w <= 0.0) return;
   if (aStar.w >= uStellarLimit) return;
   float T = textureLod(uCloud, clamp(clip.xy / clip.w * 0.5 + 0.5, 0.0, 1.0), 0.0).a;
   float mag = aStar.w;
-  vec3 ext = vec3(mix(smoothstep(0.0,.025,d.y), stellarExtinction(d.y), uAtmosphere));
+  vec3 ext = vec3(mix(smoothstep(0.0,.025,d.y), stellarExtinction(d.y), vAtmosphere));
+  float intensity=mix(uStarI,max(uStarI,uHighlightI),aHighlight);
   float phase = dot(aStar.xyz, vec3(97.0, 53.0, 179.0));
   float seed = fract(sin(phase * 1.37) * 43758.5453);
   // pmndrs SkyStars 的独立相位与按高度闪烁；星位及 PSF 宽度不随闪烁改变。
   float rate = 1.5 + 2.5 * seed;
   float shimmer = sin(animationAngle(rate, phase)) * sin(animationAngle(rate * .61, phase * 1.7));
   float tw=1.0+uScintillation*.35*mix(.3,1.0,pow(1.0-max(d.y,0.0),2.0))*shimmer;
-  float glare = stellarMoonGlare(d, uMoonDir, uMoonWash);
+  float glare = stellarMoonGlare(d, uMoonDir, uMoonWash*(1.0-aHighlight));
   float occultation = 1.0 - discMask(d, uMoonDir, uMoonRadius, uPixAngle);
   if(uAtmosphere<1.0) occultation *= 1.0-(1.0-uAtmosphere)*discMask(d,uSunDir,${SUN_RADIUS},uPixAngle);
   float sigma=.7;
 #ifdef NIGHT_HDR
   // 使用实测 V 星等的 Pogson 通量比；眼睛/短曝光的弱星上限连续过渡。
-  float energy=stellarFlux(mag,uStarI,true);
+  float energy=stellarFlux(mag,intensity,true);
   float visible=1.0-smoothstep(uStellarLimit-.25,uStellarLimit,mag);
 #else
-  float energy=stellarFlux(mag,uStarI,false);
+  float energy=stellarFlux(mag,intensity,false);
   float peak=energy*dot(ext,vec3(.2126,.7152,.0722))/(6.28318530718*sigma*sigma);
   vec2 skyUV=stellarSkyUV(d);
-  float skyL=dot(textureLod(uSkyLut,skyUV,0.0).rgb,vec3(.2126,.7152,.0722))*uAtmosphere;
+  float skyL=dot(textureLod(uSkyLut,skyUV,0.0).rgb,vec3(.2126,.7152,.0722))*vAtmosphere;
   float visible=stellarContrast(peak,skyL);
 #endif
   // 恒星保持点源；亮度不能把光斑扩张成接近月盘的圆球。
   vSigma=sigma*uPxScale;
   vEnergy=aCol*ext*energy*uPxScale*uPxScale*T*tw*visible*glare*occultation;
-  if(uAtmosphere<1.0)vClearEnergy=aCol*ext*energy*uPxScale*uPxScale*tw*visible*glare;
+  if(vAtmosphere<1.0)vClearEnergy=aCol*ext*energy*uPxScale*uPxScale*tw*visible*glare;
   vTransmission=T*occultation;
   gl_PointSize=6.0*vSigma;
 }`;
 const STAR_FS = `#version 300 es
 precision highp float;
-in vec3 vEnergy; in vec3 vClearEnergy; in float vTransmission; in float vSigma; out vec4 o;
+in vec3 vEnergy; in vec3 vClearEnergy; in float vTransmission; in float vSigma; in float vAtmosphere; out vec4 o;
 uniform vec3 uR, uU, uF, uMoonDir,uSunDir; uniform vec2 uTan, uRes; uniform float uMoonRadius, uPixAngle, uAtmosphere,uPointPeak;
 ` + CELESTIAL_GLSL + `
 void main(){
@@ -1422,7 +1428,7 @@ void main(){
   vec3 value=vEnergy*psf;
   if(max(value.r,max(value.g,value.b))<2e-4) discard;
 #ifdef NIGHT_HDR
-  if(uAtmosphere<1.0)value=mix(value,chartPointShoulder(vClearEnergy*psf,uPointPeak)*vTransmission,1.0-uAtmosphere);
+  if(vAtmosphere<1.0)value=mix(value,chartPointShoulder(vClearEnergy*psf,uPointPeak)*vTransmission,1.0-vAtmosphere);
   o=vec4(value*occultation,1.0);
 #else
   o=vec4((1.0-exp(-value))*occultation,1.0);

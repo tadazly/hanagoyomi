@@ -698,6 +698,13 @@ let STAR_N = 0, LINE_N = 0;
 const starVAO = gl.createVertexArray(), planetVAO = gl.createVertexArray();
 let constellationStars, constellationDirections, constellationOverlay = null;
 const constellationCatalogs = {};
+function constellationCatalog(vao,positions,colors){
+  const highlightBuffer=gl.createBuffer();
+  gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,highlightBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER,positions.byteLength/4,gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.FLOAT,false,0,0);gl.bindVertexArray(null);
+  return {positions,colors,highlightBuffer};
+}
 let realisticStarVAO = null, realisticStarCount = 0, realisticStarRequested = false;
 const hipparcosUrl = celestialAssets.starCatalogUrl;
 function loadRealisticStars(){
@@ -718,7 +725,7 @@ function loadRealisticStars(){
     }
     gl.bindVertexArray(null);
     realisticStarVAO = vao; realisticStarCount = count;
-    constellationCatalogs.realistic = { positions, colors };
+    constellationCatalogs.realistic = constellationCatalog(vao,positions,colors);
   }).catch(error => console.warn('Hipparcos 星表加载失败，保留原星表', error));
 }
 const planetPos = new Float32Array(5 * 4), planetBuf = gl.createBuffer();
@@ -742,7 +749,7 @@ const planetPos = new Float32Array(5 * 4), planetBuf = gl.createBuffer();
   const lp = new Float32Array(LINE_N * 3);
   for (let i = 0; i < LINE_N; i++) lp.set(eqVec(ldv.getUint16(i * 4, true), ldv.getUint16(i * 4 + 2, true)), i * 3);
   constellationStars = pos; constellationDirections = lp;
-  constellationCatalogs.default = { positions: pos, colors: col };
+  constellationCatalogs.default = constellationCatalog(starVAO,pos,col);
 })();
 /* planets: JPL "Approximate Positions of the Major Planets", Table 1 (valid 1800-2050) */
 const PLANET_EL = [
@@ -1943,6 +1950,10 @@ function frame(now){
   const starWeather = 1 - .95 * Math.min(1, WXS.fog * 1.5 + WXS.rain + WXS.snow);
   const baseStarI = Math.max(L.starCat * (nightSky.darkness > 0 ? 8 / 2.4 * nightSky.stars : 1),
     (1 - atmosphere) * .10 / (hdrActive ? expoS : 1)) * starWeather;
+  if(S.constel||S.stargazing||constellationOverlay){
+    constellationOverlay ||= createConstellationOverlay(gl,{makeProgram,use,set,tex},constellationDirections,constellationStars,constellationCatalogs);
+    constellationOverlay.update(S,Math.min(elapsedMs/1000,.1),(id,kind)=>{if(kind==='select')selectConstellation(id,false);});
+  }
   const B = basis(yaw, pitch, cam.roll), aspect = W / H;
   /* weather this frame: lightning, fog, colours (all pre-exposed like the rest of the lighting) */
   if (WXS.storm > 0.15 && bolt.t > 1.4 && Math.random() < 1 - Math.exp(-WP.bolt / 10 * dt)) spawnBolt(camM, B.f);
@@ -2359,6 +2370,8 @@ function frame(now){
     set(St, 'uPointPeak', S.nightSkyStyle === 'realistic' ? 3.8 : 5);
     set(St, 'uSunDir', AST.sun); set(St, 'uMoonDir', AST.moon); set(St, 'uRes', W, H);
     set(St, 'uStarI', baseStarI * (nightSky.darkness > 0 ? nightView.starGain : 1)); set(St, 'uPxScale', W / Math.max(cssW, 1)); setAnimationTime(St);
+    // 高亮成员采用关闭大气后的星图强度，抵消场景曝光；云与真实日月遮挡继续生效。
+    set(St, 'uHighlightI', .10 / (hdrActive ? expoS : 1) * starWeather);
     set(St, 'uStellarLimit', nightView.limitingMagnitude);
     tex(St, 'uCloud', gl.TEXTURE_2D, hist[cur]);
     if (astronomicalStars){
@@ -2367,6 +2380,7 @@ function frame(now){
       tex(St, 'uSkyLut', gl.TEXTURE_2D, skyTex);
     }
     const realCatalog = astronomicalStars && realisticStarVAO;
+    constellationOverlay?.updateStars(realCatalog?constellationCatalogs.realistic:constellationCatalogs.default);
     gl.bindVertexArray(realCatalog || starVAO); gl.drawArrays(gl.POINTS, 0, realCatalog ? realisticStarCount : STAR_N);
     updatePlanets(simMs, atmosphere);
     const Pl = P.planets;
@@ -2523,9 +2537,7 @@ function frame(now){
       rawEndpointI: baseStarI,
       atmosphere, sunAltitude: visualSunAltitude, now,
       endpointI: baseStarI * (hdrActive ? expoS : 1),
-    }, Math.min(elapsedMs / 1000, .1), (id, kind) => {
-      if (kind === 'select') selectConstellation(id, false);
-    });
+    }, Math.min(elapsedMs / 1000, .1));
     gl.bindVertexArray(emptyVAO);
   }
 
