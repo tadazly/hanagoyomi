@@ -17,7 +17,7 @@
 
 </div>
 
-<a href="https://hanagoyomi.luyilabs.com/"><img src="docs/images/hanagoyomi-gallery-zh-CN.jpg" alt="花暦画廊与晚霞云海" width="100%"></a>
+<a href="https://hanagoyomi.luyilabs.com/"><img src="docs/images/hanagoyomi-gallery-zh-CN.jpg" alt="花暦画廊：云海初阳与写实体积云" width="100%"></a>
 
 <table>
   <tr>

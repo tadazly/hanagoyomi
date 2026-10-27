@@ -17,7 +17,7 @@ A flower meadow and sky that follow local time and weather. Roam freely, watch t
 
 </div>
 
-<a href="https://hanagoyomi.luyilabs.com/"><img src="docs/images/hanagoyomi-gallery.jpg" alt="Hanagoyomi gallery and sunset cloud sea" width="100%"></a>
+<a href="https://hanagoyomi.luyilabs.com/"><img src="docs/images/hanagoyomi-gallery.jpg" alt="Hanagoyomi gallery with Dawn above the Clouds and realistic volumetric clouds" width="100%"></a>
 
 <table>
   <tr>
