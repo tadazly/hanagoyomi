@@ -1059,7 +1059,8 @@ function calculateLighting(AST, moonless = false){
   const overcast = nightF * smooth(0.2, 0.95, cov) * clamp(0.55 + 0.35 * densEff, 0.6, 1.2), dimN = 1 - 0.85 * Math.min(overcast, 1);
   const groundBudget = (lum(lightGround) * ly + lum(skyIrr)) * PE * dimN;
   const groundGain = nightSky.groundNight * nightGroundGain(AST, S.nightSkyStyle, groundBudget);
-  const sourceCloud=(sunWins?[SUN_I,SUN_I,SUN_I]:cool.map(v=>nightI*v*(.1+.5*AST.moonBright)*(.6+.4*moonRise))).map(v=>v*PE*cloudGain);
+  // 星图的无月照明没有直射源；零照度平局不能被 sunWins 还原成太阳强度并乘上夜间曝光。
+  const sourceCloud=moonless?Z:(sunWins?[SUN_I,SUN_I,SUN_I]:cool.map(v=>nightI*v*(.1+.5*AST.moonBright)*(.6+.4*moonRise))).map(v=>v*PE*cloudGain);
   return {lightDir, sourceCloud, lightCloud: pe(lightCloud).map(v => v * cloudGain), lightGround: pe(lightGround).map(v => v * dimN * groundGain), sunCam: pe(sunCam), moonCam: pe(moonCam), sunT, moonD,
     moonI: moonUp ? moonSky : 0, ms: pe(MS), ambTop: pe(ambTop), ambBottom: pe(ambBottom), skyIrr: pe(skyIrr).map(v => v * dimN * groundGain), sunDisk: pe(sunDisk), moonDisk: pe(moonDisk),
     exposure, pe: PE, airglow: nightSky.airglow, night: nightF, glowF: Math.max(nightF, smooth(4, -5, AST.sunAlt / RAD)), fwd: sunWins ? 1 : .3 + .5 * moonRise, ambOcc: 0.15 + 0.85 * nightF, cshAmt: 1, starCat: AIRGLOW * 2.4 * PE, starI: AIRGLOW * 14 * PE, grade: gradeAt(AST.sunAlt / RAD, S.lowSaturation, S.nightSkyStyle === 'realistic')};
