@@ -8,6 +8,7 @@ import { deflateSync, inflateSync } from 'fflate';
 const BOOLEAN_KEYS = ['auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'lowSaturation'];
 const NUMBER_KEYS = ['bloomR', 'sunAz', 'dof', 'coverage', 'density', 'wind', 'breeze', 'fogVisS', 'rainAmt', 'snowAmt', 'boltFreq', 'puddle', 'snowMax'];
 const CAMERA_KEYS = ['x', 'z', 'agl', 'yaw', 'pitch', 'roll', 'fov', 'y', 'focus'];
+const APPEARANCE_KEYS = ['nightSkyStyle', 'atmosphere', 'constelStyle', 'constelNames', 'constelBilingual', 'constelWidth', 'constelClarity', 'constelFont', 'vignette', 'stargazing', 'selectedConstellation'];
 const WEATHER_KEYS = ['cov', 'dens', 'wind', 'breeze', 'vis', 'rain', 'snow', 'bolt', 'wet', 'snowCov'];
 const WEATHER_TYPES = ['clear', 'fewcloud', 'cloudy', 'overcast', 'mist', 'fog', 'lightrain', 'rain', 'heavyrain', 'downpour', 'tshower', 'tstorm', 'sleet', 'lightsnow', 'snow', 'blizzard'];
 const ENUMS = { streamDist: ['near', 'mid', 'far'], wxMode: ['follow', 'dynamic', 'manual', 'off'], wxType: WEATHER_TYPES };
@@ -52,7 +53,7 @@ function decode(token, version) {
     if (binary.length > MAX_SCENE_JSON_BYTES) fail();
     if (btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') !== token) fail();
     let bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
-    if (['v2', 'v3', 'v4', 'v5'].includes(version)) {
+    if (['v2', 'v3', 'v4', 'v5', 'v6'].includes(version)) {
       // out 模式只写入固定缓冲，不按解压后大小分配内存。
       // 多留一个哨兵字节，超长载荷即使被截断也无法伪装成合法前缀。
       bytes = inflateSync(bytes, { out: new Uint8Array(MAX_SCENE_JSON_BYTES + 1) });
@@ -80,7 +81,7 @@ function packMotion(motion) {
 }
 function validMotionTuple(motion, version) {
   if (motion === null) return true;
-  const lengths = ['v4', 'v5'].includes(version) ? [4, 5, 6, 8, 10] : version === 'v3' ? [4, 5, 6] : [4];
+  const lengths = ['v4', 'v5', 'v6'].includes(version) ? [4, 5, 6, 8, 10] : version === 'v3' ? [4, 5, 6] : [4];
   if (!Array.isArray(motion) || !lengths.includes(motion.length) || !motion.slice(0, 4).every(finite)) return false;
   if (motion.length >= 5 && !(finite(motion[4]) || (motion.length >= 6 && motion[4] === null))) return false;
   if (motion.length >= 6 && !(finite(motion[5]) || (motion.length >= 8 && motion[5] === null))) return false;
@@ -88,7 +89,7 @@ function validMotionTuple(motion, version) {
   return motion.length !== 10 || motion.slice(8, 10).every(finite);
 }
 
-function pack(scene, title) {
+function pack(scene, title, version) {
   const s = scene.settings, c = scene.camera, e = scene.environment;
   const result = [title, BOOLEAN_KEYS.reduce((mask, key, index) => mask | (+s[key] << index), 0),
     NUMBER_KEYS.map(key => s[key]), Object.entries(ENUMS).map(([key, values]) => values.indexOf(s[key])),
@@ -97,27 +98,32 @@ function pack(scene, title) {
     +scene.freeze.time | (+scene.freeze.weather << 1) | (+scene.freeze.clouds << 2),
     e.skyLocation ? [e.skyLocation.lat, e.skyLocation.lon, e.skyLocation.tz] : null,
     packMotion(e.motion)];
-  // v5 仅在明确使用写实云时增加尾部，旧作品及默认云保持 v3/v4 编码。
-  if (s.cloudStyle === 'realistic') result.push(1);
+  if (version === 'v6') {
+    result[4].push(c.view ? [c.view.yaw, c.view.pitch, ...c.view.position, c.view.fov] : null, c.tracking ?? null);
+    result.push(+(s.cloudStyle === 'realistic'), scene.appearance ? APPEARANCE_KEYS.map(key => scene.appearance[key]) : null);
+  } else if (s.cloudStyle === 'realistic') result.push(1);
   return result;
 }
 function unpack(data, version) {
-  if (version === 'v5' ? !tuple(data, 11) : !(tuple(data, 9) || tuple(data, 10))) fail();
+  if (version === 'v6' ? !tuple(data, 12) : version === 'v5' ? !tuple(data, 11) : !(tuple(data, 9) || tuple(data, 10))) fail();
   const [title, booleans, numbers, enums, camera, time, weather, freeze, location] = data;
   const motion = data.length === 9 ? null : data[9];
   if (typeof title !== 'string' || Array.from(title).length > 80 || (title && normalizeGalleryTitle(title) !== title)
     || !integer(booleans, 0, (1 << BOOLEAN_KEYS.length) - 1)
     || !tuple(numbers, NUMBER_KEYS.length) || !numbers.every(finite)
     || !tuple(enums, 3) || !enums.every((value, index) => integer(value, 0, Object.values(ENUMS)[index].length - 1))
-    || !(tuple(camera, CAMERA_KEYS.length - 1) || tuple(camera, CAMERA_KEYS.length)) || !camera.slice(0, 7).every(finite) || !camera.slice(7).every(value => value === null || finite(value))
+    || !(version === 'v6' ? tuple(camera, CAMERA_KEYS.length + 2) : tuple(camera, CAMERA_KEYS.length - 1) || tuple(camera, CAMERA_KEYS.length))
+    || !camera.slice(0, 7).every(finite) || !camera.slice(7, 9).every(value => value === null || finite(value))
     || !tuple(time, 3) || !finite(time[0]) || !bit(time[1]) || !integer(time[2], 0, 7)
     || !tuple(weather, WEATHER_KEYS.length + 3) || !integer(weather[0], 0, WEATHER_TYPES.length - 1) || !weather.slice(1).every(finite)
-    || !integer(freeze, 0, ['v3', 'v4', 'v5'].includes(version) ? 7 : 3)
-    || (version === 'v5' && !bit(data[10]))
+    || !integer(freeze, 0, ['v3', 'v4', 'v5', 'v6'].includes(version) ? 7 : 3)
+    || (['v5', 'v6'].includes(version) && !bit(data[10]))
+    || (version === 'v6' && !(data[11] === null || tuple(data[11], APPEARANCE_KEYS.length)))
+    || (version === 'v6' && !(camera[9] === null || tuple(camera[9], 6)))
     || !(location === null || (tuple(location, 3) && finite(location[0]) && finite(location[1]) && typeof location[2] === 'string'))
     || !validMotionTuple(motion, version)) fail();
   const settings = Object.fromEntries(BOOLEAN_KEYS.map((key, index) => [key, Boolean(booleans & (1 << index))]));
-  settings.cloudStyle = version === 'v5' && data[10] === 1 ? 'realistic' : 'default';
+  settings.cloudStyle = ['v5', 'v6'].includes(version) && data[10] === 1 ? 'realistic' : 'default';
   NUMBER_KEYS.forEach((key, index) => { settings[key] = numbers[index]; });
   Object.entries(ENUMS).forEach(([key, values], index) => { settings[key] = values[enums[index]]; });
   const environment = {
@@ -126,8 +132,14 @@ function unpack(data, version) {
   };
   if (location) environment.skyLocation = { lat: location[0], lon: location[1], tz: location[2] };
   if (motion) environment.motion = { time: motion[0], windAngle: motion[1], windOffset: motion.slice(2, 4), ...(motion.length >= 5 && motion[4] !== null ? { cloudY: motion[4] } : {}), ...(motion.length >= 6 && motion[5] !== null ? { cloudAngle: motion[5] } : {}), ...(motion.length >= 8 && motion[6] !== null ? { flyOffset: motion.slice(6, 8) } : {}), ...(motion.length === 10 ? { gustOffset: motion.slice(8, 10) } : {}) };
+  const unpackedCamera = Object.fromEntries(CAMERA_KEYS.flatMap((key, index) => camera[index] == null ? [] : [[key, camera[index]]]));
+  if (version === 'v6') {
+    if (camera[9]) { const [yaw, pitch, x, y, z, fov] = camera[9]; unpackedCamera.view = { yaw, pitch, position: [x, y, z], fov }; }
+    if (camera[10] !== null) unpackedCamera.tracking = camera[10];
+  }
   const scene = validateScene({ version: 1, settings,
-    camera: Object.fromEntries(CAMERA_KEYS.flatMap((key, index) => camera[index] == null ? [] : [[key, camera[index]]])),
+    ...(version === 'v6' && data[11] ? { appearance: Object.fromEntries(APPEARANCE_KEYS.map((key, i) => [key, data[11][i]])) } : {}),
+    camera: unpackedCamera,
     environment, freeze: { time: Boolean(freeze & 1), weather: Boolean(freeze & 2), clouds: Boolean(freeze & 4) } });
   if (!scene) fail();
   return { scene, title };
@@ -141,9 +153,9 @@ export function createSceneLink(input, { title = '', baseUrl: base, timeZone = '
     const name = title === '' ? '' : normalizeGalleryTitle(title);
     const url = baseUrl(base);
     // 本机模式、语言及其他查询偏好都不随作品传播；fragment 也不会发送到服务器。
-    const version = scene.settings.cloudStyle === 'realistic' ? 'v5'
+    const version = scene.appearance || scene.camera.view || scene.camera.tracking ? 'v6' : scene.settings.cloudStyle === 'realistic' ? 'v5'
       : scene.environment.motion?.flyOffset || scene.environment.motion?.gustOffset ? 'v4' : 'v3';
-    url.search = ''; url.hash = `scene=${version}.${encode(pack(scene, name))}`;
+    url.search = ''; url.hash = `scene=${version}.${encode(pack(scene, name, version))}`;
     if (url.href.length > MAX_SCENE_LINK_LENGTH) fail();
     return url.href;
   } catch (error) { if (error instanceof SceneLinkError) throw error; fail(); }
@@ -163,7 +175,7 @@ export function parseSceneLink(input, { baseUrl: base } = {}) {
   if (!supportedUrl(url)) fail();
   if (!url.hash.startsWith('#scene=')) return null;
   const version = url.hash.slice('#scene='.length, '#scene=v1'.length);
-  if (!['v1', 'v2', 'v3', 'v4', 'v5'].includes(version) || url.hash['#scene=v1'.length] !== '.') throw new SceneLinkError('scene-link.version');
+  if (!['v1', 'v2', 'v3', 'v4', 'v5', 'v6'].includes(version) || url.hash['#scene=v1'.length] !== '.') throw new SceneLinkError('scene-link.version');
   try { return unpack(decode(url.hash.slice('#scene=v1.'.length), version), version); }
   catch (error) { if (error instanceof SceneLinkError) throw error; fail(); }
 }

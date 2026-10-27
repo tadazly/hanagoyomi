@@ -2,9 +2,36 @@ import { WX_TYPES, WX_KEYS, wxPreset } from './weather-presets.js';
 import { localTimeToUTC } from './clock.js';
 import { VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX } from './view-preferences.js';
 import { ANIMATION_TIME_PERIOD } from '../rendering/animation-time.js';
+import { CONSTELLATIONS } from '../data/constellations.js';
 
 // 作品只保存稳定的构图和风景；画质、语言、城市、组件及交互权限属于本机偏好。
 export const SCENE_VERSION = 1;
+export const SCENE_APPEARANCE = Object.freeze({
+  nightSkyStyle: 'default', atmosphere: true, constelStyle: 'immersive',
+  constelNames: true, constelBilingual: false, constelWidth: 1, constelClarity: 1,
+  constelFont: 14, vignette: true, stargazing: false, selectedConstellation: null,
+});
+const constellationIds = new Set(CONSTELLATIONS.map(item => item.id));
+function constellationId(value) {
+  if (value === null || value === undefined) return null;
+  if (!constellationIds.has(value)) throw new TypeError('无效的星座');
+  return value;
+}
+function appearanceSnapshot(value) {
+  if (!object(value)) throw new TypeError('无效的场景外观');
+  const result = {};
+  for (const [key, fallback] of Object.entries(SCENE_APPEARANCE)) {
+    const v = value[key];
+    if (key === 'selectedConstellation') result[key] = constellationId(v);
+    else if (key === 'nightSkyStyle' || key === 'constelStyle') {
+      const choices = key === 'nightSkyStyle' ? ['default', 'realistic'] : ['immersive', 'always'];
+      if (v !== undefined && !choices.includes(v)) throw new TypeError('无效的场景风格');
+      result[key] = v ?? fallback;
+    } else if (typeof fallback === 'boolean') result[key] = boolean(v, fallback);
+    else result[key] = number(v, fallback, ...({ constelWidth: [.6, 2], constelClarity: [.4, 2], constelFont: [10, 22] }[key]));
+  }
+  return result;
+}
 export const SCENE_SETTINGS = Object.freeze({
   auto: false, god: true, petals: true, sway: false, constel: false, flies: true,
   flowerGlow: false, bloom: true, streamScale: false, infMem: false, lensDrops: true,
@@ -74,6 +101,14 @@ export function validateScene(input) {
       pitch: number(c.pitch, .04, -Math.PI / 2, Math.PI / 2), roll: number(c.roll, 0, -Math.PI, Math.PI), fov: number(c.fov, 60, 28, 95) };
     if (c.y !== undefined) camera.y = number(c.y, undefined, -1e6, 1e6);
     if (c.focus !== undefined) camera.focus = number(c.focus, undefined, 1.5, 600);
+    if (c.view !== undefined) {
+      const v = c.view;
+      if (!object(v) || !Array.isArray(v.position) || v.position.length !== 3) return null;
+      camera.view = { yaw: number(v.yaw, undefined, -1e9, 1e9), pitch: number(v.pitch, undefined, -Math.PI / 2, Math.PI / 2),
+        position: v.position.map((n, i) => number(n, undefined, i === 1 ? -1e6 : -1e8, i === 1 ? 1e6 : 1e8)), fov: number(v.fov, undefined, 28, 104) };
+      if (![camera.view.yaw, camera.view.pitch, camera.view.fov, ...camera.view.position].every(Number.isFinite)) return null;
+    }
+    if (c.tracking !== undefined && c.tracking !== null) camera.tracking = constellationId(c.tracking);
     const e = input.environment || {};
     for (const key of ['time', 'weather', 'skyLocation', 'motion']) if (e[key] !== undefined && !object(e[key])) return null;
     const tm = e.time || {}, w = e.weather || {};
@@ -93,7 +128,9 @@ export function validateScene(input) {
     if (e.skyLocation !== undefined) environment.skyLocation = skyLocation(e.skyLocation);
     // 保存自然运动的起始相位，载入后视觉时钟仍继续流动。
     if (e.motion !== undefined) environment.motion = motionSnapshot(e.motion);
-    return { version: SCENE_VERSION, settings, camera, environment, freeze };
+    const scene = { version: SCENE_VERSION, settings, camera, environment, freeze };
+    if (input.appearance !== undefined) scene.appearance = appearanceSnapshot(input.appearance);
+    return scene;
   } catch { return null; }
 }
 

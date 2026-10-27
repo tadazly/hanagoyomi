@@ -115,7 +115,7 @@ test('v2 同步压缩保留 v1 完整场景，旧链接仍可无损解析', () =
   const legacy = dataLink(tokenData(modern));
   assert.deepEqual(parseSceneLink(modern), parseSceneLink(legacy));
   assert.ok(modern.length < legacy.length * .65, `v2 ${modern.length} / v1 ${legacy.length}`);
-  assert.throws(() => parseSceneLink(modern.replace('#scene=v3.', '#scene=v6.')), error => error.code === 'scene-link.version');
+  assert.throws(() => parseSceneLink(modern.replace('#scene=v3.', '#scene=v7.')), error => error.code === 'scene-link.version');
 });
 
 test('v2 固定协议样本可读取且规范编码不随无关改动漂移', () => {

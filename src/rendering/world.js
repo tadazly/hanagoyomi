@@ -47,7 +47,7 @@ import { weatherFogDensity, groundFogHorizonBlend } from './weather-fog.js';
 import { CLOUD_LAYER_METRES, localWeatherAtHeight } from './weather-altitude.js';
 import { petalStreamOpacity } from './petal-stream.js';
 import { flowerMesh, FLOWER_CURVE_RADIUS, FLOWER_CURVE_GRID } from './flower-mesh.js';
-import { SCENE_SETTINGS, validateScene, resolveSceneTime, sceneFrameTiming, renderSize } from '../world/scene-state.js';
+import { SCENE_SETTINGS, SCENE_APPEARANCE, validateScene, resolveSceneTime, sceneFrameTiming, renderSize } from '../world/scene-state.js';
 import { DEFAULT_VIEW, HEIGHT_PRESETS, VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX, aglFromSlider, sliderFromAgl, startupPreferences, sceneForStartup } from '../world/view-preferences.js';
 
 // 显示偏好独立于作品协议；旧记录缺少新开关时默认开启，显式关闭须保留。
@@ -903,8 +903,8 @@ function saveSettings(){
   if (!worldReady) return;
   const o = {};
   const original = preview?.original;
-  for (const k of PERSIST_KEYS) if (S[k] !== undefined) o[k] = original && k in original.settings ? original.settings[k] : S[k];
-  if (preview) o.nightSkyStyle = preview.nightSkyStyle;
+  for (const k of PERSIST_KEYS) if (S[k] !== undefined) o[k] = original && k in original.settings ? original.settings[k]
+    : original?.appearance && k in original.appearance ? original.appearance[k] : S[k];
   if (original) { o.speed = original.environment.time.speedIndex; o.agl = original.camera.agl; o.heightSlider = sliderFromAgl(original.camera.agl); }
   o.world = original || captureWorld();
   const j = JSON.stringify(o);
@@ -1405,7 +1405,6 @@ syncNightSkyControls();
 document.querySelectorAll('input[name="nightSkyStyle"]').forEach(r => r.addEventListener('change', () => {
   if (!r.checked || !['default', 'realistic'].includes(r.value)) return;
   S.nightSkyStyle = r.value;
-  if (preview) preview.nightSkyStyle = S.nightSkyStyle;
   lightKey = ''; skyKey = ''; expo = NaN; needReset = true;
   saveSettings();
 }));
@@ -2574,8 +2573,12 @@ setInterval(() => { if (worldReady) { consumeObservedWeather(); publishObservati
 
 function captureScene() {
   const settings = Object.fromEntries(Object.keys(SCENE_SETTINGS).map(key => [key, S[key]]));
+  const appearance = Object.fromEntries(Object.keys(SCENE_APPEARANCE).map(key => [key, S[key]]));
+  appearance.selectedConstellation = CONSTELLATIONS[constellationOverlay?.selected]?.id ?? null;
   const value = validateScene({ version: 1, settings,
-    camera: { x: S.x, z: S.z, y: cam.y, agl: S.agl, yaw: cam.yaw, pitch: cam.pitch, roll: cam.roll, fov: S.fovY, focus: cam.focus },
+    appearance,
+    camera: { x: S.x, z: S.z, y: cam.y, agl: S.agl, yaw: cam.yaw, pitch: cam.pitch, roll: cam.roll, fov: S.fovY, focus: cam.focus,
+      ...(lastView || frozenView ? { view: structuredClone(lastView ?? frozenView) } : {}), tracking: CONSTELLATIONS[constellationFocus]?.id ?? null },
     environment: { time: { ms: simMs, followNow, speedIndex: S.speed }, skyLocation: skyLocation(),
       motion: { time: simTime, windAngle: WIND_ANGLE, windOffset: [windOff[0], windOff[2]], cloudY: windOff[1], cloudAngle, flyOffset: [...flyOffset], gustOffset: [...gustOffset] },
       weather: { type: WXS.type, current: { ...WP }, wet: WXS.wet, snowCover: WXS.snowCov } },
@@ -2628,14 +2631,22 @@ function applySceneCamera(camera) {
   stargazingPosition = null; constellationFocus = -1; constellationOverlay?.clear();
   Object.assign(S, { x: camera.x, z: camera.z, agl: camera.agl, fovY: camera.fov });
   Object.assign(cam, { y: camera.y ?? groundH(S.x, S.z) + S.agl, yaw: camera.yaw, pitch: camera.pitch,
-    yawT: camera.yaw, pitchT: camera.pitch, pitchBase: camera.pitch, roll: camera.roll, fov: camera.fov, vx: 0, vz: 0 });
+    yawT: camera.yaw, pitchT: camera.pitch, pitchBase: camera.pitch, roll: camera.roll, fov: camera.view?.fov ?? camera.fov, vx: 0, vz: 0 });
   cam.focus = camera.focus ?? clamp(focusDistance([S.x, cam.y, S.z], basis(cam.yaw, cam.pitch, cam.roll).f), 1.5, 600);
 }
 function loadScene(scene) {
   rejectThumbnail(new Error('场景已切换'));
   sceneSkyLocation = scene.environment.skyLocation ? { ...scene.environment.skyLocation } : null;
   Object.assign(S, scene.settings);
+  if (scene.appearance) Object.assign(S, scene.appearance);
   applySceneCamera(scene.camera);
+  if (scene.appearance?.selectedConstellation) {
+    constellationOverlay ||= createConstellationOverlay(gl, { makeProgram, use, set, tex }, constellationDirections, constellationStars, constellationCatalogs);
+    constellationOverlay.select(CONSTELLATIONS.findIndex(item => item.id === scene.appearance.selectedConstellation));
+  }
+  $('constellationSelect').value = constellationOverlay?.selected >= 0 ? String(constellationOverlay.selected) : '';
+  $('constellationInfo').textContent = ''; delete $('constellationInfo').dataset.i18n; delete $('constellationInfo').dataset.i18nParams;
+  if (scene.camera.tracking) constellationFocus = CONSTELLATIONS.findIndex(item => item.id === scene.camera.tracking);
   simMs = scene.environment.time.ms; followNow = scene.environment.time.followNow; S.speed = scene.environment.time.speedIndex; S.time = cityHours(simMs);
   const motion = scene.environment.motion;
   if (motion) {
@@ -2651,7 +2662,10 @@ function loadScene(scene) {
   // 快照可能在过渡途中写入；未锁定的手动或关闭模式仍需继续走向用户保存的目标。
   resumeWeatherTarget();
   // 作品可恢复运动相位；旧作品保留当前相位，自然动画继续运行。
-  keys.clear(); mouseFlight.reset(); frozenView = null; lastView = null;
+  keys.clear(); mouseFlight.reset(); frozenView = scene.camera.view ? structuredClone(scene.camera.view) : null; lastView = null;
+  for (const id of new Set([...touches.keys(), ...skyActivePointers])) { try { canvas.releasePointerCapture(id); } catch {} }
+  touches.clear(); stick.active = false; gesture = null; skyPress = null; skyPointer = null; skyActivePointers.clear();
+  lastTap = { n: 0, t: 0 }; lastSteerAt = -1e9; sprintUntil = 0;
   prev = null; needReset = true; lightKey = ''; skyKey = ''; expo = NaN; cloudLightInvalidated=true;
   nightObservation.reset();
   trailHist.length = 0; LR.drops.length = 0; streamG = NaN; streamAge = 0; streamOpacity = 0; bolt.t = 99;
@@ -2664,14 +2678,15 @@ function previewScene(input, options = {}) {
   if (!scene) throw new TypeError('无效的风景');
   const { freezeTime = scene.freeze.time, freezeWeather = scene.freeze.weather, freezeClouds = scene.freeze.clouds } = options;
   if (!scene.environment.skyLocation && !options.followLocation) { const { lat, lon, tz } = LOC; scene.environment.skyLocation = { lat, lon, tz }; }
-  if (!preview) preview = { original: captureWorld(), weather: structuredClone(WXS), nightSkyStyle: S.nightSkyStyle, startedAt: performance.now() };
+  if (!preview) preview = { original: captureWorld(), weather: structuredClone(WXS), startedAt: performance.now() };
   preview.selected = scene;
   const composed = structuredClone(scene);
   composed.freeze = { time: Boolean(freezeTime), weather: Boolean(freezeWeather), clouds: Boolean(freezeClouds) };
-  if (!freezeTime) composed.environment.time = { ...scene.environment.time, followNow: Boolean(options.preserveFollowNow && scene.environment.time.followNow), speedIndex: Math.max(1, scene.environment.time.speedIndex) };
+  if (!freezeTime && options.freezeTime === false && scene.freeze.time) composed.environment.time = { ...scene.environment.time, followNow: false, speedIndex: Math.max(1, scene.environment.time.speedIndex) };
 
-  // 推荐风景按封面切换风格；没有指定风格的作品沿用用户选择，取消时可还原。
-  S.nightSkyStyle = ['default', 'realistic'].includes(options.nightSkyStyle) ? options.nightSkyStyle : preview.nightSkyStyle;
+  composed.appearance = { ...preview.original.appearance, ...scene.appearance };
+  if (!scene.appearance && ['default', 'realistic'].includes(options.nightSkyStyle)) composed.appearance.nightSkyStyle = options.nightSkyStyle;
+  if (!scene.appearance && ['immersive', 'always'].includes(options.constelStyle)) composed.appearance.constelStyle = options.constelStyle;
   weatherRequest++; loadScene(composed);
   return captureScene();
 }
@@ -2695,7 +2710,6 @@ function setPreviewFreeze({ freezeTime = sceneFreeze.time, freezeWeather = scene
 function cancelPreview() {
   if (!preview) return false;
   const original = preview.original, weather = preview.weather;
-  S.nightSkyStyle = preview.nightSkyStyle;
   preview = null; weatherRequest++; loadScene(original); Object.assign(WXS, weather);
   saveSettings();
   if (S.wxMode === 'follow' && !sceneFreeze.weather) void syncWeather();

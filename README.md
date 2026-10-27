@@ -17,18 +17,20 @@ A flower meadow and sky that follow local time and weather. Roam freely, watch t
 
 </div>
 
-<a href="https://hanagoyomi.luyilabs.com/"><img src="docs/images/hanagoyomi-gallery.jpg" alt="Hanagoyomi gallery with Dawn above the Clouds and realistic volumetric clouds" width="100%"></a>
+<a href="https://hanagoyomi.luyilabs.com/#gallery=recommended-cloud-sea-dawn"><img src="docs/images/hanagoyomi-gallery.jpg" alt="Hanagoyomi gallery with Dawn above the Clouds and realistic volumetric clouds" width="100%"></a>
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/hanagoyomi-day.jpg" alt="Daytime meadow" width="100%"></td>
-    <td width="50%"><img src="docs/images/hanagoyomi-night.jpg" alt="Night sky" width="100%"></td>
+    <td width="50%"><a href="https://hanagoyomi.luyilabs.com/#gallery=meadow"><img src="docs/images/hanagoyomi-day.jpg" alt="Daytime meadow" width="100%"></a></td>
+    <td width="50%"><a href="https://hanagoyomi.luyilabs.com/#gallery=stars&amp;lines=immersive"><img src="docs/images/hanagoyomi-night.jpg" alt="Constellations with cloud occlusion" width="100%"></a></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/hanagoyomi-realistic-sky.jpg" alt="Realistic night sky" width="100%"><p align="center">Realistic night sky</p></td>
-    <td width="50%"><img src="docs/images/hanagoyomi-milky-way-fireflies.jpg" alt="Milky Way and Fireflies" width="100%"><p align="center">Milky Way and Fireflies</p></td>
+    <td width="50%"><a href="https://hanagoyomi.luyilabs.com/#gallery=recommended-southern-clouds"><img src="docs/images/hanagoyomi-realistic-sky.jpg" alt="Realistic night sky" width="100%"></a><p align="center">Realistic night sky</p></td>
+    <td width="50%"><a href="https://hanagoyomi.luyilabs.com/#gallery=recommended-milky-way-fireflies"><img src="docs/images/hanagoyomi-milky-way-fireflies.jpg" alt="Milky Way and Fireflies" width="100%"></a><p align="center">Milky Way and Fireflies</p></td>
   </tr>
 </table>
+
+<p align="center">Click a screenshot to preview its landscape.</p>
 
 ## Features
 

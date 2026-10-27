@@ -17,18 +17,20 @@
 
 </div>
 
-<a href="https://hanagoyomi.luyilabs.com/"><img src="docs/images/hanagoyomi-gallery-zh-CN.jpg" alt="花暦画廊：云海初阳与写实体积云" width="100%"></a>
+<a href="https://hanagoyomi.luyilabs.com/#gallery=recommended-cloud-sea-dawn"><img src="docs/images/hanagoyomi-gallery-zh-CN.jpg" alt="花暦画廊：云海初阳与写实体积云" width="100%"></a>
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/hanagoyomi-day-zh-CN.jpg" alt="白昼花海" width="100%"></td>
-    <td width="50%"><img src="docs/images/hanagoyomi-night-zh-CN.jpg" alt="夜间星空" width="100%"></td>
+    <td width="50%"><a href="https://hanagoyomi.luyilabs.com/#gallery=meadow"><img src="docs/images/hanagoyomi-day-zh-CN.jpg" alt="白昼花海" width="100%"></a></td>
+    <td width="50%"><a href="https://hanagoyomi.luyilabs.com/#gallery=stars&amp;lines=immersive"><img src="docs/images/hanagoyomi-night-zh-CN.jpg" alt="星座连线随云遮挡的沉浸样式" width="100%"></a></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/hanagoyomi-realistic-sky.jpg" alt="写实夜空" width="100%"><p align="center">写实夜空</p></td>
-    <td width="50%"><img src="docs/images/hanagoyomi-milky-way-fireflies.jpg" alt="横河萤野" width="100%"><p align="center">横河萤野</p></td>
+    <td width="50%"><a href="https://hanagoyomi.luyilabs.com/#gallery=recommended-southern-clouds"><img src="docs/images/hanagoyomi-realistic-sky.jpg" alt="写实夜空" width="100%"></a><p align="center">写实夜空</p></td>
+    <td width="50%"><a href="https://hanagoyomi.luyilabs.com/#gallery=recommended-milky-way-fireflies"><img src="docs/images/hanagoyomi-milky-way-fireflies.jpg" alt="横河萤野" width="100%"></a><p align="center">横河萤野</p></td>
   </tr>
 </table>
+
+<p align="center">点击截图，在主页预览对应风景。</p>
 
 ## 功能
 

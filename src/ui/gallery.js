@@ -4,6 +4,7 @@ import { createGalleryStore, GALLERY_DATABASE } from '../world/gallery-store.js'
 import { prepareGalleryStorage } from './gallery-migration.js';
 import { storageKey, WALLPAPER_MODE } from '../platform/environment.js';
 import { describeScene } from '../world/scene-share.js';
+import { SCENE_APPEARANCE } from '../world/scene-state.js';
 import { getSavedLocation } from '../world/location.js';
 import { createGalleryActions } from './gallery-actions.js';
 import { initSceneSharing } from './gallery-sharing.js';
@@ -125,7 +126,8 @@ export function initGallery(world, shell) {
   const previewItem = item => {
     sharing?.dismissIncoming();
     const scene = item.initial ? world.createInitialScene() : item.scene;
-    world.previewScene(scene, { nightSkyStyle: item.nightSkyStyle, preserveFollowNow: Boolean(item.initial), followLocation: Boolean(item.initial) }); selected = item;
+    if (item.initial && item.scene.appearance) scene.appearance = item.scene.appearance;
+    world.previewScene(scene, { nightSkyStyle: item.nightSkyStyle, constelStyle: item.constelStyle, preserveFollowNow: Boolean(item.initial), followLocation: Boolean(item.initial) }); selected = item;
     syncFreezes(scene.freeze);
     if (sheet.hidden) open();
     render(); setCollapsed(true);
@@ -369,6 +371,17 @@ export function initGallery(world, shell) {
     if (!sheet.hidden) render();
   };
   onLanguageChange(localize); localize();
+  const previewLinkedScene = () => {
+    if (!location.hash.startsWith('#gallery=')) return;
+    const params = new URLSearchParams(location.hash.slice(1));
+    const item = GALLERY_SCENES.find(scene => scene.id === params.get('gallery'));
+    if (!item) return;
+    const constelStyle = params.get('lines');
+    previewItem({ ...item, scene: { ...item.scene, appearance: { ...SCENE_APPEARANCE,
+      nightSkyStyle: item.nightSkyStyle, constelStyle: ['immersive', 'always'].includes(constelStyle) ? constelStyle : 'immersive' } } });
+  };
+  window.addEventListener('hashchange', previewLinkedScene);
+  if (location.hash.startsWith('#gallery=')) queueMicrotask(previewLinkedScene);
   void ready.then(async supported => {
     available = supported;
     $('#gallerySaved').hidden = !supported; $('.gallery-capture').hidden = !supported;
