@@ -4,17 +4,21 @@ import { deflateSync, inflateSync } from 'fflate';
 import { validateScene, SCENE_APPEARANCE } from '../src/world/scene-state.js';
 import { createSceneLink, parseSceneLink, SceneLinkError } from '../src/world/scene-share.js';
 import { GALLERY_SCENES } from '../src/data/gallery-scenes.js';
+import { decodeSceneV7 } from '../src/world/scene-share-v7.js';
 const base = 'https://example.test/';
 const snapshot = (appearance = {}) => validateScene({ version: 1, settings: { cloudStyle: 'realistic' }, appearance: { ...SCENE_APPEARANCE, ...appearance },
   camera: { fov: 95, view: { yaw: 1.234, pitch: -.2, position: [123.45, 4321.06, -9876.54], fov: 104 }, tracking: 'Sco' } });
-const data = link => JSON.parse(new TextDecoder().decode(inflateSync(Buffer.from(new URL(link).hash.slice(10), 'base64url'))));
+const data = link => {
+  const hash = new URL(link).hash, bytes = Buffer.from(hash.slice(10), 'base64url');
+  return hash.startsWith('#scene=v7.') ? decodeSceneV7(bytes) : JSON.parse(new TextDecoder().decode(inflateSync(bytes)));
+};
 const encoded = value => base + '#scene=v6.' + Buffer.from(deflateSync(new TextEncoder().encode(JSON.stringify(value)), { level: 9 })).toString('base64url');
 
-test('完整外观、基础FOV、实际镜头及星座选择通过 v6 无损往返', () => {
+test('完整外观、基础FOV、实际镜头及星座选择通过 v7 无损往返', () => {
   const scene = snapshot({ nightSkyStyle: 'realistic', atmosphere: false, constelStyle: 'always', constelNames: false,
     constelBilingual: true, constelWidth: 1.75, constelClarity: .65, constelFont: 21, vignette: false, stargazing: true, selectedConstellation: 'Sco' });
   assert.ok(scene);const link = createSceneLink(scene, { baseUrl: base, title: '天蝎座' });
-  assert.match(new URL(link).hash, /^#scene=v6\./);assert.deepEqual(parseSceneLink(link), { scene, title: '天蝎座' });
+  assert.match(new URL(link).hash, /^#scene=v7\./);assert.deepEqual(parseSceneLink(link), { scene, title: '天蝎座' });
   assert.deepEqual(data(link)[11], ['realistic', false, 'always', false, true, 1.75, .65, 21, false, true, 'Sco']);
   assert.equal(scene.camera.fov, 95);assert.equal(scene.camera.view.fov, 104);assert(link.length < 1000);
 });

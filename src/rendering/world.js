@@ -2776,7 +2776,8 @@ function tick(now) {
   }
 }
 if (restoredScene) loadScene(sceneForStartup(restoredScene, startupCamera, S.rememberPosition));
-if (S.stargazing) setStargazing(true);
+if (restoredScene?.appearance) document.dispatchEvent(new Event('sceneinteractionchange'));
+else if (S.stargazing) setStargazing(true);
 worldReady = true;
 publishObservation();
 for (const eventName of ['input', 'change']) document.addEventListener(eventName, event => {

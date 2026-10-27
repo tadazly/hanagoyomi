@@ -2,6 +2,7 @@ import { resolveSceneTime, validateScene } from './scene-state.js';
 import { normalizeGalleryTitle } from './gallery-store.js';
 import { fmtTime, zonedHours } from './clock.js';
 import { deflateSync, inflateSync } from 'fflate';
+import { encodeSceneV7, decodeSceneV7 } from './scene-share-v7.js';
 
 // 字段顺序属于链接协议；v2 无损压缩 v1 元组，不依赖可变的设备默认值。
 // v1 旧链接继续读取；只有导入和分享时执行压缩，不进入逐帧循环。
@@ -37,14 +38,17 @@ function supportedUrl(url) {
   return !url.username && !url.password && (url.protocol === 'https:'
     || (url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)));
 }
+function base64url(bytes) {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
 function encode(value) {
   const bytes = new TextEncoder().encode(JSON.stringify(value));
   if (bytes.length > MAX_SCENE_JSON_BYTES) fail();
   const compressed = deflateSync(bytes, { level: 9 });
   if (compressed.length > MAX_SCENE_JSON_BYTES) fail();
-  let binary = '';
-  for (const byte of compressed) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return base64url(compressed);
 }
 function decode(token, version) {
   if (!token || token.length > MAX_SCENE_TOKEN_LENGTH || token.length % 4 === 1 || !/^[A-Za-z0-9_-]+$/.test(token)) fail();
@@ -53,6 +57,7 @@ function decode(token, version) {
     if (binary.length > MAX_SCENE_JSON_BYTES) fail();
     if (btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') !== token) fail();
     let bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+    if (version === 'v7') return decodeSceneV7(bytes);
     if (['v2', 'v3', 'v4', 'v5', 'v6'].includes(version)) {
       // out 模式只写入固定缓冲，不按解压后大小分配内存。
       // 多留一个哨兵字节，超长载荷即使被截断也无法伪装成合法前缀。
@@ -153,9 +158,11 @@ export function createSceneLink(input, { title = '', baseUrl: base, timeZone = '
     const name = title === '' ? '' : normalizeGalleryTitle(title);
     const url = baseUrl(base);
     // 本机模式、语言及其他查询偏好都不随作品传播；fragment 也不会发送到服务器。
-    const version = scene.appearance || scene.camera.view || scene.camera.tracking ? 'v6' : scene.settings.cloudStyle === 'realistic' ? 'v5'
+    const version = scene.appearance || scene.camera.view || scene.camera.tracking ? 'v7' : scene.settings.cloudStyle === 'realistic' ? 'v5'
       : scene.environment.motion?.flyOffset || scene.environment.motion?.gustOffset ? 'v4' : 'v3';
-    url.search = ''; url.hash = `scene=${version}.${encode(pack(scene, name, version))}`;
+    const data = pack(scene, name, version === 'v7' ? 'v6' : version);
+    const token = version === 'v7' ? base64url(encodeSceneV7(data)) : encode(data);
+    url.search = ''; url.hash = `scene=${version}.${token}`;
     if (url.href.length > MAX_SCENE_LINK_LENGTH) fail();
     return url.href;
   } catch (error) { if (error instanceof SceneLinkError) throw error; fail(); }
@@ -175,8 +182,8 @@ export function parseSceneLink(input, { baseUrl: base } = {}) {
   if (!supportedUrl(url)) fail();
   if (!url.hash.startsWith('#scene=')) return null;
   const version = url.hash.slice('#scene='.length, '#scene=v1'.length);
-  if (!['v1', 'v2', 'v3', 'v4', 'v5', 'v6'].includes(version) || url.hash['#scene=v1'.length] !== '.') throw new SceneLinkError('scene-link.version');
-  try { return unpack(decode(url.hash.slice('#scene=v1.'.length), version), version); }
+  if (!['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7'].includes(version) || url.hash['#scene=v1'.length] !== '.') throw new SceneLinkError('scene-link.version');
+  try { return unpack(decode(url.hash.slice('#scene=v1.'.length), version), version === 'v7' ? 'v6' : version); }
   catch (error) { if (error instanceof SceneLinkError) throw error; fail(); }
 }
 

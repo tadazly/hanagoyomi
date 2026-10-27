@@ -1,0 +1,32 @@
+[
+  {
+    "version": "v1",
+    "link": "https://example.test/#scene=v1.WyLnpLrkvosiLDExOTAsWzQsMzE3LDAuNiwwLjE2LDAuOCwxOCwwLjMsMTAwMCwwLDAsMCwwLDBdLFswLDIsMF0sWy0yODAxLjU5NzEzNzU5OTU4Miw0NzAwLjc0MjQ0ODM4NzE3MywyLjIsMy45MjY5OTA4MTY5ODcyNDE0LDAuMDQsMCw2MCxudWxsLG51bGxdLFsxNzkyMzAzMjAwMDAwLDAsMF0sWzAsMC4xNiwwLjgsMTgsMC4zLDMwMDAwLDAsMCwwLDAsMCwwLDBdLDMsbnVsbCxudWxsXQ",
+    "sha256": "a6431b29d52f8c5c43fb1d9f167771505b50b5e1450715ffd203f3f1322726ab"
+  },
+  {
+    "version": "v2",
+    "link": "https://example.test/#scene=v2.XY7NDcJQDIN36dk8OT99SWap2KDixhSswRQcmAaJNXgUgSoUxT5Y8udlel5vj_tlgkgRi8MkwNbHy1sSksMMQhK_O2IhdPODJqXNFWIxV82p8CBbuLqnZUgYtCmslfYqpvTKUBcfxRyCTpzO67rJaJQoNZoO4oe50f4H2Tfdr7Jd0Qs",
+    "sha256": "a6431b29d52f8c5c43fb1d9f167771505b50b5e1450715ffd203f3f1322726ab"
+  },
+  {
+    "version": "v3",
+    "link": "https://example.test/#scene=v3.XY-xDcJQDERXQdTmy2f_fNuzfGWDiI4lEBPQ0NHTMRGiZAScRCCELN8Vlu6e-_Z5vD3O183rcrpvCQimXklhxKXlYhYneJoSmJm-M1JnksV34owyhEFtiBhcqBpzsSq1urrBlKQIaQlpEexo4SYVNYM5hRrT_jBNi2QiLERZJRvXzqXtH0g_118qW4N6ouUPmBELcm0c3w",
+    "sha256": "a1068029eba31440a428d568286e6ae29c5971770dc418c72b08bcbcfc659869"
+  },
+  {
+    "version": "v4",
+    "link": "https://example.test/#scene=v4.XU-7DcJQDFwFpTZP_uXZnuUpG0R0LIGYgIaOno6JECUj4LyICCHr7oqT7s5teJ3uz8tt976eHwMQBUJTEDLAUhO0kAN5igAhImw3QUPgrnt2pDKGkdgYMTqDGmIxZVUXNzIBLgxSgmsEOtVwYyXNYEyCinA4znOnTCQLFhTOxrWzt_0Pkq_7u0rWoJbT8gfKiVtwekshJXiaPg",
+    "sha256": "1805813e3e8665be74957ffc58ead3dbbf276f48ade7eedc3df16ecd3ead429e"
+  },
+  {
+    "version": "v5",
+    "link": "https://example.test/#scene=v5.XY67DQJBDERbQRcPK_9ubddyug5OZDSBqICEjJyMihAhJbAs4iNkeSYYad5Mw213vh5Oq_txfxnAnITJoOygUtvzUwIczRRMRPjcjIkg3dcSxGVMZ_UxcwyBOVFxE7PQcHaFFIGWlJpJwTXDxdhaMTVBJWy2y9KlNbKnKKk04ovZaf-D9J3-rtJvEXh-AA",
+    "sha256": "7c4266bde48b546ff70529d08d06c083e7c39bc41957ad50d92d754c3b471120"
+  },
+  {
+    "version": "v6",
+    "link": "https://example.test/#scene=v6.XVBLTgMxDL0KytqN_MnE9pojsBzNYlQNqFIEUqcV6hUQJ2DDjj07ToRYcgQyLa2mIyvPyUsc-702_Lx8fr993Py-v34FIHKENoGQAsZcF01gQFaTACEiXKKDFoGPecWGFBtXEm3cG2NIihg1cUompqQCHBkkOmd3NMpuyolS_RgrQEZ43JdygpYiS2qymiNNu2mUBUMcr4m8eAMrt6i5ScKEtVuuNShxXtNBuD08hKqA1FlQuCo8aTyqWxog59u5CzIbvNoXtkNfNuNusw6w2-4HCH157g_j_-m-L-MANEWaM-Fu_RS67g8",
+    "sha256": "105222bd2f3941d8f73a2bdc5998982639fb1bee0c22d279e2c1feceeda0e4eb"
+  }
+]
