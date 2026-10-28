@@ -1,0 +1,120 @@
+{
+  "source": "https://download.geonames.org/export/dump/",
+  "license": "CC BY 4.0",
+  "credit": "GeoNames",
+  "selection": "城市/城镇；保留原有 90 个地点、各国和一级行政区最大聚居点及首都，其余按人口降序选取；共 50000 条。排除城区分片、废弃和历史聚居点。",
+  "translations": "GeoNames en/zh/ja 及未标语言汉字别名，加上独立名称表的补译与交叉校对；中文地区和日本的本地名称覆盖见 nativeCoverage；其他缺译名显示英文或原名。",
+  "schema": {
+    "city": [
+      "geonameId",
+      "en",
+      "zh",
+      "ja",
+      "lat",
+      "lon",
+      "timezoneIndex",
+      "regionIndex",
+      "aliases"
+    ],
+    "region": [
+      "key",
+      "countryCode",
+      "en",
+      "zh",
+      "ja"
+    ],
+    "country": [
+      "code",
+      "en",
+      "zh",
+      "ja"
+    ]
+  },
+  "count": 50000,
+  "countries": 245,
+  "regions": 3833,
+  "names": {
+    "en": 50000,
+    "zh": 16056,
+    "ja": 12090
+  },
+  "bytes": 3742836,
+  "gzipBytes": 1721810,
+  "sha256": "b549728382ce35a630ee0b84229731322a8187cec88ae6cd0235fd2dac0fd35c",
+  "supplements": {
+    "location-names-cn.json": {
+      "sha256": "670d51501964e32dae1065da25205a0097dc885cf809bdf94b84792f4943bc1b",
+      "language": "zh"
+    },
+    "location-names-zh-regions.json": {
+      "sha256": "17e01c1dd83d18aa2f4fc41ba8033394f3669cacc64bc2883407ab50084d85ee",
+      "language": "zh"
+    },
+    "location-names-ja.json": {
+      "sha256": "0e1fe13f3bad3824373805d8e70b748de16ef8d5b5e72819767afeb9c026d499",
+      "language": "ja"
+    }
+  },
+  "nativeCoverage": {
+    "CN": {
+      "language": "zh",
+      "cities": 2581,
+      "namedCities": 2580,
+      "regions": 31,
+      "namedRegions": 31
+    },
+    "TW": {
+      "language": "zh",
+      "cities": 74,
+      "namedCities": 74,
+      "regions": 4,
+      "namedRegions": 4
+    },
+    "HK": {
+      "language": "zh",
+      "cities": 204,
+      "namedCities": 204,
+      "regions": 18,
+      "namedRegions": 18
+    },
+    "MO": {
+      "language": "zh",
+      "cities": 6,
+      "namedCities": 6,
+      "regions": 3,
+      "namedRegions": 3
+    },
+    "SG": {
+      "language": "zh",
+      "cities": 35,
+      "namedCities": 35,
+      "regions": 5,
+      "namedRegions": 5
+    },
+    "JP": {
+      "language": "ja",
+      "cities": 1485,
+      "namedCities": 1485,
+      "regions": 47,
+      "namedRegions": 47
+    }
+  },
+  "sources": {
+    "cities1000.zip": {
+      "url": "https://download.geonames.org/export/dump/cities1000.zip",
+      "sha256": "da28572d617c58a98636a561476c5d850f89f2b36996fef3395357bec7ff1f7a"
+    },
+    "alternateNamesV2.zip": {
+      "url": "https://download.geonames.org/export/dump/alternateNamesV2.zip",
+      "sha256": "1741ffd3dfe705c7000ef9233319bc07fe83b58fdb1e0a6c5a10a41c97894e28"
+    },
+    "admin1CodesASCII.txt": {
+      "url": "https://download.geonames.org/export/dump/admin1CodesASCII.txt",
+      "sha256": "2e4867f5397acb056ea26377601b57af37cb4c81399770225018e9e439e91ad3"
+    },
+    "countryInfo.txt": {
+      "url": "https://download.geonames.org/export/dump/countryInfo.txt",
+      "sha256": "c55f638cfaafb4fe45a9aa15120a0f1f78e8a34a8e1847d7b9320cf740fbc9ab"
+    }
+  }
+}

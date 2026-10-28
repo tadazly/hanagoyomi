@@ -25,6 +25,9 @@ flowchart LR
 | [`world/clock.js`](../src/world/clock.js) | UTC 与地点时区转换，真实时间与模拟时间的边界 |
 | [`world/astronomy.js`](../src/world/astronomy.js) | 低精度天体位置、月相与日出日落 |
 | [`world/weather.js`](../src/world/weather.js) | 天气 API、字段验证、WMO 代码 |
+| [`world/location-selection.js`](../src/world/location-selection.js) | 定位请求取消、坐标时区解析、稳定 ID 与旧记录匹配 |
+| [`data/location-catalog.js`](../src/data/location-catalog.js) | 全球地点库解压、三语搜索与国家/行政区索引 |
+| [`ui/location-picker.js`](../src/ui/location-picker.js) | 搜索、快捷地点、设备定位及三级手动列表 |
 | [`world/weather-presets.js`](../src/world/weather-presets.js) | 16 种天气参数及动态天气转移权重 |
 | [`rendering/terrain.js`](../src/rendering/terrain.js) | CPU 与 GPU 共用的地形噪声 |
 | [`rendering/shaders.js`](../src/rendering/shaders.js) | GLSL 的云、天空、草、花、降水与后处理 |
@@ -42,6 +45,8 @@ flowchart LR
 ### 同一时刻，不同地点
 
 内部使用 UTC 毫秒。城市包含经纬度与 IANA 时区，使用 `Intl.DateTimeFormat` 计算地点偏移，不根据经度简单猜测时区。时区偏移按分钟缓存，夏令时仍按对应日期转换。
+
+v1.7.0 的地点库覆盖 50,000 个城市/城镇，网页按需加载，WE 包内嵌压缩数据。中文国家列表按拼音分组；三级列表使用单行名称、字母拉条和稳定 ID。设备定位先按坐标查询当地时区，再提交地点；取消、失败和迟到响应不会覆盖后续选择。旧四字段快捷地点继续可用，列表打开后动态解析选中信息，不强制迁移原存储。来源、补译限制与重建方式见 [地点说明](LOCATIONS.md)。
 
 真实模式每帧读取 `Date.now()`，避免标签页进入后台后因为动画帧被限速而落后。模拟模式根据单调时钟的完整帧间隔推进，移动和物理效果单独限制 `dt`，避免恢复页面时相机突然飞出。
 

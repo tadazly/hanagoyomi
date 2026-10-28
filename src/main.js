@@ -17,6 +17,7 @@ import starCatalogUrl from './assets/hipparcos-v7.3.bin?url&no-inline';
 import starCatalogInline from './assets/hipparcos-v7.3.bin?url&inline';
 
 import { loadCloudNoiseData } from '#cloud-noise';
+import { loadLocationData } from '#location-data';
 import cloudMapLowUrl from './assets/eve-weather-low.webp?url';
 import cloudMapHighUrl from './assets/eve-weather-high.webp?url';
 import cloudMapUltraUrl from './assets/eve-weather-ultra.webp?url';
@@ -28,7 +29,7 @@ if (WALLPAPER_MODE) document.body.dataset.wallpaper = 'true';
 initI18n();
 const shell = initShell({ licenseText: `${projectLicense}\n\n${thirdPartyNotices}` });
 try {
-  world = startWorld(updateObservation, { moonSurfaceUrl, cloudNoiseLoader: loadCloudNoiseData,
+  world = startWorld(updateObservation, { moonSurfaceUrl, cloudNoiseLoader: loadCloudNoiseData, locationDataLoader: loadLocationData,
     cloudMapUrls: { low: cloudMapLowUrl, high: cloudMapHighUrl, ultra: cloudMapUltraUrl }, cloudStatisticsUrl, starCatalogUrl: import.meta.env.MODE === 'wallpaper' ? starCatalogInline : starCatalogUrl,
     galaxyUrls: { low: galaxyLowUrl, med: galaxyMediumUrl, high: galaxyUrl, ultra: galaxyUltraUrl } });
   initGallery(world, shell);

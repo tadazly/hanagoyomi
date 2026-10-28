@@ -25,7 +25,8 @@ import { createChartCelestials } from './chart-celestials.js';
 import { STARGAZING_DEFAULTS, stargazingPreferences, constellationTarget, constellationLabel } from './stargazing.js';
 import { CONSTELLATIONS } from '../data/constellations.js';
 import { STAR_DATA, LINE_DATA } from '../data/stars.js';
-import { CITIES, COMMON_CITIES, cityName, locationName, searchCities } from '../data/cities.js';
+import { CITIES, locationName } from '../data/cities.js';
+import { initLocationPicker } from '../ui/location-picker.js';
 import { WX_TYPES, WX_KEYS, wxPreset, WX_NEXT } from '../world/weather-presets.js';
 import { createObservationStore, realObservationState } from '../world/observation.js';
 import { advanceCloudOffset, advanceCloudAngle } from './cloud-motion.js';
@@ -1179,12 +1180,12 @@ function basis(yaw, pitch, roll){
 const keys = new Set();
 window.addEventListener('keydown', (e) => {
   if (canPickConstellation() && e.key === 'Escape' && !e.target.closest('input,textarea,select')) { clearConstellation(); return; }
-  if (S.stargazing || !S.interactionEnabled || e.target.closest('input, textarea, select, button, summary') || $('helpDialog').open) return;
+  if (S.stargazing || !S.interactionEnabled || e.target.closest('input, textarea, select, button, summary') || document.querySelector('dialog[open]')) return;
   const k = e.key.toLowerCase();
   if (['w','a','s','d','q','e','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){ keys.add(k); if (k !== 'shift') stopAuto(); }
 });
 window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
-window.addEventListener('keydown', (e) => { if (S.interactionEnabled && !S.stargazing && e.key === ' ' && !e.target.closest('input, textarea, select, button, summary') && !$('helpDialog').open){ sprintUntil = performance.now() + 1600; e.preventDefault(); } });
+window.addEventListener('keydown', (e) => { if (S.interactionEnabled && !S.stargazing && e.key === ' ' && !e.target.closest('input, textarea, select, button, summary') && !document.querySelector('dialog[open]')){ sprintUntil = performance.now() + 1600; e.preventDefault(); } });
 window.addEventListener('blur', () => { keys.clear(); mouseFlight.reset(); });
 /* touch flies the petal stream like a flight game: one finger is a virtual stick measured from where it landed;
    double taps: one finger = sprint, two fingers = turn around, three fingers = hover / fly on */
@@ -1192,7 +1193,7 @@ const touches = new Map();
 const stick = {active: false, id: -1, ox: 0, oy: 0, x: 0, y: 0};
 let gesture = null, lastTap = {n: 0, t: 0}, lastSteerAt = -1e9, sprintUntil = 0;
 const mouseFlight = bindMouseFlightInput({
-  canvas, isFlying: () => S.auto, isEnabled: () => S.interactionEnabled && !S.stargazing && !$('helpDialog').open,
+  canvas, isFlying: () => S.auto, isEnabled: () => S.interactionEnabled && !S.stargazing && !document.querySelector('dialog[open]'),
   followsMouse: () => S.autoFollowMouse,
   look: (dx, dy) => {
     constellationFocus = -1; constellationOverlay?.cancelPick();
@@ -1457,7 +1458,7 @@ function setAuto(value){
 }
 // 观星的输入路由独立于飞行手势，防止双击、惯性、自动飞行改变观察位置。
 const canPickConstellation = () => interactionEnabled() && (S.constel || S.stargazing)
-  && (S.constelInteract || S.stargazing) && !$('helpDialog').open;
+  && (S.constelInteract || S.stargazing) && !document.querySelector('dialog[open]');
 const pointerPosition = e => { const rect = canvas.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; };
 canvas.addEventListener('pointerdown', e => {
   if (!canPickConstellation() || e.button > 0) return;
@@ -1591,10 +1592,6 @@ function renderLoc(){
   $('locName').textContent = locationName(LOC);
   $('locCoords').textContent = Math.abs(LOC.lat).toFixed(2) + '° ' + (LOC.lat >= 0 ? 'N' : 'S') + ' · ' + Math.abs(LOC.lon).toFixed(2) + '° ' + (LOC.lon >= 0 ? 'E' : 'W');
   $('locSun').textContent = riseSetText(simMs);
-  document.querySelectorAll('.chip[data-name]').forEach(b => {
-    b.setAttribute('aria-pressed', String(b.dataset.name === LOC.name));
-    b.textContent = cityName(CITIES.find(c => c[0] === b.dataset.name));
-  });
 }
 function setLocation(loc){
   LOC = loc; lightKey = ''; expo = NaN; WXS.followOK = false; WXS.live = null; WXS.airQuality = null; WXS.src = '';
@@ -1602,47 +1599,8 @@ function setLocation(loc){
   saveLocation(LOC);
   renderLoc(); publishTimeControls(); void observation.refresh(LOC); syncWeather(); saveSettings();
 }
-function cityChip(c){
-  const b = document.createElement('button');
-  b.type = 'button'; b.className = 'chip'; b.textContent = cityName(c); b.dataset.name = c[0]; b.title = c[1];
-  b.addEventListener('click', () => setLocation(cityLoc(c)));
-  return b;
-}
-COMMON_CITIES.forEach(n => { const c = CITIES.find(x => x[0] === n); if (c) $('cityCommon').appendChild(cityChip(c)); });
-const searchEl = $('citySearch');
-function renderSearch() {
-  const qv = searchEl.value.trim(), box = $('cityResults');
-  box.textContent = '';
-  if (!qv) return;
-  const hits = searchCities(qv).slice(0, 8);
-  hits.forEach(c => box.appendChild(cityChip(c)));
-  if (!hits.length){ const sp = document.createElement('span'); sp.className = 'loc-sub'; setMessage(sp, 'location.noResults'); box.appendChild(sp); }
-  renderLoc();
-}
-searchEl.addEventListener('input', renderSearch);
-searchEl.addEventListener('keydown', (e) => { if (e.key === 'Enter'){ const f = $('cityResults').querySelector('.chip'); if (f) f.click(); } });
-$('geoBtn').addEventListener('click', () => {
-  const msg = (key) => {
-    if (key) setMessage($('geoMsg'), key);
-    else { $('geoMsg').textContent = ''; delete $('geoMsg').dataset.i18n; }
-  };
-  if (!navigator.geolocation){ msg('geo.unsupported'); return; }
-  msg('geo.loading');
-  navigator.geolocation.getCurrentPosition((pos) => {
-    const lat = pos.coords.latitude, lon = pos.coords.longitude;
-    let tz = 'UTC'; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) {}
-    let near = null, best = Infinity;
-    for (const c of CITIES){
-      const dLat = (c[2] - lat) * RAD, dLon = (c[3] - lon) * RAD;
-      const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat * RAD) * Math.cos(c[2] * RAD) * Math.sin(dLon / 2) ** 2;
-      const km = 12742 * Math.asin(Math.sqrt(a));
-      if (km < best){ best = km; near = c; }
-    }
-    if (best < 60) tz = near[4];
-    setLocation({name: best < 60 ? near[0] + '附近' : '我的位置', lat, lon, tz});
-    msg('');
-  }, (err) => msg(err.code === 1 ? 'geo.denied' : 'geo.unavailable'), {timeout: 9000, maximumAge: 600000});
-});
+initLocationPicker({ getLocation: () => LOC, setLocation, loadData: celestialAssets.locationDataLoader });
+document.addEventListener('locationpickeropen', () => { keys.clear(); mouseFlight.reset(); stick.active = false; });
 
 /* 当地天气请求失败时继续动态天气；始终在观测信息中说明数据来源。 */
 let weatherRequest = 0;
@@ -1687,7 +1645,7 @@ renderLoc();
 setWxMode(S.wxMode);
 refreshWx();
 const renderClock = () => setMessage($('clock'), 'rendering.clock', { city: locationName(LOC), time: fmtTime(zonedHours(LOC.tz, simMs)), phase: phaseName(AST.phase) });
-onLanguageChange(() => { renderLoc(); renderSearch(); wxStatus(); renderClock(); });
+onLanguageChange(() => { renderLoc(); wxStatus(); renderClock(); });
 
 /* ================================================================== */
 /*  Camera rig, petal stream, culling                                  */
@@ -1719,7 +1677,7 @@ function updateCamera(dt){
   if (keys.has('q')) mu -= 1;
   const fast = keys.has('shift') ? 5 : 1;
   const flightStick = stick.active ? stick : mouseFlight.stick;
-  const stickActive = S.interactionEnabled && flightStick.active && (flightStick === stick || S.auto) && !$('helpDialog').open && !document.hidden;
+  const stickActive = S.interactionEnabled && flightStick.active && (flightStick === stick || S.auto) && !document.querySelector('dialog[open]') && !document.hidden;
   const { x: stX, y: stY } = flightStickAxes({ ...flightStick, active: stickActive }, cssW, cssH);
   if (stX || stY) lastSteerAt = performance.now();
   const steering = performance.now() - lastSteerAt < 3000;

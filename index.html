@@ -58,10 +58,11 @@
         <div class="location-block">
           <div class="location-summary"><span data-i18n="settings.place">Place</span><strong id="locName">Tokyo</strong></div>
           <details class="location-picker" id="locationPicker"><summary data-i18n="settings.changePlace">Change place</summary><div class="settings-detail-body"><p class="loc-sub" id="locCoords">35.68° N · 139.65° E</p>
-        <div class="search-field"><span data-icon="search" aria-hidden="true"></span><input type="search" id="citySearch" placeholder="Find a city" data-i18n-placeholder="location.searchPlaceholder" autocomplete="off" aria-label="Search cities" data-i18n-aria-label="location.searchLabel"></div>
-        <div class="chips search-results" id="cityResults" aria-live="polite"></div>
+        <div id="citySearchArea"><div class="search-field"><span data-icon="search" aria-hidden="true"></span><input type="search" id="citySearch" placeholder="Find a city" data-i18n-placeholder="location.searchPlaceholder" autocomplete="off" aria-label="Search cities" data-i18n-aria-label="location.searchLabel" aria-controls="cityResults"></div>
+        <ul class="location-results" id="cityResults" aria-label="Matching places" data-i18n-aria-label="location.results"></ul><p class="loc-sub feedback" id="citySearchStatus" role="status"></p></div>
         <div class="chips city-common" id="cityCommon"></div>
         <button class="btn outline" id="geoBtn" type="button"><span data-icon="location"></span><span data-i18n="location.useMine">Use my location</span></button>
+        <button class="btn outline" id="manualLocationBtn" type="button" aria-haspopup="dialog" aria-controls="manualLocationDialog"><span data-i18n="location.manual">Choose manually</span></button>
         <p class="loc-sub feedback" id="geoMsg" role="status"></p>
         </div></details>
         </div>
@@ -265,6 +266,21 @@
   <div class="loader" id="loader" role="status"><div><span data-icon="flower" class="loader-flower"></span><span id="loadText" data-i18n="loader.meadow">Waking the meadow</span><b id="loadBar"></b></div></div>
   <div class="error" id="error" role="alert"><div class="glass"><h2 data-i18n="error.title">The meadow cannot open yet</h2><p id="errorText"></p><button class="btn primary" id="reloadBtn" data-i18n="error.reload">Reload</button></div></div>
   <div class="toast glass" id="toast" role="status" hidden></div>
+  <dialog class="location-dialog glass" id="manualLocationDialog" aria-labelledby="manualLocationTitle">
+    <div class="panel-heading"><h2 id="manualLocationTitle" data-i18n="location.manual">Choose manually</h2><button class="plain-icon" id="manualLocationClose" type="button" aria-label="Close place selection" data-i18n-aria-label="location.close"><span data-icon="close"></span></button></div>
+    <nav class="location-steps" aria-label="Selection steps" data-i18n-aria-label="location.steps">
+      <button type="button" id="locationCountryStep" data-i18n="location.country">Country / region</button><span aria-hidden="true">›</span><button type="button" id="locationRegionStep" data-i18n="location.region" disabled>Administrative area</button><span aria-hidden="true">›</span><button type="button" id="locationCityStep" data-i18n="location.city" disabled>City / town</button>
+    </nav>
+    <p class="location-selection" id="locationSelection"></p>
+    <p class="location-status" id="manualLocationStatus" role="status"></p>
+    <button type="button" class="btn outline" id="retryLocationData" data-i18n="location.retry" hidden>Retry</button>
+    <div class="location-index-layout">
+      <div class="location-list-viewport" id="locationListViewport"><ul class="location-results" id="manualLocationList"></ul></div>
+      <nav class="location-index" id="locationAlphabet" aria-label="Alphabetical index" data-i18n-aria-label="location.alphabet"></nav>
+      <output class="location-index-bubble" id="locationIndexBubble" hidden aria-hidden="true"></output>
+    </div>
+    <p class="location-credit" data-i18n="location.credit">Place data: GeoNames · CC BY 4.0</p>
+  </dialog>
   <dialog id="helpDialog" class="help-dialog glass" aria-labelledby="helpTitle">
     <div class="panel-heading"><h2 id="helpTitle" data-i18n="help.title">Roam Hanagoyomi</h2><button class="plain-icon" id="helpClose" aria-label="Close controls" data-i18n-aria-label="help.close"><span data-icon="close"></span></button></div>
     <div class="help-body">

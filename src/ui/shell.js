@@ -501,6 +501,7 @@ export function initShell({ licenseText = '' } = {}) {
     document.querySelector('.github-button').hidden = true;
     document.querySelector('.workshop-button').hidden = true;
     $('geoBtn').hidden = true;
+    $('citySearchArea').hidden = true;
     // 仍保留署名和完整设置，去除桌面宿主无法可靠完成的页面跳转。
     document.querySelectorAll('[data-about-link]').forEach(link => {
       if (link.classList.contains('wordmark')) {
@@ -530,7 +531,7 @@ export function updateObservation(state) {
   lastObservation = state;
   const { loc, ms, live, weather, coverage, wind, followNow, speed } = state;
   $('observerCity').textContent = locationName(loc);
-  $('observerEnglish').textContent = (CITIES.find(c => c[0] === loc.name)?.[1] || '').toUpperCase();
+  $('observerEnglish').textContent = (loc.names?.[0] || CITIES.find(c => c[0] === loc.name)?.[1] || '').toUpperCase();
   $('observerEnglish').hidden = getLanguage() === 'en' || !$('observerEnglish').textContent;
   $('observerTime').textContent = fmtTime(zonedHours(loc.tz, ms));
   $('observerTime').dateTime = new Date(ms).toISOString();

@@ -41,6 +41,10 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 二进制资源为 `src/assets/hipparcos-v7.3.bin`；精确查询、来源 SHA-256、记录数量、坐标历元和参考亮星记录见 `src/data/hipparcos-catalog.json`。用 `node scripts/prepare-hipparcos.mjs <原始 VOTable.xml>` 可重新生成。引用：ESA, 1997, *The Hipparcos and Tycho Catalogues*, ESA SP-1200；Perryman et al., 1997, A&A 323, L49。
 
+## 全球地点数据 — GeoNames
+
+离线地点库 `src/assets/locations.bin` 根据 [GeoNames](https://www.geonames.org/) 的 [全球数据快照](https://download.geonames.org/export/dump/) 筛选和整理，包含 50,000 个城市/城镇的名称、经纬度、国家/地区、一级行政区及 IANA 时区。数据遵循 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)，署名 **GeoNames**。项目保留原有 90 个地点设置，并补充、校对中文地区和日本的本地名称；其他缺译条目显示已有名称。补译表逐条或逐组记录来源，包括当地政府公开地名资料、[Wikidata](https://www.wikidata.org/wiki/Wikidata:Licensing)（结构化数据 CC0）和地名行政区参考资料；未复制这些资料的正文或完整坐标数据库。参考资料与疑点留在源码的 `location-names-*.json`，不打入运行包。筛选规则、原始文件和输出 SHA-256、名称覆盖数量见 `src/data/location-catalog.json`，可用 `scripts/prepare-locations.py` 重新生成。地点库是数据摘选，不保证覆盖所有聚居点或坐标完全准确。
+
 ## 天气数据 — Open-Meteo
 
 “跟随天气”模式从 [Open-Meteo](https://open-meteo.com/) 获取当前天气。数据由 Open-Meteo.com 提供，遵循 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)，界面保留来源链接。免费 API 面向非商业用途；商业使用需依据其服务条款选择适当接口。天气数据会映射为场景参数，云形、降水、积水和积雪为艺术化表达。

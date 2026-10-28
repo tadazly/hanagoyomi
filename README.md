@@ -46,6 +46,8 @@ A flower meadow and sky that follow local time and weather. Roam freely, watch t
 
 Adjust the landscape in World settings; **Sky** contains night sky and stargazing options. The interface supports Simplified Chinese, Japanese and English. Full controls are available in settings.
 
+Choose from 50,000 cities and towns worldwide. Search by Chinese, English or Japanese names, or browse Country / region → Administrative area → City / town with an A–Z index. Wallpaper mode uses the manual list and keeps location data available offline.
+
 Preview, restore or apply scenes from the gallery, with independent locks for scene time, weather and cloud drift. The time and weather widget continues to show the current city's live conditions. The first entry, **Where It All Begins**, restores the initial view and default scene settings while time and weather follow the current city.
 
 Settings and collections stay on the device and do not sync between devices.
@@ -75,7 +77,7 @@ Development checks: `npm test`, `npm run build`, `npm run check:seo`, `npm run b
 
 ## Data and license
 
-The landscape is procedural and does not recreate the selected location's terrain. Live weather uses [Open-Meteo](https://open-meteo.com/) and requires a connection; dynamic weather is used when it is unavailable. Choosing **Use my location** asks for permission to send your coordinates to the weather provider. Settings and collections stay on the device.
+The landscape is procedural and does not recreate the selected location's terrain. Live weather uses [Open-Meteo](https://open-meteo.com/) and requires a connection; dynamic weather is used when it is unavailable. Choosing **Use my location** asks for permission to send your coordinates to Open-Meteo for the local time zone and weather. Settings and collections stay on the device.
 
 Licensing details are provided in [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 

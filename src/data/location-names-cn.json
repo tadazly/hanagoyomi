@@ -1,0 +1,3969 @@
+{
+  "source": "GeoNames 中文别名、Wikidata P1566 中文标签，以及国家统计局区划数据与四级坐标交叉匹配；各条保留来源。",
+  "cities": {
+    "2036670": {
+      "name": "富拉尔基区",
+      "source": "http://www.wikidata.org/entity/Q34761"
+    },
+    "1790371": {
+      "name": "仙桃市",
+      "source": "http://www.wikidata.org/entity/Q71455"
+    },
+    "1785462": {
+      "name": "枣阳市",
+      "source": "http://www.wikidata.org/entity/Q147171"
+    },
+    "1801455": {
+      "name": "枝江市",
+      "source": "http://www.wikidata.org/entity/Q197789"
+    },
+    "1786546": {
+      "name": "钟祥市",
+      "source": "http://www.wikidata.org/entity/Q197919"
+    },
+    "1784055": {
+      "name": "庄河市",
+      "source": "http://www.wikidata.org/entity/Q198159"
+    },
+    "1787031": {
+      "name": "兖州区",
+      "source": "http://www.wikidata.org/entity/Q246791"
+    },
+    "2036106": {
+      "name": "辽中区",
+      "source": "http://www.wikidata.org/entity/Q142130"
+    },
+    "1280037": {
+      "name": "莎车县",
+      "source": "http://www.wikidata.org/entity/Q857618"
+    },
+    "1813206": {
+      "name": "大冶市",
+      "source": "http://www.wikidata.org/entity/Q1179105"
+    },
+    "1794479": {
+      "name": "莱西市",
+      "source": "http://www.wikidata.org/entity/Q1198038"
+    },
+    "1786455": {
+      "name": "沂水县",
+      "source": "http://www.wikidata.org/entity/Q1198349"
+    },
+    "1789176": {
+      "name": "肥城市",
+      "source": "http://www.wikidata.org/entity/Q1198379"
+    },
+    "1808981": {
+      "name": "韩城市",
+      "source": "http://www.wikidata.org/entity/Q577415"
+    },
+    "1809152": {
+      "name": "固原市",
+      "source": "http://www.wikidata.org/entity/Q604625"
+    },
+    "2038342": {
+      "name": "北票市",
+      "source": "http://www.wikidata.org/entity/Q814826"
+    },
+    "2037201": {
+      "name": "北镇市",
+      "source": "http://www.wikidata.org/entity/Q814966"
+    },
+    "1808106": {
+      "name": "洪江市",
+      "source": "http://www.wikidata.org/entity/Q762724"
+    },
+    "1806988": {
+      "name": "华阴市",
+      "source": "http://www.wikidata.org/entity/Q785966"
+    },
+    "2036713": {
+      "name": "桓仁满族自治县",
+      "source": "http://www.wikidata.org/entity/Q1331781"
+    },
+    "1806096": {
+      "name": "胶州市",
+      "source": "http://www.wikidata.org/entity/Q289051"
+    },
+    "1804586": {
+      "name": "莱阳市",
+      "source": "http://www.wikidata.org/entity/Q371640"
+    },
+    "2038365": {
+      "name": "北安市",
+      "source": "http://www.wikidata.org/entity/Q814616"
+    },
+    "1803551": {
+      "name": "北流市",
+      "source": "http://www.wikidata.org/entity/Q814748"
+    },
+    "1792260": {
+      "name": "瓦房店市",
+      "source": "http://www.wikidata.org/entity/Q616048"
+    },
+    "1810458": {
+      "name": "高密市",
+      "source": "http://www.wikidata.org/entity/Q651101"
+    },
+    "1798632": {
+      "name": "平阴县",
+      "source": "http://www.wikidata.org/entity/Q1337083"
+    },
+    "2036075": {
+      "name": "凌源市",
+      "source": "http://www.wikidata.org/entity/Q1333417"
+    },
+    "1800519": {
+      "name": "明光市",
+      "source": "http://www.wikidata.org/entity/Q1334907"
+    },
+    "1798900": {
+      "name": "彭泽县",
+      "source": "http://www.wikidata.org/entity/Q1335508"
+    },
+    "1785716": {
+      "name": "邳州市",
+      "source": "http://www.wikidata.org/entity/Q1342853"
+    },
+    "1794794": {
+      "name": "寿光市",
+      "source": "http://www.wikidata.org/entity/Q1357984"
+    },
+    "1804578": {
+      "name": "莱州市",
+      "source": "http://www.wikidata.org/entity/Q666700"
+    },
+    "1794140": {
+      "name": "泗水县",
+      "source": "http://www.wikidata.org/entity/Q745725"
+    },
+    "1786731": {
+      "name": "青州市",
+      "source": "http://www.wikidata.org/entity/Q1360781"
+    },
+    "2033675": {
+      "name": "新民市",
+      "source": "http://www.wikidata.org/entity/Q1362055"
+    },
+    "1793899": {
+      "name": "睢城街道",
+      "source": "http://www.wikidata.org/entity/Q13797082"
+    },
+    "2036685": {
+      "name": "辉南县",
+      "source": "http://www.wikidata.org/entity/Q926818"
+    },
+    "1804442": {
+      "name": "兰溪市",
+      "source": "http://www.wikidata.org/entity/Q1023793"
+    },
+    "2037222": {
+      "name": "公主岭市",
+      "source": "http://www.wikidata.org/entity/Q1207108"
+    },
+    "1812138": {
+      "name": "东兴市",
+      "source": "http://www.wikidata.org/entity/Q1241481"
+    },
+    "1791428": {
+      "name": "汶上县",
+      "source": "http://www.wikidata.org/entity/Q1198224"
+    },
+    "1800675": {
+      "name": "蒙阴县",
+      "source": "http://www.wikidata.org/entity/Q1198263"
+    },
+    "1811794": {
+      "name": "独山县",
+      "source": "http://www.wikidata.org/entity/Q1200404"
+    },
+    "2036597": {
+      "name": "加格达奇区",
+      "source": "http://www.wikidata.org/entity/Q1283517"
+    },
+    "1808931": {
+      "name": "汉沽区",
+      "source": "http://www.wikidata.org/entity/Q1331303"
+    },
+    "1788618": {
+      "name": "新泰市",
+      "source": "http://www.wikidata.org/entity/Q1344683"
+    },
+    "2037411": {
+      "name": "凤城市",
+      "source": "http://www.wikidata.org/entity/Q1362431"
+    },
+    "2036283": {
+      "name": "宽甸满族自治县",
+      "source": "http://www.wikidata.org/entity/Q1367572"
+    },
+    "1806960": {
+      "name": "化州市",
+      "source": "http://www.wikidata.org/entity/Q1374792"
+    },
+    "2033766": {
+      "name": "兴城市",
+      "source": "http://www.wikidata.org/entity/Q1375638"
+    },
+    "1800521": {
+      "name": "明港镇",
+      "source": "http://www.wikidata.org/entity/Q6864717"
+    },
+    "1805563": {
+      "name": "天长镇",
+      "source": "http://www.wikidata.org/entity/Q7800165"
+    },
+    "1812168": {
+      "name": "东溪镇",
+      "source": "http://www.wikidata.org/entity/Q10870753"
+    },
+    "1786867": {
+      "name": "亚山镇",
+      "source": "http://www.wikidata.org/entity/Q10882588"
+    },
+    "1786783": {
+      "name": "冶源镇",
+      "source": "http://www.wikidata.org/entity/Q10895545"
+    },
+    "2037820": {
+      "name": "大石头镇",
+      "source": "http://www.wikidata.org/entity/Q10937080"
+    },
+    "1794126": {
+      "name": "寺头镇",
+      "source": "http://www.wikidata.org/entity/Q10956770"
+    },
+    "1789945": {
+      "name": "小围寨街道",
+      "source": "http://www.wikidata.org/entity/Q10958450"
+    },
+    "1789137": {
+      "name": "新堤街道",
+      "source": "http://www.wikidata.org/entity/Q11082066"
+    },
+    "2038118": {
+      "name": "朝阳镇",
+      "source": "http://www.wikidata.org/entity/Q11092687"
+    },
+    "1807695": {
+      "name": "槐店回族镇",
+      "source": "http://www.wikidata.org/entity/Q11120620"
+    },
+    "1809483": {
+      "name": "归仁镇",
+      "source": "http://www.wikidata.org/entity/Q28798547"
+    },
+    "1816265": {
+      "name": "博山镇",
+      "source": "http://www.wikidata.org/entity/Q28804482"
+    },
+    "1793286": {
+      "name": "唐寨镇",
+      "source": "http://www.wikidata.org/entity/Q28826952"
+    },
+    "1920772": {
+      "name": "州城街道",
+      "source": "http://www.wikidata.org/entity/Q28844584"
+    },
+    "1784253": {
+      "name": "众兴街道",
+      "source": "http://www.wikidata.org/entity/Q49371675"
+    },
+    "1785964": {
+      "name": "鱼洞街道",
+      "source": "http://www.wikidata.org/entity/Q11172932"
+    },
+    "1788206": {
+      "name": "西向镇",
+      "source": "http://www.wikidata.org/entity/Q13790911"
+    },
+    "1788462": {
+      "name": "辛置镇",
+      "source": "http://www.wikidata.org/entity/Q14184959"
+    },
+    "1800498": {
+      "name": "明水街道",
+      "source": "http://www.wikidata.org/entity/Q14612367"
+    },
+    "1805618": {
+      "name": "竟陵街道",
+      "source": "http://www.wikidata.org/entity/Q28794447"
+    },
+    "1797575": {
+      "name": "秦南镇",
+      "source": "http://www.wikidata.org/entity/Q28794967"
+    },
+    "1812427": {
+      "name": "东坎街道",
+      "source": "http://www.wikidata.org/entity/Q28798414"
+    },
+    "1529574": {
+      "name": "布尔津县",
+      "source": "http://www.wikidata.org/entity/Q1016896"
+    },
+    "1279590": {
+      "name": "英吉沙县",
+      "source": "http://www.wikidata.org/entity/Q1023063"
+    },
+    "1529630": {
+      "name": "阿依库勒乡",
+      "source": "http://www.wikidata.org/entity/Q4831330"
+    },
+    "1816369": {
+      "name": "碧口镇",
+      "source": "http://www.wikidata.org/entity/Q4907432"
+    },
+    "1927558": {
+      "name": "雷锋街道",
+      "source": "http://www.wikidata.org/entity/Q6519487"
+    },
+    "1537890": {
+      "name": "四十里城子镇",
+      "source": "http://www.wikidata.org/entity/Q7530793"
+    },
+    "1786293": {
+      "name": "永宁镇",
+      "source": "http://www.wikidata.org/entity/Q8055035"
+    },
+    "1798078": {
+      "name": "七都镇",
+      "source": "http://www.wikidata.org/entity/Q10864776"
+    },
+    "1790807": {
+      "name": "下白石镇",
+      "source": "http://www.wikidata.org/entity/Q10868662"
+    },
+    "1784452": {
+      "name": "中潮镇",
+      "source": "http://www.wikidata.org/entity/Q10875844"
+    },
+    "1817891": {
+      "name": "敖市镇",
+      "source": "http://www.wikidata.org/entity/Q11079169"
+    },
+    "1786368": {
+      "name": "永从镇",
+      "source": "http://www.wikidata.org/entity/Q11131083"
+    },
+    "2036946": {
+      "name": "黑台镇",
+      "source": "http://www.wikidata.org/entity/Q11178922"
+    },
+    "1279524": {
+      "name": "藏桂乡",
+      "source": "http://www.wikidata.org/entity/Q14135850"
+    },
+    "1806627": {
+      "name": "霍童镇",
+      "source": "http://www.wikidata.org/entity/Q14460782"
+    },
+    "1815667": {
+      "name": "长堎镇",
+      "source": "http://www.wikidata.org/entity/Q28804519"
+    },
+    "2038529": {
+      "name": "白石山镇",
+      "source": "http://www.wikidata.org/entity/Q28809198"
+    },
+    "13308620": {
+      "name": "宝安区",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "440306",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.17,
+      "address": "广东省,深圳市,宝安区"
+    },
+    "7283386": {
+      "name": "常熟市",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320581",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.21,
+      "address": "江苏省,苏州市,常熟市"
+    },
+    "1812621": {
+      "name": "东村街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370687002",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.88,
+      "address": "山东省,烟台市,海阳市,东村街道"
+    },
+    "1808747": {
+      "name": "和村镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "130406104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.53,
+      "address": "河北省,邯郸市,峰峰矿区,和村镇"
+    },
+    "7304020": {
+      "name": "凤凰县",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "433123",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.11,
+      "address": "湖南省,湘西土家族苗族自治州,凤凰县"
+    },
+    "1799823": {
+      "name": "南桥镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "310120101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.68,
+      "address": "上海市,市辖区,奉贤区,南桥镇"
+    },
+    "12277239": {
+      "name": "云龙区",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320303",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.93,
+      "address": "江苏省,徐州市,云龙区"
+    },
+    "1803364": {
+      "name": "临朐县",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370724",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.95,
+      "address": "山东省,潍坊市,临朐县"
+    },
+    "1815669": {
+      "name": "昌乐县",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370725",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.13,
+      "address": "山东省,潍坊市,昌乐县"
+    },
+    "10942183": {
+      "name": "如皋市",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320682",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.88,
+      "address": "江苏省,南通市,如皋市"
+    },
+    "1788268": {
+      "name": "绣林街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "421081001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.1,
+      "address": "湖北省,荆州市,石首市,绣林街道"
+    },
+    "1798972": {
+      "name": "沛城街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.05,
+      "address": "江苏省,徐州市,沛县,沛城街道"
+    },
+    "2037620": {
+      "name": "东陵街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "210103023",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.22,
+      "address": "辽宁省,沈阳市,沈河区,东陵街道"
+    },
+    "2034638": {
+      "name": "苏家屯区",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "210111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.63,
+      "address": "辽宁省,沈阳市,苏家屯区"
+    },
+    "1786676": {
+      "name": "义马市",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "411281",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.69,
+      "address": "河南省,三门峡市,义马市"
+    },
+    "1805962": {
+      "name": "贾汪区",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320305",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.7,
+      "address": "江苏省,徐州市,贾汪区"
+    },
+    "1798473": {
+      "name": "蒲圻街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "421281001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.98,
+      "address": "湖北省,咸宁市,赤壁市,蒲圻街道"
+    },
+    "1813344": {
+      "name": "大武口区",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "640202",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.64,
+      "address": "宁夏回族自治区,石嘴山市,大武口区"
+    },
+    "1885823": {
+      "name": "江油市",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "510781",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.89,
+      "address": "四川省,绵阳市,江油市"
+    },
+    "1805543": {
+      "name": "景芝镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370784100",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.23,
+      "address": "山东省,潍坊市,安丘市,景芝镇"
+    },
+    "1789703": {
+      "name": "夏镇街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370826001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.31,
+      "address": "山东省,济宁市,微山县,夏镇街道"
+    },
+    "1796421": {
+      "name": "沙河城镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "130571103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.13,
+      "address": "河北省,邢台市,河北邢台经济开发区,沙河城镇"
+    },
+    "1815276": {
+      "name": "城固县",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "610722",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.01,
+      "address": "陕西省,汉中市,城固县"
+    },
+    "1791706": {
+      "name": "瓦窑堡街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "610681001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.81,
+      "address": "陕西省,延安市,子长市,瓦窑堡街道"
+    },
+    "2036337": {
+      "name": "开原市",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "211282",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.14,
+      "address": "辽宁省,铁岭市,开原市"
+    },
+    "1813425": {
+      "name": "大屯街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322002",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.11,
+      "address": "江苏省,徐州市,沛县,大屯街道"
+    },
+    "1803352": {
+      "name": "临水镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "130406100",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.05,
+      "address": "河北省,邯郸市,峰峰矿区,临水镇"
+    },
+    "1784820": {
+      "name": "兴化市",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "321281",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.22,
+      "address": "江苏省,泰州市,兴化市"
+    },
+    "2036418": {
+      "name": "吉舒街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "220283004",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.68,
+      "address": "吉林省,吉林市,舒兰市,吉舒街道"
+    },
+    "1788492": {
+      "name": "辛寨街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370724004",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.57,
+      "address": "山东省,潍坊市,临朐县,辛寨街道"
+    },
+    "1803522": {
+      "name": "凌河街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370784004",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.82,
+      "address": "山东省,潍坊市,安丘市,凌河街道"
+    },
+    "1809849": {
+      "name": "官湖镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.29,
+      "address": "江苏省,徐州市,邳州市,官湖镇"
+    },
+    "1807761": {
+      "name": "侯镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370783109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.88,
+      "address": "山东省,潍坊市,寿光市,侯镇"
+    },
+    "1810136": {
+      "name": "公馆镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450521106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.8,
+      "address": "广西壮族自治区,北海市,合浦县,公馆镇"
+    },
+    "1813755": {
+      "name": "稻田镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370783112",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.09,
+      "address": "山东省,潍坊市,寿光市,稻田镇"
+    },
+    "2037930": {
+      "name": "大赉乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "220882202",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.34,
+      "address": "吉林省,白城市,大安市,大赉乡"
+    },
+    "1805947": {
+      "name": "贾悦镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370782102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.09,
+      "address": "山东省,潍坊市,诸城市,贾悦镇"
+    },
+    "12324243": {
+      "name": "营丘镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370725116",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.6,
+      "address": "山东省,潍坊市,昌乐县,营丘镇"
+    },
+    "1813828": {
+      "name": "丹江口市",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "420381",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.09,
+      "address": "湖北省,十堰市,丹江口市"
+    },
+    "1788944": {
+      "name": "兴仁市",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522302",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 4.17,
+      "address": "贵州省,黔西南布依族苗族自治州,兴仁市"
+    },
+    "12324474": {
+      "name": "谭坊镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370781115",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.91,
+      "address": "山东省,潍坊市,青州市,谭坊镇"
+    },
+    "1817456": {
+      "name": "白沙镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450521107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.65,
+      "address": "广西壮族自治区,北海市,合浦县,白沙镇"
+    },
+    "1810668": {
+      "name": "甘棠镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "431321108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.9,
+      "address": "湖南省,娄底市,双峰县,甘棠镇"
+    },
+    "1789691": {
+      "name": "夏庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370785103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.0,
+      "address": "山东省,潍坊市,高密市,夏庄镇"
+    },
+    "1803402": {
+      "name": "林家村镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370782114",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.21,
+      "address": "山东省,潍坊市,诸城市,林家村镇"
+    },
+    "1808133": {
+      "name": "红河镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370725110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.38,
+      "address": "山东省,潍坊市,昌乐县,红河镇"
+    },
+    "1792795": {
+      "name": "铁富镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382115",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.73,
+      "address": "江苏省,徐州市,邳州市,铁富镇"
+    },
+    "1794825": {
+      "name": "十字路街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "371327001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.26,
+      "address": "山东省,临沂市,莒南县,十字路街道"
+    },
+    "1800107": {
+      "name": "南定镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370303101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.39,
+      "address": "山东省,淄博市,张店区,南定镇"
+    },
+    "12324303": {
+      "name": "东夏镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370781113",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.03,
+      "address": "山东省,潍坊市,青州市,东夏镇"
+    },
+    "1786515": {
+      "name": "饮马镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370786108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.49,
+      "address": "山东省,潍坊市,昌邑市,饮马镇"
+    },
+    "1799348": {
+      "name": "宁阳县",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370921",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.91,
+      "address": "山东省,泰安市,宁阳县"
+    },
+    "1813033": {
+      "name": "黎平县",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.37,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县"
+    },
+    "1789118": {
+      "name": "辛店街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370305003",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.24,
+      "address": "山东省,淄博市,临淄区,辛店街道"
+    },
+    "1798182": {
+      "name": "乔官镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370725107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.23,
+      "address": "山东省,潍坊市,昌乐县,乔官镇"
+    },
+    "1549817": {
+      "name": "安国镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322115",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.82,
+      "address": "江苏省,徐州市,沛县,安国镇"
+    },
+    "1811440": {
+      "name": "费城街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "371325001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.24,
+      "address": "山东省,临沂市,费县,费城街道"
+    },
+    "1795941": {
+      "name": "山亭区",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370406",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.49,
+      "address": "山东省,枣庄市,山亭区"
+    },
+    "1549667": {
+      "name": "碾庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.34,
+      "address": "江苏省,徐州市,邳州市,碾庄镇"
+    },
+    "1789649": {
+      "name": "西场镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450521102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.32,
+      "address": "广西壮族自治区,北海市,合浦县,西场镇"
+    },
+    "12324301": {
+      "name": "黄楼街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370781007",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.96,
+      "address": "山东省,潍坊市,青州市,黄楼街道"
+    },
+    "1549774": {
+      "name": "宋楼镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320321111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.57,
+      "address": "江苏省,徐州市,丰县,宋楼镇"
+    },
+    "1815847": {
+      "name": "柴沟镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370785114",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.52,
+      "address": "山东省,潍坊市,高密市,柴沟镇"
+    },
+    "1788452": {
+      "name": "新洲区",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "420117",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.27,
+      "address": "湖北省,武汉市,新洲区"
+    },
+    "1794971": {
+      "name": "石炭井街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "640202006",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.34,
+      "address": "宁夏回族自治区,石嘴山市,大武口区,石炭井街道"
+    },
+    "1807090": {
+      "name": "欢口镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320321105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.2,
+      "address": "江苏省,徐州市,丰县,欢口镇"
+    },
+    "12324287": {
+      "name": "柏城镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370785100",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.88,
+      "address": "山东省,潍坊市,高密市,柏城镇"
+    },
+    "1813927": {
+      "name": "大庙街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320371004",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.97,
+      "address": "江苏省,徐州市,徐州经济技术开发区,大庙街道"
+    },
+    "1784939": {
+      "name": "赵墩镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382123",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.08,
+      "address": "江苏省,徐州市,邳州市,赵墩镇"
+    },
+    "1797471": {
+      "name": "邱集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.51,
+      "address": "江苏省,徐州市,睢宁县,邱集镇"
+    },
+    "1794782": {
+      "name": "首羡镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320321102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.49,
+      "address": "江苏省,徐州市,丰县,首羡镇"
+    },
+    "1785022": {
+      "name": "张寨镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.16,
+      "address": "江苏省,徐州市,沛县,张寨镇"
+    },
+    "1549743": {
+      "name": "张庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.5,
+      "address": "江苏省,徐州市,沛县,张庄镇"
+    },
+    "12324304": {
+      "name": "何官镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370781111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.92,
+      "address": "山东省,潍坊市,青州市,何官镇"
+    },
+    "7290013": {
+      "name": "始兴县",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "440222",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.18,
+      "address": "广东省,韶关市,始兴县"
+    },
+    "1806188": {
+      "name": "姜庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370785104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.71,
+      "address": "山东省,潍坊市,高密市,姜庄镇"
+    },
+    "1807035": {
+      "name": "华山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320321107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.57,
+      "address": "江苏省,徐州市,丰县,华山镇"
+    },
+    "1795986": {
+      "name": "山口镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450521108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.0,
+      "address": "广西壮族自治区,北海市,合浦县,山口镇"
+    },
+    "12358513": {
+      "name": "风平镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "533103105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.95,
+      "address": "云南省,德宏傣族景颇族自治州,芒市,风平镇"
+    },
+    "1805884": {
+      "name": "界湖街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "371321001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.18,
+      "address": "山东省,临沂市,沂南县,界湖街道"
+    },
+    "1798946": {
+      "name": "彭城镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "130406106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.84,
+      "address": "河北省,邯郸市,峰峰矿区,彭城镇"
+    },
+    "1801850": {
+      "name": "雒容镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450203100",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.5,
+      "address": "广西壮族自治区,柳州市,鱼峰区,雒容镇"
+    },
+    "1810472": {
+      "name": "高柳镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370781109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.47,
+      "address": "山东省,潍坊市,青州市,高柳镇"
+    },
+    "1792936": {
+      "name": "田柳镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370783106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.41,
+      "address": "山东省,潍坊市,寿光市,田柳镇"
+    },
+    "12279164": {
+      "name": "王沟镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320321113",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.82,
+      "address": "江苏省,徐州市,丰县,王沟镇"
+    },
+    "12324473": {
+      "name": "邵庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370781105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.88,
+      "address": "山东省,潍坊市,青州市,邵庄镇"
+    },
+    "1815184": {
+      "name": "城阳街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "371122001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 4.55,
+      "address": "山东省,日照市,莒县,城阳街道"
+    },
+    "12277246": {
+      "name": "大许镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312118",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.34,
+      "address": "江苏省,徐州市,铜山区,大许镇"
+    },
+    "1816620": {
+      "name": "北孟镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370786109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.76,
+      "address": "山东省,潍坊市,昌邑市,北孟镇"
+    },
+    "1786969": {
+      "name": "姚集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324113",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.75,
+      "address": "江苏省,徐州市,睢宁县,姚集镇"
+    },
+    "1280951": {
+      "name": "界头镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530581106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.62,
+      "address": "云南省,保山市,腾冲市,界头镇"
+    },
+    "1816813": {
+      "name": "八义集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.88,
+      "address": "江苏省,徐州市,邳州市,八义集镇"
+    },
+    "1796186": {
+      "name": "上口镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370783108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.84,
+      "address": "山东省,潍坊市,寿光市,上口镇"
+    },
+    "1807467": {
+      "name": "皇华镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370782117",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.12,
+      "address": "山东省,潍坊市,诸城市,皇华镇"
+    },
+    "2033423": {
+      "name": "叶柏寿街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "211322001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.56,
+      "address": "辽宁省,朝阳市,建平县,叶柏寿街道"
+    },
+    "1816406": {
+      "name": "卞庄街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "371324001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 4.19,
+      "address": "山东省,临沂市,兰陵县,卞庄街道"
+    },
+    "1793747": {
+      "name": "宿羊山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.43,
+      "address": "江苏省,徐州市,邳州市,宿羊山镇"
+    },
+    "1802880": {
+      "name": "柳新镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.03,
+      "address": "江苏省,徐州市,铜山区,柳新镇"
+    },
+    "1815971": {
+      "name": "草桥镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320381106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.94,
+      "address": "江苏省,徐州市,新沂市,草桥镇"
+    },
+    "1804645": {
+      "name": "昆阳镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "330326100",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.96,
+      "address": "浙江省,温州市,平阳县,昆阳镇"
+    },
+    "1795241": {
+      "name": "石康镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450521111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.1,
+      "address": "广西壮族自治区,北海市,合浦县,石康镇"
+    },
+    "1798973": {
+      "name": "邳城镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.97,
+      "address": "江苏省,徐州市,邳州市,邳城镇"
+    },
+    "1787646": {
+      "name": "杨村街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "120114001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.94,
+      "address": "天津市,市辖区,武清区,杨村街道"
+    },
+    "1802020": {
+      "name": "鹿楼镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322113",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.84,
+      "address": "江苏省,徐州市,沛县,鹿楼镇"
+    },
+    "1815779": {
+      "name": "昌城镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370782110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.97,
+      "address": "山东省,潍坊市,诸城市,昌城镇"
+    },
+    "1549819": {
+      "name": "师寨镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320321106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.78,
+      "address": "江苏省,徐州市,丰县,师寨镇"
+    },
+    "12324298": {
+      "name": "井沟镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370785111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.16,
+      "address": "山东省,潍坊市,高密市,井沟镇"
+    },
+    "1549756": {
+      "name": "范楼镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320321109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.7,
+      "address": "江苏省,徐州市,丰县,范楼镇"
+    },
+    "1797715": {
+      "name": "青树坪镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "431321110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.06,
+      "address": "湖南省,娄底市,双峰县,青树坪镇"
+    },
+    "1815678": {
+      "name": "常乐镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450521112",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.81,
+      "address": "广西壮族自治区,北海市,合浦县,常乐镇"
+    },
+    "12358566": {
+      "name": "庙街镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "532927102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.89,
+      "address": "云南省,大理白族自治州,巍山彝族回族自治县,庙街镇"
+    },
+    "1785980": {
+      "name": "鱼城镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370827102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.46,
+      "address": "山东省,济宁市,鱼台县,鱼城镇"
+    },
+    "1785222": {
+      "name": "张集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312112",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.02,
+      "address": "江苏省,徐州市,铜山区,张集镇"
+    },
+    "1811184": {
+      "name": "凤仪镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "532901103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.99,
+      "address": "云南省,大理白族自治州,大理市,凤仪镇"
+    },
+    "1800101": {
+      "name": "南渡镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450481103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.43,
+      "address": "广西壮族自治区,梧州市,岑溪市,南渡镇"
+    },
+    "1793139": {
+      "name": "涛雒镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "371102110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.89,
+      "address": "山东省,日照市,东港区,涛雒镇"
+    },
+    "1790434": {
+      "name": "相州镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370782108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.75,
+      "address": "山东省,潍坊市,诸城市,相州镇"
+    },
+    "1800006": {
+      "name": "南湖镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "371102108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.94,
+      "address": "山东省,日照市,东港区,南湖镇"
+    },
+    "1786910": {
+      "name": "窑湾镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320381107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.48,
+      "address": "江苏省,徐州市,新沂市,窑湾镇"
+    },
+    "12324508": {
+      "name": "台头镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370783104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.93,
+      "address": "山东省,潍坊市,寿光市,台头镇"
+    },
+    "1791161": {
+      "name": "五井镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370724101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.86,
+      "address": "山东省,潍坊市,临朐县,五井镇"
+    },
+    "12324486": {
+      "name": "古城街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370783004",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.72,
+      "address": "山东省,潍坊市,寿光市,古城街道"
+    },
+    "1793089": {
+      "name": "陶庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370403104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.84,
+      "address": "山东省,枣庄市,薛城区,陶庄镇"
+    },
+    "12324248": {
+      "name": "辉渠镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370784119",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.86,
+      "address": "山东省,潍坊市,安丘市,辉渠镇"
+    },
+    "1549691": {
+      "name": "塔山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320305105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.74,
+      "address": "江苏省,徐州市,贾汪区,塔山镇"
+    },
+    "1802640": {
+      "name": "龙固镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.43,
+      "address": "江苏省,徐州市,沛县,龙固镇"
+    },
+    "1786720": {
+      "name": "宜沟镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "410523104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.11,
+      "address": "河南省,安阳市,汤阴县,宜沟镇"
+    },
+    "1793774": {
+      "name": "索镇街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370321001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.03,
+      "address": "山东省,淄博市,桓台县,索镇街道"
+    },
+    "1795029": {
+      "name": "石桥子镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370782105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.45,
+      "address": "山东省,潍坊市,诸城市,石桥子镇"
+    },
+    "2033739": {
+      "name": "兴隆山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "220171100",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.46,
+      "address": "吉林省,长春市,长春经济技术开发区,兴隆山镇"
+    },
+    "1795470": {
+      "name": "石埠子镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370784111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.1,
+      "address": "山东省,潍坊市,安丘市,石埠子镇"
+    },
+    "12324233": {
+      "name": "敬安镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.26,
+      "address": "江苏省,徐州市,沛县,敬安镇"
+    },
+    "1801243": {
+      "name": "茅村镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312119",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.99,
+      "address": "江苏省,徐州市,铜山区,茅村镇"
+    },
+    "2033449": {
+      "name": "烟筒山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "220284100",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.99,
+      "address": "吉林省,吉林市,磐石市,烟筒山镇"
+    },
+    "12324512": {
+      "name": "营里镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370783103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.0,
+      "address": "山东省,潍坊市,寿光市,营里镇"
+    },
+    "1549804": {
+      "name": "朱寨镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322114",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.66,
+      "address": "江苏省,徐州市,沛县,朱寨镇"
+    },
+    "1805515": {
+      "name": "金鸡镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450422106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.56,
+      "address": "广西壮族自治区,梧州市,藤县,金鸡镇"
+    },
+    "12358569": {
+      "name": "三川镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530722104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.83,
+      "address": "云南省,丽江市,永胜县,三川镇"
+    },
+    "2037913": {
+      "name": "凌海市",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "210781",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.37,
+      "address": "辽宁省,锦州市,凌海市"
+    },
+    "1549660": {
+      "name": "徐庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320371101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.47,
+      "address": "江苏省,徐州市,徐州经济技术开发区,徐庄镇"
+    },
+    "1921372": {
+      "name": "大连湾街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "210211017",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.1,
+      "address": "辽宁省,大连市,甘井子区,大连湾街道"
+    },
+    "12358614": {
+      "name": "朱衣镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "500236124",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.64,
+      "address": "重庆市,县,奉节县,朱衣镇"
+    },
+    "1549362": {
+      "name": "岚山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.98,
+      "address": "江苏省,徐州市,睢宁县,岚山镇"
+    },
+    "1818165": {
+      "name": "阿湖镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320381115",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.93,
+      "address": "江苏省,徐州市,新沂市,阿湖镇"
+    },
+    "2036734": {
+      "name": "黄泥河镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "222403101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.07,
+      "address": "吉林省,延边朝鲜族自治州,敦化市,黄泥河镇"
+    },
+    "1549696": {
+      "name": "刘集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.86,
+      "address": "江苏省,徐州市,铜山区,刘集镇"
+    },
+    "1803940": {
+      "name": "梁寨镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320321108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.95,
+      "address": "江苏省,徐州市,丰县,梁寨镇"
+    },
+    "1792052": {
+      "name": "王集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.74,
+      "address": "江苏省,徐州市,睢宁县,王集镇"
+    },
+    "1811583": {
+      "name": "房村镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312113",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.9,
+      "address": "江苏省,徐州市,铜山区,房村镇"
+    },
+    "12358567": {
+      "name": "永建镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "532927104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.93,
+      "address": "云南省,大理白族自治州,巍山彝族回族自治县,永建镇"
+    },
+    "1803549": {
+      "name": "凌城镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.99,
+      "address": "江苏省,徐州市,睢宁县,凌城镇"
+    },
+    "1795026": {
+      "name": "石泉县",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "610922",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.73,
+      "address": "陕西省,安康市,石泉县"
+    },
+    "1787297": {
+      "name": "杨屯镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.04,
+      "address": "江苏省,徐州市,沛县,杨屯镇"
+    },
+    "12358568": {
+      "name": "右所镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "532930103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.8,
+      "address": "云南省,大理白族自治州,洱源县,右所镇"
+    },
+    "1549810": {
+      "name": "赵庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320321114",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.81,
+      "address": "江苏省,徐州市,丰县,赵庄镇"
+    },
+    "1549622": {
+      "name": "棠张镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.58,
+      "address": "江苏省,徐州市,铜山区,棠张镇"
+    },
+    "12324550": {
+      "name": "灵武市",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "640181",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.93,
+      "address": "宁夏回族自治区,银川市,灵武市"
+    },
+    "1793102": {
+      "name": "桃园镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 4.54,
+      "address": "江苏省,徐州市,睢宁县,桃园镇"
+    },
+    "1549428": {
+      "name": "马陵山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320381109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.74,
+      "address": "江苏省,徐州市,新沂市,马陵山镇"
+    },
+    "12324487": {
+      "name": "化龙镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370783100",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.08,
+      "address": "山东省,潍坊市,寿光市,化龙镇"
+    },
+    "1798462": {
+      "name": "铺集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370281105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.16,
+      "address": "山东省,青岛市,胶州市,铺集镇"
+    },
+    "12277245": {
+      "name": "大彭镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.85,
+      "address": "江苏省,徐州市,铜山区,大彭镇"
+    },
+    "1796506": {
+      "name": "三庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "371102109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.33,
+      "address": "山东省,日照市,东港区,三庄镇"
+    },
+    "12324507": {
+      "name": "纪台镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370783111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.82,
+      "address": "山东省,潍坊市,寿光市,纪台镇"
+    },
+    "1549693": {
+      "name": "紫庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320305104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.01,
+      "address": "江苏省,徐州市,贾汪区,紫庄镇"
+    },
+    "1549360": {
+      "name": "梁集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324115",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.46,
+      "address": "江苏省,徐州市,睢宁县,梁集镇"
+    },
+    "12279163": {
+      "name": "大沙河镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320321112",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.4,
+      "address": "江苏省,徐州市,丰县,大沙河镇"
+    },
+    "1791638": {
+      "name": "魏庙镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.01,
+      "address": "江苏省,徐州市,沛县,魏庙镇"
+    },
+    "1797505": {
+      "name": "栖山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322112",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.98,
+      "address": "江苏省,徐州市,沛县,栖山镇"
+    },
+    "1802949": {
+      "name": "柳泉镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312120",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.65,
+      "address": "江苏省,徐州市,铜山区,柳泉镇"
+    },
+    "1279471": {
+      "name": "遮放镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "533103102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.85,
+      "address": "云南省,德宏傣族景颇族自治州,芒市,遮放镇"
+    },
+    "1549538": {
+      "name": "港上镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.12,
+      "address": "江苏省,徐州市,邳州市,港上镇"
+    },
+    "1898013": {
+      "name": "官山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.45,
+      "address": "江苏省,徐州市,睢宁县,官山镇"
+    },
+    "1809646": {
+      "name": "官庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370784104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.5,
+      "address": "山东省,潍坊市,安丘市,官庄镇"
+    },
+    "1815758": {
+      "name": "常店镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320321104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.82,
+      "address": "江苏省,徐州市,丰县,常店镇"
+    },
+    "1549747": {
+      "name": "邢楼镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382119",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.57,
+      "address": "江苏省,徐州市,邳州市,邢楼镇"
+    },
+    "12324439": {
+      "name": "弥河镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370781100",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.96,
+      "address": "山东省,潍坊市,青州市,弥河镇"
+    },
+    "12277995": {
+      "name": "贾汪区",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320305",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.18,
+      "address": "江苏省,徐州市,贾汪区"
+    },
+    "1809250": {
+      "name": "古邳镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324112",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.66,
+      "address": "江苏省,徐州市,睢宁县,古邳镇"
+    },
+    "12277244": {
+      "name": "新河镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382112",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.31,
+      "address": "江苏省,徐州市,邳州市,新河镇"
+    },
+    "12324552": {
+      "name": "宁东镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "640181103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.49,
+      "address": "宁夏回族自治区,银川市,灵武市,宁东镇"
+    },
+    "1810473": {
+      "name": "高流镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320381114",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.21,
+      "address": "江苏省,徐州市,新沂市,高流镇"
+    },
+    "1802901": {
+      "name": "柳疃镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370786101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.39,
+      "address": "山东省,潍坊市,昌邑市,柳疃镇"
+    },
+    "1549500": {
+      "name": "陈楼镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382118",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.18,
+      "address": "江苏省,徐州市,邳州市,陈楼镇"
+    },
+    "1549365": {
+      "name": "庆安镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324116",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.91,
+      "address": "江苏省,徐州市,睢宁县,庆安镇"
+    },
+    "1791663": {
+      "name": "魏集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324114",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.03,
+      "address": "江苏省,徐州市,睢宁县,魏集镇"
+    },
+    "1792105": {
+      "name": "王坟镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370781101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.95,
+      "address": "山东省,潍坊市,青州市,王坟镇"
+    },
+    "1930074": {
+      "name": "三塘铺镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "431321109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.91,
+      "address": "湖南省,娄底市,双峰县,三塘铺镇"
+    },
+    "1794348": {
+      "name": "顺河镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320321103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.92,
+      "address": "江苏省,徐州市,丰县,顺河镇"
+    },
+    "10378130": {
+      "name": "共青城市",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "360482",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.15,
+      "address": "江西省,九江市,共青城市"
+    },
+    "1549771": {
+      "name": "河口镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.47,
+      "address": "江苏省,徐州市,沛县,河口镇"
+    },
+    "1549635": {
+      "name": "汉王镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.37,
+      "address": "江苏省,徐州市,铜山区,汉王镇"
+    },
+    "1549795": {
+      "name": "孙楼街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320321003",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.82,
+      "address": "江苏省,徐州市,丰县,孙楼街道"
+    },
+    "1914252": {
+      "name": "南彭街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "500113009",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.87,
+      "address": "重庆市,市辖区,巴南区,南彭街道"
+    },
+    "1796385": {
+      "name": "沙集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.0,
+      "address": "江苏省,徐州市,睢宁县,沙集镇"
+    },
+    "12358475": {
+      "name": "三棵树镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522601100",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.95,
+      "address": "贵州省,黔东南苗族侗族自治州,凯里市,三棵树镇"
+    },
+    "1816412": {
+      "name": "汴塘镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320305106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.41,
+      "address": "江苏省,徐州市,贾汪区,汴塘镇"
+    },
+    "1815345": {
+      "name": "车辐山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382121",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.29,
+      "address": "江苏省,徐州市,邳州市,车辐山镇"
+    },
+    "1794725": {
+      "name": "双沟镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.71,
+      "address": "江苏省,徐州市,睢宁县,双沟镇"
+    },
+    "1281157": {
+      "name": "固东镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530581102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.16,
+      "address": "云南省,保山市,腾冲市,固东镇"
+    },
+    "1798763": {
+      "name": "平利县",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "610926",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.43,
+      "address": "陕西省,安康市,平利县"
+    },
+    "1549554": {
+      "name": "邹庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.99,
+      "address": "江苏省,徐州市,邳州市,邹庄镇"
+    },
+    "1813868": {
+      "name": "党江镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450521101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.43,
+      "address": "广西壮族自治区,北海市,合浦县,党江镇"
+    },
+    "12358514": {
+      "name": "弄璋镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "533123104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.78,
+      "address": "云南省,德宏傣族景颇族自治州,盈江县,弄璋镇"
+    },
+    "1787292": {
+      "name": "盐官镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621226101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.25,
+      "address": "甘肃省,陇南市,礼县,盐官镇"
+    },
+    "1280023": {
+      "name": "上允镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530828102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.34,
+      "address": "云南省,普洱市,澜沧拉祜族自治县,上允镇"
+    },
+    "1814272": {
+      "name": "大黄山街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320371003",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.83,
+      "address": "江苏省,徐州市,徐州经济技术开发区,大黄山街道"
+    },
+    "1549510": {
+      "name": "合沟镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320381105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.42,
+      "address": "江苏省,徐州市,新沂市,合沟镇"
+    },
+    "1797514": {
+      "name": "企沙镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450602100",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.97,
+      "address": "广西壮族自治区,防城港市,港口区,企沙镇"
+    },
+    "1805117": {
+      "name": "九山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370724105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.79,
+      "address": "山东省,潍坊市,临朐县,九山镇"
+    },
+    "12277243": {
+      "name": "新店镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320381110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.8,
+      "address": "江苏省,徐州市,新沂市,新店镇"
+    },
+    "1797766": {
+      "name": "青山泉镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320305102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.28,
+      "address": "江苏省,徐州市,贾汪区,青山泉镇"
+    },
+    "1816535": {
+      "name": "北王力乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "130608204",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.54,
+      "address": "河北省,保定市,清苑区,北王力乡"
+    },
+    "1810279": {
+      "name": "高作镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.82,
+      "address": "江苏省,徐州市,睢宁县,高作镇"
+    },
+    "1784527": {
+      "name": "枳沟镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370782101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.73,
+      "address": "山东省,潍坊市,诸城市,枳沟镇"
+    },
+    "1807452": {
+      "name": "黄集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.15,
+      "address": "江苏省,徐州市,铜山区,黄集镇"
+    },
+    "1784697": {
+      "name": "郑集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.63,
+      "address": "江苏省,徐州市,铜山区,郑集镇"
+    },
+    "1806282": {
+      "name": "江平镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450681101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.33,
+      "address": "广西壮族自治区,防城港市,东兴市,江平镇"
+    },
+    "1817762": {
+      "name": "百尺河镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370782111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.64,
+      "address": "山东省,潍坊市,诸城市,百尺河镇"
+    },
+    "1792301": {
+      "name": "土山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.93,
+      "address": "江苏省,徐州市,邳州市,土山镇"
+    },
+    "1549741": {
+      "name": "戴庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382120",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.13,
+      "address": "江苏省,徐州市,邳州市,戴庄镇"
+    },
+    "1280186": {
+      "name": "曲石镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530581107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.17,
+      "address": "云南省,保山市,腾冲市,曲石镇"
+    },
+    "12324553": {
+      "name": "望远镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "640121102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.81,
+      "address": "宁夏回族自治区,银川市,永宁县,望远镇"
+    },
+    "1897997": {
+      "name": "五段镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.41,
+      "address": "江苏省,徐州市,沛县,五段镇"
+    },
+    "1795320": {
+      "name": "时集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320381113",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.44,
+      "address": "江苏省,徐州市,新沂市,时集镇"
+    },
+    "1800217": {
+      "name": "那良镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450603104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.56,
+      "address": "广西壮族自治区,防城港市,防城区,那良镇"
+    },
+    "1814882": {
+      "name": "崇兴镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "640181102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.32,
+      "address": "宁夏回族自治区,银川市,灵武市,崇兴镇"
+    },
+    "1817932": {
+      "name": "安远镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "620523104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.07,
+      "address": "甘肃省,天水市,甘谷县,安远镇"
+    },
+    "1794254": {
+      "name": "四户镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.37,
+      "address": "江苏省,徐州市,邳州市,四户镇"
+    },
+    "1794948": {
+      "name": "石湾镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450521110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 4.96,
+      "address": "广西壮族自治区,北海市,合浦县,石湾镇"
+    },
+    "12358542": {
+      "name": "明光镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530581108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.76,
+      "address": "云南省,保山市,腾冲市,明光镇"
+    },
+    "1810725": {
+      "name": "港头镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320381103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.09,
+      "address": "江苏省,徐州市,新沂市,港头镇"
+    },
+    "12358570": {
+      "name": "程海镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530722105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.83,
+      "address": "云南省,丽江市,永胜县,程海镇"
+    },
+    "1803698": {
+      "name": "李集镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320324105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.04,
+      "address": "江苏省,徐州市,睢宁县,李集镇"
+    },
+    "12358540": {
+      "name": "芒棒镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530581110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.23,
+      "address": "云南省,保山市,腾冲市,芒棒镇"
+    },
+    "12324249": {
+      "name": "金冢子镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370784121",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.13,
+      "address": "山东省,潍坊市,安丘市,金冢子镇"
+    },
+    "1817137": {
+      "name": "八路镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382113",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.14,
+      "address": "江苏省,徐州市,邳州市,八路镇"
+    },
+    "1788561": {
+      "name": "辛兴镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370782112",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.15,
+      "address": "山东省,潍坊市,诸城市,辛兴镇"
+    },
+    "1785345": {
+      "name": "占城镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.28,
+      "address": "江苏省,徐州市,邳州市,占城镇"
+    },
+    "12324438": {
+      "name": "庙子镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370781103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.88,
+      "address": "山东省,潍坊市,青州市,庙子镇"
+    },
+    "2037416": {
+      "name": "法特镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "220283100",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.54,
+      "address": "吉林省,吉林市,舒兰市,法特镇"
+    },
+    "1802441": {
+      "name": "龙山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "620525101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.56,
+      "address": "甘肃省,天水市,张家川回族自治县,龙山镇"
+    },
+    "1907975": {
+      "name": "金山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "620523105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.99,
+      "address": "甘肃省,天水市,甘谷县,金山镇"
+    },
+    "1279575": {
+      "name": "营盘镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "533325103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.92,
+      "address": "云南省,怒江傈僳族自治州,兰坪白族普米族自治县,营盘镇"
+    },
+    "1791707": {
+      "name": "瓦窑镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320381102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.95,
+      "address": "江苏省,徐州市,新沂市,瓦窑镇"
+    },
+    "1797962": {
+      "name": "期纳镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530722103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.8,
+      "address": "云南省,丽江市,永胜县,期纳镇"
+    },
+    "12358511": {
+      "name": "竹塘乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530828213",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.38,
+      "address": "云南省,普洱市,澜沧拉祜族自治县,竹塘乡"
+    },
+    "1795411": {
+      "name": "石堆镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370784112",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.15,
+      "address": "山东省,潍坊市,安丘市,石堆镇"
+    },
+    "1801098": {
+      "name": "马坡镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.19,
+      "address": "江苏省,徐州市,铜山区,马坡镇"
+    },
+    "12450867": {
+      "name": "普恰克其镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "653222104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.86,
+      "address": "新疆维吾尔自治区,和田地区,墨玉县,普恰克其镇"
+    },
+    "1549754": {
+      "name": "何桥镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.74,
+      "address": "江苏省,徐州市,铜山区,何桥镇"
+    },
+    "1786408": {
+      "name": "伊庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320312114",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.93,
+      "address": "江苏省,徐州市,铜山区,伊庄镇"
+    },
+    "1784750": {
+      "name": "者楼街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522327001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.37,
+      "address": "贵州省,黔西南布依族苗族自治州,册亨县,者楼街道"
+    },
+    "12324245": {
+      "name": "柳山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370724113",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.8,
+      "address": "山东省,潍坊市,临朐县,柳山镇"
+    },
+    "12324259": {
+      "name": "吾山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370784120",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.35,
+      "address": "山东省,潍坊市,安丘市,吾山镇"
+    },
+    "12358564": {
+      "name": "五合乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530581204",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.88,
+      "address": "云南省,保山市,腾冲市,五合乡"
+    },
+    "1809338": {
+      "name": "郭扶镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "500110116",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.96,
+      "address": "重庆市,市辖区,綦江区,郭扶镇"
+    },
+    "1808829": {
+      "name": "郝家桥镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "640181101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.5,
+      "address": "宁夏回族自治区,银川市,灵武市,郝家桥镇"
+    },
+    "1795880": {
+      "name": "邵店镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320381111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.97,
+      "address": "江苏省,徐州市,新沂市,邵店镇"
+    },
+    "1797106": {
+      "name": "荣将镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530723102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 4.74,
+      "address": "云南省,丽江市,华坪县,荣将镇"
+    },
+    "1549750": {
+      "name": "胡寨镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320322105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.11,
+      "address": "江苏省,徐州市,沛县,胡寨镇"
+    },
+    "1907959": {
+      "name": "安伏镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "620522108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.16,
+      "address": "甘肃省,天水市,秦安县,安伏镇"
+    },
+    "12358571": {
+      "name": "顺州镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530722109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.38,
+      "address": "云南省,丽江市,永胜县,顺州镇"
+    },
+    "1549734": {
+      "name": "江庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320305107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 4.54,
+      "address": "江苏省,徐州市,贾汪区,江庄镇"
+    },
+    "1907961": {
+      "name": "八里湾镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "620523111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.87,
+      "address": "甘肃省,天水市,甘谷县,八里湾镇"
+    },
+    "12324247": {
+      "name": "大盛镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370784107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.76,
+      "address": "山东省,潍坊市,安丘市,大盛镇"
+    },
+    "1793142": {
+      "name": "桃林镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370782118",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.15,
+      "address": "山东省,潍坊市,诸城市,桃林镇"
+    },
+    "12277242": {
+      "name": "双塘镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320381116",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.89,
+      "address": "江苏省,徐州市,新沂市,双塘镇"
+    },
+    "1796449": {
+      "name": "沙岗镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450521103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.9,
+      "address": "广西壮族自治区,北海市,合浦县,沙岗镇"
+    },
+    "1815856": {
+      "name": "岔河镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382116",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.3,
+      "address": "江苏省,徐州市,邳州市,岔河镇"
+    },
+    "12358515": {
+      "name": "太平镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "533123108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.64,
+      "address": "云南省,德宏傣族景颇族自治州,盈江县,太平镇"
+    },
+    "12358445": {
+      "name": "西湖镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "371102106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.3,
+      "address": "山东省,日照市,东港区,西湖镇"
+    },
+    "1805576": {
+      "name": "金贵镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "640122101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.21,
+      "address": "宁夏回族自治区,银川市,贺兰县,金贵镇"
+    },
+    "12358510": {
+      "name": "糯扎渡镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530828103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.02,
+      "address": "云南省,普洱市,澜沧拉祜族自治县,糯扎渡镇"
+    },
+    "1907994": {
+      "name": "石桥镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621226102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.45,
+      "address": "甘肃省,陇南市,礼县,石桥镇"
+    },
+    "12358444": {
+      "name": "河山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "371102100",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.05,
+      "address": "山东省,日照市,东港区,河山镇"
+    },
+    "12324260": {
+      "name": "柘山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370784118",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.29,
+      "address": "山东省,潍坊市,安丘市,柘山镇"
+    },
+    "1549651": {
+      "name": "议堂镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382124",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.23,
+      "address": "江苏省,徐州市,邳州市,议堂镇"
+    },
+    "12277237": {
+      "name": "银桥镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "532901108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.01,
+      "address": "云南省,大理白族自治州,大理市,银桥镇"
+    },
+    "1804687": {
+      "name": "矿市街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "130107001",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.1,
+      "address": "河北省,石家庄市,井陉矿区,矿市街道"
+    },
+    "12324555": {
+      "name": "李俊镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "640121101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.08,
+      "address": "宁夏回族自治区,银川市,永宁县,李俊镇"
+    },
+    "1907965": {
+      "name": "大石镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "620523106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.14,
+      "address": "甘肃省,天水市,甘谷县,大石镇"
+    },
+    "1907977": {
+      "name": "宽川镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621226104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.71,
+      "address": "甘肃省,陇南市,礼县,宽川镇"
+    },
+    "12358541": {
+      "name": "马站乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530581201",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.88,
+      "address": "云南省,保山市,腾冲市,马站乡"
+    },
+    "12358543": {
+      "name": "蒲川乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530581206",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.9,
+      "address": "云南省,保山市,腾冲市,蒲川乡"
+    },
+    "1794461": {
+      "name": "水口镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.17,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,水口镇"
+    },
+    "1814430": {
+      "name": "大风洞镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522601111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.65,
+      "address": "贵州省,黔东南苗族侗族自治州,凯里市,大风洞镇"
+    },
+    "12324285": {
+      "name": "龙池镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370786102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.83,
+      "address": "山东省,潍坊市,昌邑市,龙池镇"
+    },
+    "1787019": {
+      "name": "燕子埠镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "320382122",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.97,
+      "address": "江苏省,徐州市,邳州市,燕子埠镇"
+    },
+    "1789787": {
+      "name": "下司镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522601109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.33,
+      "address": "贵州省,黔东南苗族侗族自治州,凯里市,下司镇"
+    },
+    "12489793": {
+      "name": "扶欢镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "500110120",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.08,
+      "address": "重庆市,市辖区,綦江区,扶欢镇"
+    },
+    "1815494": {
+      "name": "常信乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "640122200",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.17,
+      "address": "宁夏回族自治区,银川市,贺兰县,常信乡"
+    },
+    "1801740": {
+      "name": "炉山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522601105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.35,
+      "address": "贵州省,黔东南苗族侗族自治州,凯里市,炉山镇"
+    },
+    "12358539": {
+      "name": "荷花镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530581111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.31,
+      "address": "云南省,保山市,腾冲市,荷花镇"
+    },
+    "1795587": {
+      "name": "陈疃镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "371102107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.27,
+      "address": "山东省,日照市,东港区,陈疃镇"
+    },
+    "12324554": {
+      "name": "闽宁镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "640121104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.03,
+      "address": "宁夏回族自治区,银川市,永宁县,闽宁镇"
+    },
+    "1798886": {
+      "name": "片角镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530722108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.12,
+      "address": "云南省,丽江市,永胜县,片角镇"
+    },
+    "12324549": {
+      "name": "立岗镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "640122102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.46,
+      "address": "宁夏回族自治区,银川市,贺兰县,立岗镇"
+    },
+    "12358508": {
+      "name": "南岭乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530828206",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.87,
+      "address": "云南省,普洱市,澜沧拉祜族自治县,南岭乡"
+    },
+    "12358477": {
+      "name": "星岛湖镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450521113",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.43,
+      "address": "广西壮族自治区,北海市,合浦县,星岛湖镇"
+    },
+    "1810672": {
+      "name": "甘棠镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "431229101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.7,
+      "address": "湖南省,怀化市,靖州苗族侗族自治县,甘棠镇"
+    },
+    "12324286": {
+      "name": "下营镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "370786112",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.56,
+      "address": "山东省,潍坊市,昌邑市,下营镇"
+    },
+    "1799084": {
+      "name": "旁海镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522601103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.03,
+      "address": "贵州省,黔东南苗族侗族自治州,凯里市,旁海镇"
+    },
+    "1786232": {
+      "name": "永兴镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621226105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.96,
+      "address": "甘肃省,陇南市,礼县,永兴镇"
+    },
+    "12358504": {
+      "name": "富邦乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530828214",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.73,
+      "address": "云南省,普洱市,澜沧拉祜族自治县,富邦乡"
+    },
+    "1280921": {
+      "name": "巨甸镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530721103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.92,
+      "address": "云南省,丽江市,玉龙纳西族自治县,巨甸镇"
+    },
+    "1807916": {
+      "name": "洪州镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.35,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,洪州镇"
+    },
+    "12277236": {
+      "name": "海东镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "532901105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.98,
+      "address": "云南省,大理白族自治州,大理市,海东镇"
+    },
+    "12358573": {
+      "name": "新营盘乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530724213",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.85,
+      "address": "云南省,丽江市,宁蒗彝族自治县,新营盘乡"
+    },
+    "1280006": {
+      "name": "石鼓镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530721102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.6,
+      "address": "云南省,丽江市,玉龙纳西族自治县,石鼓镇"
+    },
+    "12277238": {
+      "name": "湾桥镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "532901107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.89,
+      "address": "云南省,大理白族自治州,大理市,湾桥镇"
+    },
+    "1790938": {
+      "name": "梧桐树乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "640181200",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.55,
+      "address": "宁夏回族自治区,银川市,灵武市,梧桐树乡"
+    },
+    "1907960": {
+      "name": "白家湾乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "620523207",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.3,
+      "address": "甘肃省,天水市,甘谷县,白家湾乡"
+    },
+    "12358574": {
+      "name": "石龙坝镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530723104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.09,
+      "address": "云南省,丽江市,华坪县,石龙坝镇"
+    },
+    "12358575": {
+      "name": "红桥镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530724103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.91,
+      "address": "云南省,丽江市,宁蒗彝族自治县,红桥镇"
+    },
+    "2034325": {
+      "name": "图强镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "232701101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 4.76,
+      "address": "黑龙江省,大兴安岭地区,漠河市,图强镇"
+    },
+    "1529504": {
+      "name": "富蕴县",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "654322",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.21,
+      "address": "新疆维吾尔自治区,阿勒泰地区,富蕴县"
+    },
+    "1802695": {
+      "name": "龙场镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522601107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.06,
+      "address": "贵州省,黔东南苗族侗族自治州,凯里市,龙场镇"
+    },
+    "12358509": {
+      "name": "糯福乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530828203",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.08,
+      "address": "云南省,普洱市,澜沧拉祜族自治县,糯福乡"
+    },
+    "1905431": {
+      "name": "凯棠镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522601110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.57,
+      "address": "贵州省,黔东南苗族侗族自治州,凯里市,凯棠镇"
+    },
+    "1906074": {
+      "name": "九潮镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.15,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,九潮镇"
+    },
+    "1908016": {
+      "name": "永坪镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621226108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.87,
+      "address": "甘肃省,陇南市,礼县,永坪镇"
+    },
+    "1905846": {
+      "name": "碧波镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522601108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.66,
+      "address": "贵州省,黔东南苗族侗族自治州,凯里市,碧波镇"
+    },
+    "1908000": {
+      "name": "王窑镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "620522115",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.22,
+      "address": "甘肃省,天水市,秦安县,王窑镇"
+    },
+    "12358505": {
+      "name": "惠民镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530828104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.9,
+      "address": "云南省,普洱市,澜沧拉祜族自治县,惠民镇"
+    },
+    "12324548": {
+      "name": "四微街道",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "130107002",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.92,
+      "address": "河北省,石家庄市,井陉矿区,四微街道"
+    },
+    "1791762": {
+      "name": "湾水镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522601104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.41,
+      "address": "贵州省,黔东南苗族侗族自治州,凯里市,湾水镇"
+    },
+    "1802665": {
+      "name": "龙额镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631112",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.06,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,龙额镇"
+    },
+    "1784089": {
+      "name": "舟溪镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522601101",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.3,
+      "address": "贵州省,黔东南苗族侗族自治州,凯里市,舟溪镇"
+    },
+    "1794686": {
+      "name": "双江镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.11,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,双江镇"
+    },
+    "1802802": {
+      "name": "礼辛镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "620523107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.22,
+      "address": "甘肃省,天水市,甘谷县,礼辛镇"
+    },
+    "1906095": {
+      "name": "肇兴镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631111",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.96,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,肇兴镇"
+    },
+    "1914256": {
+      "name": "二圣镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "500113113",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.49,
+      "address": "重庆市,市辖区,巴南区,二圣镇"
+    },
+    "12358565": {
+      "name": "新华乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530581205",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.92,
+      "address": "云南省,保山市,腾冲市,新华乡"
+    },
+    "12358632": {
+      "name": "鸡峰镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621221112",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.88,
+      "address": "甘肃省,陇南市,成县,鸡峰镇"
+    },
+    "12358507": {
+      "name": "木戛乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530828208",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.84,
+      "address": "云南省,普洱市,澜沧拉祜族自治县,木戛乡"
+    },
+    "1907966": {
+      "name": "大庄镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "620523109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 3.46,
+      "address": "甘肃省,天水市,甘谷县,大庄镇"
+    },
+    "1813591": {
+      "name": "大山乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530828205",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.82,
+      "address": "云南省,普洱市,澜沧拉祜族自治县,大山乡"
+    },
+    "1791214": {
+      "name": "乌家镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450521104",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.21,
+      "address": "广西壮族自治区,北海市,合浦县,乌家镇"
+    },
+    "12358502": {
+      "name": "东回镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530828105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.46,
+      "address": "云南省,普洱市,澜沧拉祜族自治县,东回镇"
+    },
+    "12358682": {
+      "name": "祁山镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621226106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.83,
+      "address": "甘肃省,陇南市,礼县,祁山镇"
+    },
+    "12358501": {
+      "name": "东河乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "530828204",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.81,
+      "address": "云南省,普洱市,澜沧拉祜族自治县,东河乡"
+    },
+    "12358478": {
+      "name": "沙田镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450521109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.99,
+      "address": "广西壮族自治区,北海市,合浦县,沙田镇"
+    },
+    "1908005": {
+      "name": "武家河镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "620523108",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.24,
+      "address": "甘肃省,天水市,甘谷县,武家河镇"
+    },
+    "1801329": {
+      "name": "马路镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450681102",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.48,
+      "address": "广西壮族自治区,防城港市,东兴市,马路镇"
+    },
+    "1812719": {
+      "name": "地坪镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631115",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.01,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,地坪镇"
+    },
+    "12358633": {
+      "name": "栗川镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621227109",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.03,
+      "address": "甘肃省,陇南市,徽县,栗川镇"
+    },
+    "12358479": {
+      "name": "曲樟乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "450521200",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.79,
+      "address": "广西壮族自治区,北海市,合浦县,曲樟乡"
+    },
+    "1801226": {
+      "name": "茅贡镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631114",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.29,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,茅贡镇"
+    },
+    "1792188": {
+      "name": "万潮镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522601106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.28,
+      "address": "贵州省,黔东南苗族侗族自治州,凯里市,万潮镇"
+    },
+    "1808135": {
+      "name": "红河镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621226107",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.21,
+      "address": "甘肃省,陇南市,礼县,红河镇"
+    },
+    "1905963": {
+      "name": "罗里乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631203",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.55,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,罗里乡"
+    },
+    "1906110": {
+      "name": "德顺乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631211",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.49,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,德顺乡"
+    },
+    "1800965": {
+      "name": "马坞镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621126114",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.47,
+      "address": "甘肃省,定西市,岷县,马坞镇"
+    },
+    "1800680": {
+      "name": "孟彦镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631103",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.51,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,孟彦镇"
+    },
+    "1787719": {
+      "name": "岩洞镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.58,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,岩洞镇"
+    },
+    "1907984": {
+      "name": "马河乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621226203",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.57,
+      "address": "甘肃省,陇南市,礼县,马河乡"
+    },
+    "1787804": {
+      "name": "崖城镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621226112",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.16,
+      "address": "甘肃省,陇南市,礼县,崖城镇"
+    },
+    "1814202": {
+      "name": "大稼乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631212",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.3,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,大稼乡"
+    },
+    "12358684": {
+      "name": "阿坞镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621223106",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.89,
+      "address": "甘肃省,陇南市,宕昌县,阿坞镇"
+    },
+    "1816810": {
+      "name": "坝寨乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631205",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.4,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,坝寨乡"
+    },
+    "1795058": {
+      "name": "石阡县",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "520623",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 0.39,
+      "address": "贵州省,铜仁市,石阡县"
+    },
+    "1907982": {
+      "name": "罗坝镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "621226110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.26,
+      "address": "甘肃省,陇南市,礼县,罗坝镇"
+    },
+    "1794920": {
+      "name": "石江镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "430525105",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 2.24,
+      "address": "湖南省,邵阳市,洞口县,石江镇"
+    },
+    "1907971": {
+      "name": "古坡镇",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "620523110",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.04,
+      "address": "甘肃省,天水市,甘谷县,古坡镇"
+    },
+    "12359303": {
+      "name": "阎家乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "620525214",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.08,
+      "address": "甘肃省,天水市,张家川回族自治县,阎家乡"
+    },
+    "1798614": {
+      "name": "平寨乡",
+      "source": "https://github.com/modood/Administrative-divisions-of-China/tree/master/dist",
+      "code": "522631213",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.02,
+      "address": "贵州省,黔东南苗族侗族自治州,黎平县,平寨乡"
+    },
+    "12110888": {
+      "name": "仙女山",
+      "source": "https://download.geonames.org/export/dump/cities1000.zip"
+    },
+    "2035513": {
+      "name": "盘山",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "辽宁省,盘锦市,盘山县",
+      "code": "211122",
+      "coordinateDistanceKm": 7.7,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1817990": {
+      "name": "安丘",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "山东省,潍坊市,安丘市",
+      "code": "370784",
+      "coordinateDistanceKm": 6.26,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "12358616": {
+      "name": "印台",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "陕西省,铜川市,印台区",
+      "code": "610203",
+      "coordinateDistanceKm": 1.06,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1805298": {
+      "name": "金州",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "辽宁省,大连市,金州区",
+      "code": "210213",
+      "coordinateDistanceKm": 7.92,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1811619": {
+      "name": "鄂州",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "湖北省,鄂州市",
+      "code": "4207",
+      "coordinateDistanceKm": 6.55,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1811200": {
+      "name": "凤城",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "江苏省,徐州市,丰县,凤城街道",
+      "code": "320321002",
+      "coordinateDistanceKm": 6.47,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1807112": {
+      "name": "黄州",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "湖北省,黄冈市,黄州区",
+      "code": "421102",
+      "coordinateDistanceKm": 8.35,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1784178": {
+      "name": "周村",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "山东省,淄博市,周村区",
+      "code": "370306",
+      "coordinateDistanceKm": 5.38,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1803782": {
+      "name": "利川",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "湖北省,恩施土家族苗族自治州,利川市",
+      "code": "422802",
+      "coordinateDistanceKm": 8.87,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1793315": {
+      "name": "唐吾",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "山东省,潍坊市,昌乐县,唐吾镇",
+      "code": "370725108",
+      "coordinateDistanceKm": 1.33,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1808977": {
+      "name": "汉川",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "湖北省,孝感市,汉川市",
+      "code": "420984",
+      "coordinateDistanceKm": 7.76,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "2035746": {
+      "name": "密山",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "黑龙江省,鸡西市,密山市,密山镇",
+      "code": "230382100",
+      "coordinateDistanceKm": 0.4,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1818019": {
+      "name": "安龙",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "贵州省,黔西南布依族苗族自治州,安龙县",
+      "code": "522328",
+      "coordinateDistanceKm": 6.76,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1816890": {
+      "name": "宝应",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "江苏省,扬州市,宝应县",
+      "code": "321023",
+      "coordinateDistanceKm": 5.6,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1808517": {
+      "name": "横陂",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "广东省,梅州市,五华县,横陂镇",
+      "code": "441424138",
+      "coordinateDistanceKm": 1.78,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1798634": {
+      "name": "平邑",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "山东省,临沂市,平邑县",
+      "code": "371326",
+      "coordinateDistanceKm": 1.91,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1805267": {
+      "name": "汲水",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "河南省,周口市,郸城县,汲水乡",
+      "code": "411625202",
+      "coordinateDistanceKm": 2.34,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "2036959": {
+      "name": "黑山",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "辽宁省,锦州市,黑山县,黑山街道",
+      "code": "210726001",
+      "coordinateDistanceKm": 2.1,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1787873": {
+      "name": "旬阳",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "陕西省,安康市,旬阳县",
+      "code": "610928",
+      "coordinateDistanceKm": 1.87,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1817858": {
+      "name": "八步",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "广西壮族自治区,贺州市,八步区,八步街道",
+      "code": "451102001",
+      "coordinateDistanceKm": 3.39,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1280703": {
+      "name": "六库",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "云南省,怒江傈僳族自治州,泸水市,六库镇",
+      "code": "533301101",
+      "coordinateDistanceKm": 0.54,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "2033866": {
+      "name": "西丰",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "辽宁省,铁岭市,西丰县",
+      "code": "211223",
+      "coordinateDistanceKm": 1.2,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1813451": {
+      "name": "大通",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "安徽省,淮南市,大通区,大通街道",
+      "code": "340402001",
+      "coordinateDistanceKm": 1.85,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "2037494": {
+      "name": "二道江",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "吉林省,通化市,二道江区",
+      "code": "220503",
+      "coordinateDistanceKm": 1.51,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1818051": {
+      "name": "安江",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "湖南省,怀化市,洪江市,安江镇",
+      "code": "431281102",
+      "coordinateDistanceKm": 5.19,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1789699": {
+      "name": "下庄",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "云南省,大理白族自治州,祥云县,下庄镇",
+      "code": "532923104",
+      "coordinateDistanceKm": 5.95,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1809876": {
+      "name": "广通",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "云南省,楚雄彝族自治州,禄丰县,广通镇",
+      "code": "532331106",
+      "coordinateDistanceKm": 0.87,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1797213": {
+      "name": "仁和",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "云南省,丽江市,永胜县,仁和镇",
+      "code": "530722102",
+      "coordinateDistanceKm": 6.19,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "2033685": {
+      "name": "新林",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "黑龙江省,大兴安岭地区,新林区,新林镇",
+      "code": "232763100",
+      "coordinateDistanceKm": 1.2,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "12358538": {
+      "name": "北海",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "云南省,保山市,腾冲市,北海乡",
+      "code": "530581202",
+      "coordinateDistanceKm": 0.96,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1786291": {
+      "name": "永宁",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "云南省,丽江市,宁蒗彝族自治县,永宁镇",
+      "code": "530724102",
+      "coordinateDistanceKm": 7.81,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "13535802": {
+      "name": "玉门",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "甘肃省,酒泉市,玉门市",
+      "code": "620981",
+      "coordinateDistanceKm": 0.87,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "12358544": {
+      "name": "清水",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "云南省,保山市,腾冲市,清水乡",
+      "code": "530581203",
+      "coordinateDistanceKm": 0.93,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "12450872": {
+      "name": "英也尔",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "新疆维吾尔自治区,和田地区,墨玉县,英也尔乡",
+      "code": "653222213",
+      "coordinateDistanceKm": 6.16,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "1907968": {
+      "name": "固城",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "address": "甘肃省,陇南市,礼县,固城镇",
+      "code": "621226115",
+      "coordinateDistanceKm": 5.04,
+      "note": "以同名区划及坐标作为线索；采用不含行政级别后缀的地名。"
+    },
+    "13308679": {
+      "name": "嘉进隆",
+      "source": "https://meeb.sz.gov.cn/attachment/1/1432/1432842/11218671.pdf"
+    },
+    "13308758": {
+      "name": "鲤鱼门",
+      "source": "https://www.szns.gov.cn/xxgk/jyhtabljggk/qjjyhtabljggk/content/post_8512831.html"
+    },
+    "13308603": {
+      "name": "双金惠",
+      "source": "https://static.sse.com.cn/stock/disclosure/announcement/c/201909/000184_20190924_GI89.pdf"
+    },
+    "7602670": {
+      "name": "诸城",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "13527052": {
+      "name": "城关区",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "12492660": {
+      "name": "龙陵县",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "2036403": {
+      "name": "旧堡",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "13308659": {
+      "name": "宝安中心",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "12324302": {
+      "name": "益都",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "1815585": {
+      "name": "长清",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "12277235": {
+      "name": "大理古城",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "12324299": {
+      "name": "阚家",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "1812597": {
+      "name": "东都",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "13308625": {
+      "name": "深圳市中心",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "2037240": {
+      "name": "弓长岭",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "13308594": {
+      "name": "沙井",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "13609088": {
+      "name": "盘龙城经济开发区",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "1802811": {
+      "name": "礼县",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "12324261": {
+      "name": "卜庄",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "1795993": {
+      "name": "单集",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "1798290": {
+      "name": "谦六",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "12358572": {
+      "name": "九河",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "12358503": {
+      "name": "发展河",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "1279802": {
+      "name": "文东",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "1279668": {
+      "name": "雪林",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "12358506": {
+      "name": "酒井",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "12358500": {
+      "name": "安康",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "1529245": {
+      "name": "冲乎尔",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "13308743": {
+      "name": "沙头",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "12358683": {
+      "name": "湫山",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "13308754": {
+      "name": "粤海",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "13308737": {
+      "name": "南园",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "13308746": {
+      "name": "沙河",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "12358472": {
+      "name": "雷洞",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "行政区名称与坐标核对；部分英文为普通描述或历史罗马化。"
+    },
+    "1809412": {
+      "name": "古丽",
+      "source": "https://jinhua.zjol.com.cn/ydds/201901/t20190107_9189078.shtml",
+      "note": "地名或对应历史名称；城市拼写与坐标核对。"
+    },
+    "2035182": {
+      "name": "三岔子",
+      "source": "https://www.chinapostaltracking.com/office/baishan/",
+      "note": "地名或对应历史名称；城市拼写与坐标核对。"
+    },
+    "1280124": {
+      "name": "瑞滇",
+      "source": "https://www.tengchong.gov.cn/info/9481/4168063.htm",
+      "note": "地名或对应历史名称；城市拼写与坐标核对。"
+    },
+    "6559683": {
+      "name": "堆龙德庆",
+      "source": "https://download.geonames.org/export/dump/cities1000.zip",
+      "note": "地名或对应历史名称；城市拼写与坐标核对。"
+    },
+    "13527051": {
+      "name": "林周",
+      "source": "https://download.geonames.org/export/dump/cities1000.zip",
+      "note": "地名或对应历史名称；城市拼写与坐标核对。"
+    },
+    "1280797": {
+      "name": "墨竹工卡",
+      "source": "https://download.geonames.org/export/dump/cities1000.zip",
+      "note": "地名或对应历史名称；城市拼写与坐标核对。"
+    },
+    "1281426": {
+      "name": "当雄",
+      "source": "https://download.geonames.org/export/dump/cities1000.zip",
+      "note": "地名或对应历史名称；城市拼写与坐标核对。"
+    },
+    "1279681": {
+      "name": "曲水",
+      "source": "https://download.geonames.org/export/dump/cities1000.zip",
+      "note": "地名或对应历史名称；城市拼写与坐标核对。"
+    },
+    "1280402": {
+      "name": "尼木",
+      "source": "https://download.geonames.org/export/dump/cities1000.zip",
+      "note": "地名或对应历史名称；城市拼写与坐标核对。"
+    },
+    "1787824": {
+      "name": "铜山",
+      "source": "https://tstsb.jszwfw.gov.cn/",
+      "note": "修正原有中文名称错配；参照英文名称、坐标和现有别名。"
+    },
+    "7328899": {
+      "name": "邓埠",
+      "source": "https://download.geonames.org/export/dump/cities1000.zip",
+      "note": "修正原有中文名称错配；参照英文名称、坐标和现有别名。"
+    },
+    "1796356": {
+      "name": "沙柳河",
+      "source": "https://www.qhdzzbfw.gov.cn/haib/jyxx/001001/001001001/20260805/d6459eae-3305-4b24-9828-c949b1ac68be.html",
+      "note": "修正原有中文名称错配；参照英文名称、坐标和现有别名。"
+    },
+    "12495684": {
+      "name": "茶山竹海",
+      "source": "https://www.cqyc.gov.cn/zwgk_204/qzfwj/202210/t20221025_11225605.html",
+      "aliases": [
+        "竹海"
+      ],
+      "note": "原名称茶山不完整，对应茶山竹海街道。"
+    },
+    "12324246": {
+      "name": "沂山",
+      "source": "https://en.wikipedia.org/wiki/Linqu_County"
+    },
+    "13308682": {
+      "name": "波托菲诺纯水岸",
+      "source": "https://epaper.stcn.com/paper/zqsb/page/1/2009-06-09/B006/33731244490621749.pdf"
+    },
+    "13308665": {
+      "name": "方大城",
+      "source": "https://sz.bendibao.com/wangdian/dian/5898624.shtm"
+    },
+    "2037335": {
+      "name": "扶余",
+      "source": "https://dfz.jl.gov.cn/zsjl/201111/t20111126_5216513.html",
+      "note": "松原市宁江区旧称，区别于今扶余市"
+    },
+    "2035707": {
+      "name": "穆家营子",
+      "source": "https://en.wikipedia.org/wiki/Songshan_District%2C_Chifeng",
+      "note": "名称与所在行政区核对"
+    },
+    "1816028": {
+      "name": "威宁",
+      "source": "https://www.weather.com.cn/guizhou/gzsy/ztzl/07/2148933.shtml",
+      "note": "按县名和坐标核对"
+    },
+    "13308740": {
+      "name": "沙尾",
+      "source": "https://www.szft.gov.cn/bmxx/qstjdbsc/zwxxgk/jgzn/jdgk/content/post_12956967.html"
+    },
+    "13308662": {
+      "name": "官龙",
+      "source": "https://inandonvip.com/pages/contact"
+    },
+    "13308748": {
+      "name": "竹子林",
+      "source": "https://pnr.sz.gov.cn/attachment/1/1560/1560170/10537367.pdf"
+    },
+    "13308626": {
+      "name": "岗厦",
+      "source": "https://you.ctrip.com/food/shenzhen26/12397432-dianping.html"
+    },
+    "13308752": {
+      "name": "燕晗山",
+      "source": "https://yanhanshan.szhotels.cn/en"
+    },
+    "13308716": {
+      "name": "草围",
+      "source": "https://ly.dushiquan.net/shenzhenshi5276/3036/poi_market.html"
+    },
+    "13308749": {
+      "name": "大岭下",
+      "source": "https://pnr.sz.gov.cn/attachment/1/1560/1560170/10537367.pdf"
+    },
+    "13308668": {
+      "name": "科技园",
+      "source": "https://heyshenzhen.com/nanshan"
+    },
+    "13308725": {
+      "name": "前海湾片区",
+      "source": "https://www.hkexnews.hk/listedco/listconews/SEHK/2018/0906/LTN20180906731.pdf"
+    },
+    "13308673": {
+      "name": "安乐花园",
+      "source": "https://mapcarta.com/W542080377"
+    },
+    "13308598": {
+      "name": "万丰",
+      "source": "https://you.ctrip.com/food/26/6942414.html"
+    },
+    "13308678": {
+      "name": "宏发中心",
+      "source": "https://www.aeonstores.com.hk/announcement/download?f=file_en&id=680&q%5Bid_eq%5D=680"
+    },
+    "1795919": {
+      "name": "单城",
+      "source": "https://shandong-chorography.org/database/ch5/section/1/article/2/",
+      "note": "对应山东单县城区旧称。"
+    },
+    "12277994": {
+      "name": "利国",
+      "source": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "note": "坐标与江苏徐州铜山利国吻合；GeoNames 省份标山东，行政归属存在冲突。"
+    },
+    "1815463": {
+      "name": "长直",
+      "source": "https://ycpeace.gov.cn/a/duiwu/20260420/38951.html",
+      "coordinateSource": "https://github.com/Sanotsu/regional-coordinates-of-China",
+      "coordinateDistanceKm": 1.7,
+      "note": "坐标邻近山西垣曲县长直乡，与长治市不符；GeoNames 人口数可能误配。"
+    },
+    "1787443": {
+      "name": "杨柳街",
+      "source": "https://www.qiannan.gov.cn/zwgk/zdlygk/sthj/sthjaqjg/202107/P020220529231798539425.pdf",
+      "note": "都匀旧镇名，2014年撤镇。"
+    },
+    "1789133": {
+      "name": "新甸",
+      "source": "https://m.cidianwang.com/lishi/diming/2/88722uf.htm",
+      "note": "牟定县原新甸乡驻地新甸房，同县政府公布新甸村。"
+    },
+    "1790885": {
+      "name": "吴阳集",
+      "source": "https://www.huoqiu.gov.cn/group3/M00/89/6E/wKgSG2jogceALeb0ACzuol7q_tw851.pdf",
+      "note": "GeoNames 历史别名 Wu-yang-chi，霍邱曹庙镇吴阳集。"
+    },
+    "1789693": {
+      "name": "夏庄",
+      "source": "https://shandong-chorography.org/database/cga/section/11/article/61/",
+      "note": "临沭县城旧名，1984 年改名临沭。"
+    },
+    "1929434": {
+      "name": "柏家",
+      "source": "https://www.fallingrain.com/world/CH/11/Baijia6.html",
+      "coordinateDistanceKm": 0.6,
+      "note": "同一附近马鞍岭柏家；地名数据库给柏家坐标 26.4630,111.9719，距 Bojia 约 0.6 km；祁阳旅游规划记潘市镇柏家村。",
+      "secondarySource": "https://www.qy.gov.cn/qy/lyly/202309/fde5a09995de4cf895abf2171a5153d7/files/80e6b384fdbd4a71a91fcc4f1d797ff2.pdf"
+    },
+    "12358473": {
+      "name": "尚重",
+      "source": "https://en.wikipedia.org/wiki/Sanqiao_language",
+      "note": "黎平尚重旧读 Shangchong；GeoNames 坐标与尚重镇坐标相距约 18 km，源坐标可能错位，待进一步核实。",
+      "coordinateSource": "https://www.oweidata.com/towns/522631109"
+    },
+    "13308608": {
+      "name": "坳颈涌",
+      "source": "https://cgj.sz.gov.cn/zwgk/xmgs/content/post_10220801.html",
+      "note": "深圳福海街道官方地名，原点附近属于河涌区域，GeoNames 将其标为 PPL。"
+    }
+  },
+  "regions": {},
+  "excludeAliases": {
+    "1787824": [
+      "徐州"
+    ],
+    "7328899": [
+      "余江县"
+    ],
+    "1796356": [
+      "刚察县"
+    ],
+    "12495684": [
+      "茶山"
+    ]
+  }
+}
