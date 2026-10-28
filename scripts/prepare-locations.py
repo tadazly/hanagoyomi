@@ -166,11 +166,12 @@ def generate(folder):
         'schema': {'city': ['geonameId', 'en', 'zh', 'ja', 'lat', 'lon', 'timezoneIndex', 'regionIndex', 'aliases'], 'region': ['key', 'countryCode', 'en', 'zh', 'ja'], 'country': ['code', 'en', 'zh', 'ja']},
         'count': len(records), 'countries': len(country_codes), 'regions': len(region_keys), 'names': counts,
         'bytes': len(raw), 'gzipBytes': len(packed), 'sha256': hashlib.sha256(packed).hexdigest(),
-        'supplements': {filename: {'sha256': hashlib.sha256((ROOT / 'src/data' / filename).read_bytes()).hexdigest(), 'language': language} for filename, language, _ in supplements},
+        # Git 的文本规范为 LF；文本哈希不随 Windows 工作区的换行转换改变。
+        'supplements': {filename: {'sha256': hashlib.sha256((ROOT / 'src/data' / filename).read_text('utf-8').encode('utf-8')).hexdigest(), 'language': language} for filename, language, _ in supplements},
         'nativeCoverage': {code: {'language': language, 'cities': sum(region_data[r[7]][1] == code for r in records), 'namedCities': sum(region_data[r[7]][1] == code and bool(re.search(r'[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]', r[{'zh': 2, 'ja': 3}[language]])) for r in records), 'regions': sum(r[1] == code and any(r[2:]) for r in region_data), 'namedRegions': sum(r[1] == code and any(r[2:]) and bool(r[{'zh': 3, 'ja': 4}[language]]) for r in region_data)} for code, language in [('CN', 'zh'), ('TW', 'zh'), ('HK', 'zh'), ('MO', 'zh'), ('SG', 'zh'), ('JP', 'ja')]},
         'sources': {name: {'url': SOURCE + name, 'sha256': hashlib.sha256((folder / name).read_bytes()).hexdigest()} for name in ['cities1000.zip', 'alternateNamesV2.zip', 'admin1CodesASCII.txt', 'countryInfo.txt']},
     }
-    (ROOT / 'src/data/location-catalog.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', 'utf-8')
+    (ROOT / 'src/data/location-catalog.json').write_bytes((json.dumps(manifest, ensure_ascii=False, indent=2) + '\n').encode('utf-8'))
     print(json.dumps({k: manifest[k] for k in ['count', 'countries', 'regions', 'names', 'bytes', 'gzipBytes']}, ensure_ascii=False), flush=True)
 
 

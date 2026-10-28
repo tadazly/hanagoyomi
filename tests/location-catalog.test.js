@@ -25,7 +25,7 @@ test('中文地区和日本名称覆盖完整，仅保留用户指定的 Wushipa
   }
   assert.equal(catalog.citiesById.get(13308755).names[0], 'Wushipai');
   for (const [filename, entry] of Object.entries(manifest.supplements)) {
-    const source = readFileSync(new URL(`../src/data/${filename}`, import.meta.url));
+    const source = readFileSync(new URL(`../src/data/${filename}`, import.meta.url), 'utf8').replace(/\r\n?/g, '\n');
     assert.equal(createHash('sha256').update(source).digest('hex'), entry.sha256, filename);
   }
 });
