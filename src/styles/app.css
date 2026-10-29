@@ -344,6 +344,13 @@ body[data-wallpaper='true'] .help-controls, body[data-wallpaper='true'] .touch-h
 .sky-finder { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; margin-top: 18px; }
 .sky-finder label { grid-column: 1/-1; font-size: 13px; }
 .sky-finder select { min-width: 0; width: 100%; min-height: 44px; border: 1px solid var(--track); border-radius: 8px; padding: 8px; color: var(--ink); background: rgba(255,255,255,.4); font: inherit; font-size: 13px; }
+.sky-finder select[hidden] { display: none !important; }
+.wallpaper-constellation-trigger { min-height: 44px; padding: 8px 12px; border: 1px solid var(--track); border-radius: 8px; background: rgba(255,255,255,.4); color: var(--ink); text-align: left; font: inherit; font-size: 13px; }
+.wallpaper-constellation-list { flex: 1 1 auto; min-height: 0; height: min(390px,49dvh); overflow-y: auto; overscroll-behavior: contain; }
+.wallpaper-constellation-list button { display: block; width: 100%; min-height: 44px; padding: 9px 12px; border: 0; border-bottom: 1px solid var(--track); background: transparent; color: var(--ink); text-align: left; font: inherit; font-size: 14px; }
+.wallpaper-constellation-list button[aria-pressed='true'] { color: var(--sun); font-weight: 600; }
+.wallpaper-constellation-pages { display: flex; gap: 8px; padding: 8px 0 12px; }
+.wallpaper-constellation-pages button { flex: 1; min-height: 38px; border: 1px solid var(--track); border-radius: 8px; background: transparent; color: var(--ink); }
 .switch:has(input:disabled) { opacity: .55; }
 .stargazing-status { position: fixed; z-index: 6; top: calc(env(safe-area-inset-top,0px) + 76px); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 20px; background: rgba(12,18,25,.72); color: #e5e9e9; font-size: 12px; white-space: nowrap; }
 .stargazing-status[hidden] { display: none; }

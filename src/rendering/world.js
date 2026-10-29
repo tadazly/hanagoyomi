@@ -38,6 +38,7 @@ import { getLocale, getLanguage, onLanguageChange, setMessage, t } from '../i18n
 import { bindTimeActions, updateTimeControls } from '../ui/time-controls.js';
 import { bindMouseFlightInput, flightStickAxes } from './flight-input.js';
 import { WALLPAPER_MODE, storageKey } from '../platform/environment.js';
+import { initWallpaperConstellationPicker } from '../ui/wallpaper-constellation-picker.js';
 import { wallpaperSettings } from '../platform/wallpaper.js';
 import { createFrameGate } from '../platform/frame-gate.js';
 import { RENDER_DEFAULTS, renderPreferences, effectiveFrameLimit, qualityFrameBudget } from './render-preferences.js';
@@ -935,6 +936,7 @@ let lastView = null, frozenView = null;
 let skyPress = null, skyPointer = null;
 const skyActivePointers = new Set();
 let stargazingPosition = null, constellationFocus = -1, atmosphere = S.atmosphere ? 1 : 0;
+const wallpaperConstellationPicker = WALLPAPER_MODE ? initWallpaperConstellationPicker($('constellationSelect')) : null;
 const interactionEnabled = () => S.interactionEnabled || S.stargazing;
 
 (() => {
@@ -1501,6 +1503,7 @@ function clearConstellation() {
   constellationFocus = -1; constellationOverlay?.clear();
   cam.yawT = cam.yaw; cam.pitchBase = cam.pitchT = cam.pitch;
   $('constellationInfo').textContent = ''; delete $('constellationInfo').dataset.i18n; delete $('constellationInfo').dataset.i18nParams; $('constellationSelect').value = '';
+  wallpaperConstellationPicker?.refresh();
 }
 function selectConstellation(id, fromFinder = false) {
   if (id < 0 || !constellationOverlay) { clearConstellation(); return; }
@@ -1512,6 +1515,7 @@ function selectConstellation(id, fromFinder = false) {
   constellationOverlay.select(id);
   constellationFocus = S.stargazing ? id : -1;
   $('constellationSelect').value = String(id);
+  wallpaperConstellationPicker?.refresh();
   setMessage($('constellationInfo'), 'sky.selected', { name: constellationLabel(CONSTELLATIONS[id], getLanguage(), S.constelBilingual).join(' · ') });
 }
 function syncStargazingControls() {
@@ -1532,6 +1536,7 @@ function syncStargazingControls() {
   $('constellationSelect').replaceChildren(new Option(t('sky.choose'), ''));
   CONSTELLATIONS.forEach((item, i) => $('constellationSelect').add(new Option(constellationLabel(item, getLanguage(), S.constelBilingual).join(' · '), String(i))));
   $('constellationSelect').value = current;
+  wallpaperConstellationPicker?.refresh();
   if (constellationOverlay?.selected >= 0) setMessage($('constellationInfo'), 'sky.selected', { name: constellationLabel(CONSTELLATIONS[constellationOverlay.selected], getLanguage(), S.constelBilingual).join(' · ') });
   document.body.dataset.sceneInteractive = String(interactionEnabled());
 }
@@ -2616,6 +2621,7 @@ function loadScene(scene) {
     constellationOverlay.select(CONSTELLATIONS.findIndex(item => item.id === scene.appearance.selectedConstellation));
   }
   $('constellationSelect').value = constellationOverlay?.selected >= 0 ? String(constellationOverlay.selected) : '';
+  wallpaperConstellationPicker?.refresh();
   $('constellationInfo').textContent = ''; delete $('constellationInfo').dataset.i18n; delete $('constellationInfo').dataset.i18nParams;
   if (scene.camera.tracking) constellationFocus = CONSTELLATIONS.findIndex(item => item.id === scene.camera.tracking);
   simMs = scene.environment.time.ms; followNow = scene.environment.time.followNow; S.speed = scene.environment.time.speedIndex; S.time = cityHours(simMs);
