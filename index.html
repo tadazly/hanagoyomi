@@ -24,7 +24,7 @@
   <title data-i18n="app.pageTitle">Hanagoyomi — Flower Meadows, Live Weather and Starry Skies</title>
 </head>
 <body>
-  <canvas id="view" tabindex="-1" aria-label="Live meadow, flowers and volumetric clouds; move the mouse to steer in auto flight, double-click left to dash, double-click right to turn, triple-click right to pause or resume" data-i18n-aria-label="app.canvas"></canvas>
+  <canvas id="view" tabindex="-1" aria-label="Live meadow; left-drag to steer, WASD to move, space to toggle auto flight" data-i18n-aria-label="app.canvas"></canvas>
   <div id="componentBounds" aria-hidden="true"></div>
   <div id="performanceOverlay" class="performance-overlay" hidden></div>
   <header class="masthead chrome ui-component" data-ui-component="logo">
@@ -38,7 +38,6 @@
     <button class="icon-button" id="immersiveBtn" aria-label="Enter immersive mode" data-i18n-aria-label="immersive.enter" title="Immersive mode · H" data-i18n-title="immersive.title"><span data-icon="eye-off"></span></button>
     <button class="icon-button" id="panelToggle" aria-label="Open world settings" data-i18n-aria-label="panel.open" aria-expanded="false" aria-controls="panel" title="World settings" data-i18n-title="panel.title"><span data-icon="sliders"></span></button>
   </nav>
-  <div id="stargazingStatus" class="stargazing-status chrome" hidden><span data-i18n="sky.stargazingActive"></span><button type="button" id="exitStargazing" data-i18n="sky.exit">Exit</button></div>
   <aside class="time-popover glass chrome" id="timePopover" role="dialog" aria-labelledby="timePopoverTitle" hidden>
     <div class="panel-heading"><h2 id="timePopoverTitle" data-i18n="time.settings">Time settings</h2><button class="plain-icon" id="timePopoverClose" type="button" aria-label="Close time settings" data-i18n-aria-label="time.close"><span data-icon="close"></span></button></div>
     <div class="time-popover-body" id="quickTimeControls"></div>
@@ -68,9 +67,11 @@
         </div>
         <div id="timeControls"></div><p id="locSun" class="sr-only"></p>
         <h2 data-i18n="settings.explore">Exploration</h2>
+        <label class="switch"><span data-i18n="landscape.petals">Petal stream</span><input type="checkbox" id="petals"><i></i></label>
         <label class="switch"><span data-i18n="camera.auto">Auto flight</span><input type="checkbox" id="auto"><i></i></label>
         <label class="switch"><span data-i18n="components.interaction">Scene interaction</span><input type="checkbox" id="interactionEnabled" checked><i></i></label>
         <label class="switch"><span data-i18n="camera.autoFollowMouse">Follow mouse during auto flight</span><input type="checkbox" id="autoFollowMouse"><i></i></label>
+        <label class="ctl"><span data-i18n="camera.flightSpeed">Flight speed</span><output for="flightSpeed"></output><input type="range" id="flightSpeed" min="0.25" max="3" step="0.25" value="1" aria-label="Flight speed" data-i18n-aria-label="camera.flightSpeed"></label>
         <label class="ctl"><span data-i18n="camera.height">Height above ground</span><output for="height"></output><input type="range" id="height" min="0" max="1000" step="1"></label>
         <div class="seg seg3 height-presets" role="group" aria-label="View height presets" data-i18n-aria-label="settings.heightPresets">
           <button type="button" data-height-preset="meadow" aria-pressed="false" data-i18n="settings.heightMeadow">Meadow</button>
@@ -132,7 +133,7 @@
         <label class="switch"><span data-i18n="landscape.lowSaturation">Low-saturation colours</span><input type="checkbox" id="lowSaturation"><i></i></label>
         <label class="switch"><span data-i18n="visual.vignette">Vignette</span><input type="checkbox" id="vignette" checked><i></i></label>
         <label class="ctl"><span data-i18n="camera.dof">Depth of field</span><output for="dof"></output><input type="range" id="dof" min="0" max="1" step="0.01"></label>
-        <details class="advanced"><summary><span data-i18n="settings.flowerDetails"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body"><label class="switch"><span data-i18n="landscape.petals">Petal stream</span><input type="checkbox" id="petals"><i></i></label>
+        <details class="advanced"><summary><span data-i18n="settings.flowerDetails"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body">
         <label class="switch"><span data-i18n="landscape.fireflies">Fireflies at night</span><input type="checkbox" id="flies"><i></i></label>
         <label class="switch"><span data-i18n="landscape.bloom">Bloom as petals pass</span><input type="checkbox" id="bloom" aria-describedby="bloomHelp"><i></i></label>
         <p class="settings-helper" id="bloomHelp" data-i18n="landscape.bloomHelp">When off, all flowers stay open.</p>
@@ -252,7 +253,7 @@
       <p class="observer-source" id="weatherSource" data-visible="false" aria-hidden="true"></p>
     </div>
   </section>
-  <footer class="hint chrome ui-component" data-ui-component="hint"><button id="helpBtn" aria-label="Show controls" data-i18n-aria-label="help.open"><span data-icon="mouse"></span><span id="hintText" data-i18n="hint.mouse">Mouse to steer · Double-click left: dash · Right: double-click to turn, triple-click to pause / resume</span></button></footer>
+  <footer class="hint chrome ui-component" data-ui-component="hint"><div class="hint-controls"><button id="helpBtn" aria-label="Show controls" data-i18n-aria-label="help.open"><span id="hintIcon" data-icon="mouse"></span><span id="hintText"><span class="control-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span> · <span class="hint-action"><kbd class="key-space">space</kbd><span data-i18n="camera.auto">Auto flight</span></span></span></button><button type="button" id="exitStargazing" class="hint-exit" data-i18n="sky.exit" hidden>Exit stargazing</button></div></footer>
   <div class="restore-zone" id="restoreZone" hidden><button class="restore-button glass" id="restoreBtn" type="button" data-visible="false"><span data-icon="eye"></span><span data-i18n="immersive.restore">Show interface</span></button></div>
   <div class="loader" id="loader" role="status"><div><span data-icon="flower" class="loader-flower"></span><span id="loadText" data-i18n="loader.meadow">Waking the meadow</span><b id="loadBar"></b></div></div>
   <div class="error" id="error" role="alert"><div class="glass"><h2 data-i18n="error.title">The meadow cannot open yet</h2><p id="errorText"></p><button class="btn primary" id="reloadBtn" data-i18n="error.reload">Reload</button></div></div>
@@ -275,10 +276,17 @@
   <dialog id="helpDialog" class="help-dialog glass" aria-labelledby="helpTitle">
     <div class="panel-heading"><h2 id="helpTitle" data-i18n="help.title">Roam Hanagoyomi</h2><button class="plain-icon" id="helpClose" aria-label="Close controls" data-i18n-aria-label="help.close"><span data-icon="close"></span></button></div>
     <div class="help-body">
-    <p data-i18n="help.about">Explore flower-filled meadows beneath volumetric clouds, watch daylight give way to sunset, and look up at the stars after dark. The sky follows the observation location’s local time and live weather, with weather updates every 15 minutes. The meadow is a procedurally generated imaginary landscape.</p>
     <p><a href="/about/" data-about-link data-i18n="about.open">About Hanagoyomi</a></p>
-    <dl class="help-controls"><dt data-i18n="help.mouseMove">Move the mouse (auto flight)</dt><dd data-i18n="help.mouseSteer">Adjust view &amp; flight</dd><dt data-i18n="help.mouseDash">Double-click left</dt><dd data-i18n="hint.dash">Dash</dd><dt data-i18n="help.mouseTurn">Double-click right</dt><dd data-i18n="help.turn">Turn around</dd><dt data-i18n="help.mousePause">Triple-click right</dt><dd data-i18n="help.pauseFlight">Pause / Resume flight</dd><dt data-i18n="help.drag">Drag left (flight paused)</dt><dd data-i18n="help.look">Look around</dd><dt data-i18n="help.moveKeys">W A S D / Arrow keys</dt><dd data-i18n="help.move">Move in any direction</dd><dt>Q / E</dt><dd data-i18n="help.vertical">Descend / Ascend</dd><dt data-i18n="help.boostKeys">Shift / Space</dt><dd data-i18n="help.boost">Accelerate / Dash</dd><dt data-i18n="help.scroll">Scroll wheel</dt><dd data-i18n="help.fov">Adjust field of view</dd><dt>F / H / Esc</dt><dd data-i18n="help.modes">Fullscreen / Immersive / Return</dd></dl>
-    <p class="touch-help" data-i18n="help.touch">Touch: swipe with one finger to steer the petals. Double-tap with one finger to dash, two to turn around, or three to pause or resume flight.</p>
+    <dl class="help-controls">
+      <dt data-i18n="help.mouseMove">Left drag</dt><dd data-i18n="help.mouseSteer">Steer</dd>
+      <dt><span class="control-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span></dt><dd data-i18n="help.move">Move in any direction</dd>
+      <dt><kbd>Q</kbd> / <kbd>E</kbd></dt><dd data-i18n="help.vertical">Descend / Ascend</dd>
+      <dt><kbd class="key-space">space</kbd></dt><dd data-i18n="help.toggleAuto">Toggle auto flight</dd>
+      <dt><kbd>Shift</kbd></dt><dd data-i18n="help.boost">Accelerate</dd>
+      <dt data-i18n="help.scroll">Scroll wheel</dt><dd data-i18n="help.fov">Adjust field of view</dd>
+      <dt><kbd>F</kbd> / <kbd>H</kbd> / <kbd>Esc</kbd></dt><dd data-i18n="help.modes">Fullscreen / Immersive / Return</dd>
+    </dl>
+    <p class="touch-help" data-i18n="help.touch">Touch: swipe with one finger to steer; double-tap to dash; triple-tap to toggle auto flight.</p>
     <details class="license-notices"><summary data-i18n="help.licenses">Licenses and notices</summary><pre id="licenseText"></pre></details>
     <p class="service-note" data-i18n="help.privacy">Location and settings stay in this browser. When you use geolocation, coordinates are sent to Open-Meteo to request weather.</p>
     </div>

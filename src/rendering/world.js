@@ -36,7 +36,9 @@ import { zonedHours, zonedDayStart, localTimeToUTC, fmtTime, advanceClock, timez
 import { getAstronomy, sunEventsText, phaseName, phaseIndex, getSunEvents } from '../world/astronomy.js';
 import { getLocale, getLanguage, onLanguageChange, setMessage, t } from '../i18n/index.js';
 import { bindTimeActions, updateTimeControls } from '../ui/time-controls.js';
-import { bindMouseFlightInput, flightStickAxes } from './flight-input.js';
+import { bindMouseFlightInput, bindTouchFlightInput, flightStickAxes } from './flight-input.js';
+import { flightSpeed, FLIGHT_SPEED_DEFAULT } from '../world/flight-preferences.js';
+import { renderControlHint } from '../ui/control-hints.js';
 import { WALLPAPER_MODE, storageKey } from '../platform/environment.js';
 import { initWallpaperConstellationPicker } from '../ui/wallpaper-constellation-picker.js';
 import { wallpaperSettings } from '../platform/wallpaper.js';
@@ -79,6 +81,7 @@ if (!(floatColorBuffer || gl.getExtension('EXT_color_buffer_half_float'))){
   $('gpu').textContent = name ? 'GPU ' + name : '';
 })();
 const coarse = matchMedia('(pointer: coarse)').matches;
+const controlHintMedia = matchMedia('(pointer: coarse), (max-width: 700px)');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let contextLost = false;
 canvas.addEventListener('webglcontextlost', (event) => {
@@ -97,7 +100,6 @@ canvas.addEventListener('webglcontextrestored', () => {
     location.reload();
   } catch { /* 存储不可用时保留手动重试，避免重载循环。 */ }
 });
-if (coarse) setMessage($('hintText'), 'hint.touch');
 
 /* ================================================================== */
 /*  GL helpers                                                         */
@@ -861,7 +863,7 @@ let sceneFreeze = { time: false, weather: false, clouds: false }, thumbnailJob =
 const S = {
   time: 0, speed: 1, wxSync: true, constel: false, flies: true, flowerGlow: false, bloom: true, streamDist: 'near', streamScale: false, infMem: false, bloomR: 4, wxMode: 'follow', wxType: 'cloudy', fogVisS: 1000, rainAmt: 0, snowAmt: 0, boltFreq: 0, puddle: 0, snowMax: 0, lensDrops: true, sunAz: 0, coverage: 0.58, density: 1.0, wind: 40, breeze: 0.65, petals: true,
   heightSlider: 0, dof: 0.6, sway: !reduceMotion, quality: WALLPAPER_MODE ? 'high' : coarse ? 'med' : 'high', god: !coarse, auto: WALLPAPER_MODE || !reduceMotion,
-  fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: !WALLPAPER_MODE, autoFollowMouse: false, lowSaturation: false,
+  fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: !WALLPAPER_MODE, autoFollowMouse: false, flightSpeed: FLIGHT_SPEED_DEFAULT, lowSaturation: false,
   nightSkyStyle: nightSkyStyle(),
   cloudStyle: cloudStyle(),
   ...renderPreferences(undefined, { wallpaper: WALLPAPER_MODE }),
@@ -876,7 +878,7 @@ const initialSceneSettings = Object.freeze(Object.fromEntries(Object.keys(SCENE_
 const SETTINGS_KEY = storageKey('meadow.settings.v1');
 const PERSIST_KEYS = [...Object.keys(STARGAZING_DEFAULTS), 'cloudStyle', 'nightSkyStyle', 'auto', 'god', 'petals', 'sway', 'constel', 'flies', 'flowerGlow', 'bloom', 'streamScale', 'infMem', 'lensDrops', 'sunAz', 'dof', 'lowSaturation', 'vignette',
   'heightSlider', 'agl', 'speed', 'streamDist', 'wxMode', 'wxType', 'coverage', 'density', 'wind', 'breeze', 'fogVisS', 'rainAmt', 'snowAmt', 'boltFreq',
-  'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind', 'interactionEnabled', 'autoFollowMouse', 'rememberPosition', ...Object.keys(RENDER_DEFAULTS)];
+  'puddle', 'snowMax', 'qualityUser', 'bloomR', 'temperatureUnit', 'showWeather', 'showTemperature', 'showPrecipitation', 'showAirQuality', 'showClouds', 'showWind', 'interactionEnabled', 'autoFollowMouse', 'flightSpeed', 'rememberPosition', ...Object.keys(RENDER_DEFAULTS)];
 try {
   const sv = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
   if (sv && typeof sv === 'object' && !Array.isArray(sv)){
@@ -906,6 +908,7 @@ try {
     if (restoredScene) Object.assign(S, restoredScene.settings);
   }
 } catch (e) {}
+S.flightSpeed = flightSpeed(S.flightSpeed);
 S.speed = Number.isInteger(S.speed) && S.speed >= 0 && S.speed < SPEEDS.length ? S.speed : 1;
 let followNow = S.speed === 1;
 let settingsSnap = '';
@@ -1185,16 +1188,12 @@ window.addEventListener('keydown', (e) => {
   if (canPickConstellation() && e.key === 'Escape' && !e.target.closest('input,textarea,select')) { clearConstellation(); return; }
   if (S.stargazing || !S.interactionEnabled || e.target.closest('input, textarea, select, button, summary') || document.querySelector('dialog[open]')) return;
   const k = e.key.toLowerCase();
+  if (e.code === 'Space' || k === ' ') { e.preventDefault(); if (!e.repeat) setAuto(!S.auto); return; }
   if (['w','a','s','d','q','e','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){ keys.add(k); if (k !== 'shift') stopAuto(); }
 });
 window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
-window.addEventListener('keydown', (e) => { if (S.interactionEnabled && !S.stargazing && e.key === ' ' && !e.target.closest('input, textarea, select, button, summary') && !document.querySelector('dialog[open]')){ sprintUntil = performance.now() + 1600; e.preventDefault(); } });
-window.addEventListener('blur', () => { keys.clear(); mouseFlight.reset(); });
-/* touch flies the petal stream like a flight game: one finger is a virtual stick measured from where it landed;
-   double taps: one finger = sprint, two fingers = turn around, three fingers = hover / fly on */
-const touches = new Map();
-const stick = {active: false, id: -1, ox: 0, oy: 0, x: 0, y: 0};
-let gesture = null, lastTap = {n: 0, t: 0}, lastSteerAt = -1e9, sprintUntil = 0;
+window.addEventListener('blur', () => { keys.clear(); mouseFlight.reset(); touchFlight.reset(); });
+let lastSteerAt = -1e9, sprintUntil = 0;
 const mouseFlight = bindMouseFlightInput({
   canvas, isFlying: () => S.auto, isEnabled: () => S.interactionEnabled && !S.stargazing && !document.querySelector('dialog[open]'),
   followsMouse: () => S.autoFollowMouse,
@@ -1203,49 +1202,14 @@ const mouseFlight = bindMouseFlightInput({
     const k = (S.fovY / 60) * 0.0032;
     cam.yawT += dx * k; cam.pitchBase = cam.pitchT = clamp(cam.pitchT - dy * k, -1.45, 1.45);
   },
-  dash: () => onDoubleTap(1), turn: () => onDoubleTap(2), toggleFlight: () => onDoubleTap(3),
 });
+const touchFlight = bindTouchFlightInput({
+  canvas, isEnabled: () => S.interactionEnabled && !S.stargazing && !document.querySelector('dialog[open]'),
+  onStart: () => mouseFlight.reset(), dash: () => { sprintUntil = performance.now() + 1600; }, toggleFlight: () => setAuto(!S.auto),
+});
+const stick = touchFlight.stick;
 window.addEventListener('resize', () => mouseFlight.reset());
 const capture = (id) => { try { canvas.setPointerCapture(id); } catch (err) {} };
-canvas.addEventListener('pointerdown', (e) => {
-  if (!S.interactionEnabled || S.stargazing || e.pointerType === 'mouse') return;
-  canvas.focus({ preventScroll: true });
-  mouseFlight.reset();
-  capture(e.pointerId);
-  touches.set(e.pointerId, {x0: e.clientX, y0: e.clientY});
-  if (!gesture) gesture = {t0: performance.now(), maxN: 0, moved: false};
-  gesture.maxN = Math.max(gesture.maxN, touches.size);
-  if (touches.size === 1){ stick.active = true; stick.id = e.pointerId; stick.ox = stick.x = e.clientX; stick.oy = stick.y = e.clientY; }
-  else stick.active = false;
-});
-canvas.addEventListener('pointermove', (e) => {
-  if (!S.interactionEnabled || S.stargazing) return;
-  const tp = touches.get(e.pointerId);
-  if (!tp) return;
-  if (gesture && Math.hypot(e.clientX - tp.x0, e.clientY - tp.y0) > 14) gesture.moved = true;
-  if (stick.active && e.pointerId === stick.id){ stick.x = e.clientX; stick.y = e.clientY; }
-});
-function onDoubleTap(n){
-  if (!S.interactionEnabled || S.stargazing) return;
-  if (n === 1) sprintUntil = performance.now() + 1600;
-  else if (n === 2){ cam.yawT += Math.PI; lastSteerAt = performance.now(); }
-  else setAuto(!S.auto);
-}
-const endPointer = (e) => {
-  if (!S.interactionEnabled) return;
-  if (!touches.has(e.pointerId)) return;
-  touches.delete(e.pointerId);
-  if (stick.id === e.pointerId) stick.active = false;
-  if (touches.size === 0 && gesture){
-    const now = performance.now(), quick = now - gesture.t0 < 300 && !gesture.moved, n = gesture.maxN;
-    gesture = null;
-    if (quick){
-      if (lastTap.n === n && now - lastTap.t < 400){ onDoubleTap(n); lastTap = {n: 0, t: 0}; }
-      else lastTap = {n, t: now};
-    }
-  }
-};
-canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (interactionEnabled()) { setViewFov(S.fovY * Math.exp(e.deltaY * 0.0012)); saveSettings(); } }, {passive: false});
 
 /* ================================================================== */
@@ -1288,6 +1252,7 @@ bindTimeActions({
 });
 publishTimeControls();
 bindRange('sunAz', 'sunAz', (v) => Math.round(v) + '°');
+bindRange('flightSpeed', 'flightSpeed', v => `${new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 2 }).format(v)}×`);
 bindRange('bloomR', 'bloomR', (v) => t('landscape.radiusValue', { value: Number(v).toFixed(1) }));
 const wxCtl = {};
 const wxBind = (id, key, fmt) => { wxCtl[key] = bindRange(id, key, fmt, () => { if (S.wxMode === 'manual') wxSetTarget(S.wxType, manualParams(), 2); }, () => sceneFreeze.weather); };
@@ -1432,8 +1397,7 @@ function setInteractionEnabled(enabled){
   $('interactionEnabled').checked = enabled;
   syncAutoFollowMouse();
   keys.clear(); mouseFlight.reset();
-  for (const id of touches.keys()) { try { canvas.releasePointerCapture(id); } catch {} }
-  touches.clear(); stick.active = false; gesture = null; lastTap = {n: 0, t: 0}; sprintUntil = 0;
+  touchFlight.reset(); sprintUntil = 0;
   if (!enabled) { lastSteerAt = -1e9; cam.yawT = cam.yaw; cam.pitchBase = cam.pitchT = cam.pitch; }
   if (!enabled && !S.auto) cam.vx = cam.vz = 0;
   frozenView = !enabled && !S.auto ? lastView : null;
@@ -1451,7 +1415,7 @@ $('clearMem').addEventListener('click', () => {
 window.addEventListener('pagehide', () => { if (S.infMem){ memDirty = true; memSave(true); } });
 function setAuto(value){
   if (S.stargazing) value = false;
-  S.auto = value; $('auto').checked = value; mouseFlight.reset();
+  S.auto = value; $('auto').checked = value; mouseFlight.reset(); touchFlight.reset();
   syncAutoFollowMouse();
   if (!value) { sprintUntil = 0; cam.pitchBase = cam.pitchT = cam.pitch; }
   if (!S.interactionEnabled){
@@ -1532,8 +1496,7 @@ function syncStargazingControls() {
   document.querySelectorAll('[data-height-preset]').forEach(el => { el.disabled = S.stargazing; });
   document.querySelectorAll('input[name="constelStyle"]').forEach(el => { el.checked = el.value === S.constelStyle; });
   $('bilingualOption').hidden = getLanguage() === 'en'; $('constelBilingual').disabled = !S.constelNames;
-  $('stargazingStatus').hidden = !S.stargazing;
-  setMessage($('hintText'), S.stargazing ? 'sky.hint' : coarse ? 'hint.touch' : 'hint.mouse');
+  renderControlHint({ stargazing: S.stargazing, coarse: controlHintMedia.matches });
   const current = $('constellationSelect').value;
   $('constellationSelect').replaceChildren(new Option(t('sky.choose'), ''));
   CONSTELLATIONS.forEach((item, i) => $('constellationSelect').add(new Option(constellationLabel(item, getLanguage(), S.constelBilingual).join(' · '), String(i))));
@@ -1541,15 +1504,16 @@ function syncStargazingControls() {
   wallpaperConstellationPicker?.refresh();
   if (constellationOverlay?.selected >= 0) setMessage($('constellationInfo'), 'sky.selected', { name: constellationLabel(CONSTELLATIONS[constellationOverlay.selected], getLanguage(), S.constelBilingual).join(' · ') });
   document.body.dataset.sceneInteractive = String(interactionEnabled());
+  document.dispatchEvent(new Event('sceneinteractionchange'));
 }
 function setStargazing(enabled) {
   S.stargazing = enabled; stargazingPosition = null; constellationFocus = -1;
-  keys.clear(); mouseFlight.reset(); touches.clear(); stick.active = false; gesture = null; skyPress = null; skyActivePointers.clear();
-  lastTap = { n: 0, t: 0 }; sprintUntil = 0; cam.vx = cam.vz = 0;
+  keys.clear(); mouseFlight.reset(); touchFlight.reset(); skyPress = null; skyActivePointers.clear();
+  sprintUntil = 0; cam.vx = cam.vz = 0;
   cam.yawT = cam.yaw; cam.pitchBase = cam.pitchT = cam.pitch;
   if (enabled) { S.auto = false; cam.y = lastView?.position[1] ?? cam.y; }
   frozenView = null; constellationOverlay?.cancelPick();
-  syncStargazingControls(); document.dispatchEvent(new Event('sceneinteractionchange')); saveSettings();
+  syncStargazingControls(); saveSettings();
 }
 for (const key of ['stargazing', 'constelInteract', 'constelNames', 'constelBilingual']) {
   $(key).addEventListener('change', e => {
@@ -1578,6 +1542,7 @@ $('constellationSelect').addEventListener('change', () => {
   selectConstellation(Number(value), true);
 });
 onLanguageChange(syncStargazingControls);
+controlHintMedia.addEventListener('change', () => renderControlHint({ stargazing: S.stargazing, coarse: controlHintMedia.matches }));
 syncStargazingControls();
 
 function stopAuto(){ if (S.auto) setAuto(false); }
@@ -1607,7 +1572,7 @@ function setLocation(loc){
   renderLoc(); publishTimeControls(); void observation.refresh(LOC); syncWeather(); saveSettings();
 }
 initLocationPicker({ getLocation: () => LOC, setLocation, loadData: celestialAssets.locationDataLoader });
-document.addEventListener('locationpickeropen', () => { keys.clear(); mouseFlight.reset(); stick.active = false; });
+document.addEventListener('locationpickeropen', () => { keys.clear(); mouseFlight.reset(); touchFlight.reset(); });
 
 /* 当地天气请求失败时继续动态天气；始终在观测信息中说明数据来源。 */
 let weatherRequest = 0;
@@ -1644,7 +1609,7 @@ $('retryWeather').addEventListener('click', async () => { await observation.refr
 $('sceneWeatherLock').addEventListener('change', event => setPreviewFreeze({ freezeWeather: event.target.checked }));
 $('cloudLock').addEventListener('change', event => setPreviewFreeze({ freezeClouds: event.target.checked }));
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { keys.clear(); mouseFlight.reset(); }
+  if (document.hidden) { keys.clear(); mouseFlight.reset(); touchFlight.reset(); }
   else { void observation.refresh(LOC); if (S.wxMode === 'follow') void syncWeather(); }
 });
 void observation.refresh(LOC);
@@ -1717,12 +1682,12 @@ function updateCamera(dt){
   const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw);
   let tvx = 0, tvz = 0;
   const sprinting = performance.now() < sprintUntil;
-  if (S.auto || sprinting){ const v = Math.max(7, S.agl * 0.35) * (sprinting ? 2.6 : 1); tvx = sy * v; tvz = cy * v; }
-  if (mf || mr){ const v = Math.max(6, S.agl * 0.8) * fast; tvx = (sy * mf + cy * mr) * v; tvz = (cy * mf - sy * mr) * v; }
+  if (S.auto || sprinting){ const v = Math.max(7, S.agl * 0.35) * S.flightSpeed * (sprinting ? 2.6 : 1); tvx = sy * v; tvz = cy * v; }
+  if (mf || mr){ const v = Math.max(6, S.agl * 0.8) * S.flightSpeed * fast; tvx = (sy * mf + cy * mr) * v; tvz = (cy * mf - sy * mr) * v; }
   const ka = 1 - Math.exp(-dt * 2.2);
   cam.vx += (tvx - cam.vx) * ka; cam.vz += (tvz - cam.vz) * ka;
   S.x += cam.vx * dt; S.z += cam.vz * dt;
-  if (mu){ S.agl = clamp(S.agl * Math.exp(mu * 1.2 * dt * fast), VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX); syncHeightSlider(); }
+  if (mu){ S.agl = clamp(S.agl * Math.exp(mu * 1.2 * dt * fast * S.flightSpeed), VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX); syncHeightSlider(); }
   /* glide over the hills: look ahead so the camera rises before a slope, not into it */
   /* terrain following: sample fixed distances ahead (not times, so sprinting does not lift more) and only climb early
      as much as a 24-degree climb needs; the old 0.8 s / 1.6 s look-ahead lifted the camera metres off the grass whenever
@@ -2642,9 +2607,10 @@ function loadScene(scene) {
   resumeWeatherTarget();
   // 作品可恢复运动相位；旧作品保留当前相位，自然动画继续运行。
   keys.clear(); mouseFlight.reset(); frozenView = scene.camera.view ? structuredClone(scene.camera.view) : null; lastView = null;
-  for (const id of new Set([...touches.keys(), ...skyActivePointers])) { try { canvas.releasePointerCapture(id); } catch {} }
-  touches.clear(); stick.active = false; gesture = null; skyPress = null; skyPointer = null; skyActivePointers.clear();
-  lastTap = { n: 0, t: 0 }; lastSteerAt = -1e9; sprintUntil = 0;
+  touchFlight.reset();
+  for (const id of skyActivePointers) { try { canvas.releasePointerCapture(id); } catch {} }
+  skyPress = null; skyPointer = null; skyActivePointers.clear();
+  lastSteerAt = -1e9; sprintUntil = 0;
   prev = null; needReset = true; lightKey = ''; skyKey = ''; expo = NaN; cloudLightInvalidated=true;
   nightObservation.reset();
   trailHist.length = 0; LR.drops.length = 0; streamG = NaN; streamAge = 0; streamOpacity = 0; bolt.t = 99;
@@ -2779,7 +2745,7 @@ return {
   applyStartupPositionPreference(rememberPosition) {
     if (rememberPosition && !restoredScene) return;
     applySceneCamera(rememberPosition ? restoredScene.camera : startupCamera);
-    keys.clear(); mouseFlight.reset(); frozenView = null; lastView = null; prev = null; needReset = true;
+    keys.clear(); mouseFlight.reset(); touchFlight.reset(); frozenView = null; lastView = null; prev = null; needReset = true;
     syncSceneControls();
   },
   resize: () => resize(true),
@@ -2796,7 +2762,7 @@ return {
     if (paused) { cancelAnimationFrame(animationFrame); animationFrame = 0; saveSettings(); rejectThumbnail(new Error('当前画面已暂停')); return; }
     last = performance.now(); frameGate.reset(); prev = null; needReset = true; skyKey = '';
     statAcc = statFrames = statT = perfFrames = perfAcc = 0;
-    keys.clear(); mouseFlight.reset();
+    keys.clear(); mouseFlight.reset(); touchFlight.reset();
     if (!WXS.live || Date.now() - WXS.live.fetchedAt > 15 * 60 * 1000) void syncWeather();
     if (!animationFrame && !contextLost) animationFrame = requestAnimationFrame(tick);
   },

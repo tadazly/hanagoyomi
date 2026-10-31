@@ -1,4 +1,4 @@
-const TAP_MS = 400, TAP_SLOP = 14, CLICK_SLOP = 24;
+const TAP_MS = 320, TAP_SLOP = 14, CLICK_SLOP = 24;
 
 // 触屏与鼠标共享摇杆幅度、死区和横向滑动时的高度锁定。
 export function flightStickAxes(stick, width, height) {
@@ -14,41 +14,23 @@ export function flightStickAxes(stick, width, height) {
   return { x, y };
 }
 
-export function bindMouseFlightInput({ canvas, isFlying, isEnabled = () => true, followsMouse = () => false, look, dash, turn, toggleFlight,
-  now = () => performance.now(), schedule = setTimeout, cancel = clearTimeout }) {
+export function bindMouseFlightInput({ canvas, isFlying, isEnabled = () => true, followsMouse = () => false, look }) {
   const stick = { active: false, ox: 0, oy: 0, x: 0, y: 0 };
-  let press = null, clicks = null, turnTimer = null;
-  const clearClicks = () => {
-    if (turnTimer !== null) cancel(turnTimer);
-    turnTimer = null; clicks = null;
-  };
+  let press = null;
   const reset = () => {
     const id = press?.id;
-    press = null; clearClicks(); stick.active = false;
+    press = null; stick.active = false;
     if (id !== undefined) { try { canvas.releasePointerCapture(id); } catch {} }
     canvas.classList.remove('dragging');
   };
-  // 使用原始事件时间，避免渲染繁忙、事件排队改变点击间隔。
-  const eventTime = e => Number.isFinite(e.timeStamp) ? e.timeStamp : now();
-  const compatible = e => clicks && clicks.button === e.button && eventTime(e) - clicks.t < TAP_MS
-    && Math.hypot(e.clientX - clicks.x, e.clientY - clicks.y) <= CLICK_SLOP;
   canvas.addEventListener('pointerdown', e => {
     if (e.pointerType !== 'mouse') return;
-    if (![0, 2].includes(e.button)) { clearClicks(); return; }
-    if (!isEnabled() || press || e.buttons !== (e.button === 0 ? 1 : 2)) { reset(); return; }
+    if (e.button !== 0) return;
+    if (!isEnabled() || press || e.buttons !== 1) { reset(); return; }
     e.preventDefault();
     canvas.focus?.({ preventScroll: true });
-    if (!compatible(e)) {
-      // 双击之后改按其他键或换位置，已完成的掉头仍然有效。
-      const pendingTurn = turnTimer !== null;
-      clearClicks();
-      if (pendingTurn) turn();
-    } else if (turnTimer !== null) {
-      // 第三击按下就取消待执行的掉头，避免长按第三击时提前掉头。
-      cancel(turnTimer); turnTimer = null;
-    }
     press = { id: e.pointerId, button: e.button, x: e.clientX, y: e.clientY,
-      lastX: e.clientX, lastY: e.clientY, t: eventTime(e), moved: false };
+      lastX: e.clientX, lastY: e.clientY, moved: false };
     try { canvas.setPointerCapture(e.pointerId); } catch {}
   });
   canvas.addEventListener('pointermove', e => {
@@ -59,7 +41,7 @@ export function bindMouseFlightInput({ canvas, isFlying, isEnabled = () => true,
       const wasMoved = press.moved;
       press.lastX = e.clientX; press.lastY = e.clientY;
       if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > TAP_SLOP) {
-        press.moved = true; clearClicks();
+        press.moved = true;
       }
       if (press.button === 0 && press.moved && !isFlying()) {
         canvas.classList.add('dragging');
@@ -76,17 +58,9 @@ export function bindMouseFlightInput({ canvas, isFlying, isEnabled = () => true,
   });
   canvas.addEventListener('pointerup', e => {
     if (e.pointerType !== 'mouse' || !press || e.pointerId !== press.id || e.button !== press.button) return;
-    const p = press; press = null; canvas.classList.remove('dragging');
+    const id = press.id; press = null; canvas.classList.remove('dragging');
     if (!followsMouse()) stick.active = false;
-    if (!isEnabled() || p.moved || eventTime(e) - p.t >= 300
-      || Math.hypot(e.clientX - p.x, e.clientY - p.y) > TAP_SLOP) { clearClicks(); return; }
-    const n = compatible(e) ? clicks.n + 1 : 1;
-    clicks = { button: e.button, n, t: eventTime(e), x: e.clientX, y: e.clientY };
-    if (e.button === 0 && n === 2) { clearClicks(); dash(); }
-    else if (e.button === 2 && n === 3) { clearClicks(); toggleFlight(); }
-    else if (e.button === 2 && n === 2) {
-      turnTimer = schedule(() => { turnTimer = null; clicks = null; turn(); }, TAP_MS);
-    }
+    try { canvas.releasePointerCapture(id); } catch {}
   });
   canvas.addEventListener('pointerleave', e => {
     if (e.pointerType === 'mouse') stick.active = false;
@@ -94,5 +68,56 @@ export function bindMouseFlightInput({ canvas, isFlying, isEnabled = () => true,
   canvas.addEventListener('pointercancel', e => { if (e.pointerType === 'mouse') reset(); });
   canvas.addEventListener('lostpointercapture', e => { if (press?.id === e.pointerId) reset(); });
   canvas.addEventListener('contextmenu', e => e.preventDefault());
+  return { stick, reset };
+}
+
+export function bindTouchFlightInput({ canvas, isEnabled = () => true, onStart = () => {}, dash, toggleFlight,
+  eventTarget = globalThis.window, now = () => performance.now(), schedule = setTimeout, cancel = clearTimeout }) {
+  const touches = new Map(), stick = { active: false, id: -1, ox: 0, oy: 0, x: 0, y: 0 };
+  let gesture = null, taps = null, dashTimer = null;
+  const eventTime = event => Number.isFinite(event.timeStamp) ? event.timeStamp : now();
+  const clearTaps = () => { if (dashTimer !== null) cancel(dashTimer); dashTimer = null; taps = null; };
+  const reset = () => {
+    const ids = [...touches.keys()]; touches.clear(); stick.active = false; gesture = null; clearTaps();
+    for (const id of ids) { try { canvas.releasePointerCapture(id); } catch {} }
+  };
+  canvas.addEventListener('pointerdown', event => {
+    if (event.pointerType === 'mouse') return;
+    if (!isEnabled()) { reset(); return; }
+    event.preventDefault(); canvas.focus?.({ preventScroll: true }); onStart();
+    if (taps && (eventTime(event) - taps.t >= TAP_MS || Math.hypot(event.clientX - taps.x, event.clientY - taps.y) > CLICK_SLOP)) clearTaps();
+    if (dashTimer !== null) { cancel(dashTimer); dashTimer = null; }
+    touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    gesture ||= { t: eventTime(event), maxN: 0, moved: false };
+    gesture.maxN = Math.max(gesture.maxN, touches.size);
+    if (touches.size === 1) Object.assign(stick, { active: true, id: event.pointerId, ox: event.clientX, oy: event.clientY, x: event.clientX, y: event.clientY });
+    else { stick.active = false; clearTaps(); }
+    try { canvas.setPointerCapture(event.pointerId); } catch {}
+  });
+  canvas.addEventListener('pointermove', event => {
+    const start = touches.get(event.pointerId);
+    if (!start) return;
+    if (!isEnabled()) { reset(); return; }
+    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > TAP_SLOP) { gesture.moved = true; clearTaps(); }
+    if (stick.active && stick.id === event.pointerId) { stick.x = event.clientX; stick.y = event.clientY; }
+  });
+  canvas.addEventListener('pointerup', event => {
+    const start = touches.get(event.pointerId);
+    if (!start) return;
+    touches.delete(event.pointerId); if (stick.id === event.pointerId) stick.active = false;
+    try { canvas.releasePointerCapture(event.pointerId); } catch {}
+    if (touches.size || !gesture) return;
+    const quick = eventTime(event) - gesture.t < 300 && !gesture.moved && gesture.maxN === 1
+      && Math.hypot(event.clientX - start.x, event.clientY - start.y) <= TAP_SLOP;
+    gesture = null;
+    if (!isEnabled() || !quick) { clearTaps(); return; }
+    taps = { n: (taps?.n || 0) + 1, t: eventTime(event), x: event.clientX, y: event.clientY };
+    if (taps.n === 3) { clearTaps(); toggleFlight(); }
+    else if (taps.n === 2) dashTimer = schedule(() => { clearTaps(); if (isEnabled()) dash(); }, TAP_MS);
+  });
+  canvas.addEventListener('pointercancel', event => { if (touches.has(event.pointerId)) reset(); });
+  canvas.addEventListener('lostpointercapture', event => { if (touches.has(event.pointerId)) reset(); });
+  eventTarget?.addEventListener('blur', reset);
+  eventTarget?.addEventListener('pointerdown', event => { if (event.target !== canvas) reset(); }, true);
   return { stick, reset };
 }

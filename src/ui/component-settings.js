@@ -73,7 +73,9 @@ export function initComponentSettings() {
   const elements = Object.fromEntries(COMPONENTS.map(name => [name, document.querySelector(`[data-ui-component="${name}"]`)]));
   const boundsElement = document.getElementById('componentBounds');
   const interactionEnabled = () => document.body.dataset.sceneInteractive !== 'false';
-  const visible = name => preferences[name].visible && (name !== 'hint' || interactionEnabled());
+  // 观星期间保留状态与退出入口，退出后恢复用户原有的提示偏好。
+  const visible = name => (name === 'hint' && elements.hint.dataset.stargazing === 'true')
+    || (preferences[name].visible && (name !== 'hint' || interactionEnabled()));
   const layout = () => {
     queued = false;
     const bounds = boundsElement.getBoundingClientRect(), toolbar = document.querySelector('.toolbar').getBoundingClientRect();

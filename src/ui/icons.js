@@ -15,11 +15,13 @@ const paths = {
   chevron: '<path d="m6 9 6 6 6-6"/>',
   refresh: '<path d="M20 4v5h-5M4 20v-5h5M4.8 9a8 8 0 0 1 13.4-4L20 9M4 15l1.8 4A8 8 0 0 0 19.2 15"/>',
   mouse: '<rect x="6" y="2" width="12" height="20" rx="6"/><path d="M12 2v6m-6 0h12"/>',
+  hand: '<path d="M8 13V4.5a1.5 1.5 0 0 1 3 0V9m0 0v-.5a1.5 1.5 0 0 1 3 0V10m0 0v-.5a1.5 1.5 0 0 1 3 0V11m0 0v-.5a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-1c-2 0-3.5-1-4.5-2.5L4 13a1.7 1.7 0 0 1 2.7-2L8 13Z"/>',
   'arrow-up-right': '<path d="M7 17 17 7M7 7h10v10"/>',
 };
 
-export function populateIcons() {
-  document.querySelectorAll('[data-icon]').forEach(el => {
+export function populateIcons(root = document) {
+  const elements = root.matches?.('[data-icon]') ? [root] : root.querySelectorAll('[data-icon]');
+  elements.forEach(el => {
     el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[el.dataset.icon] || ''}</svg>`;
   });
 }
