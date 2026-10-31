@@ -10,6 +10,15 @@ input[type='range']::-moz-range-progress { height: 20px; border-radius: 10px 0 0
 input[type='range']::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; box-shadow: none; opacity: 0; }
 input[type='range']:focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
 input[type='range']:disabled { opacity: .45; cursor: default; }
+body[data-wallpaper='true'] input[type='range'] { touch-action: none; user-select: none; -webkit-user-select: none; }
+.wallpaper-range { position: relative; min-width: 0; height: 44px; grid-column: 1/-1; }
+.wallpaper-range input { position: relative; z-index: 1; display: block; }
+.wallpaper-range-track { position: absolute; pointer-events: none; inset: 12px 0; overflow: hidden; border-radius: 10px; background: var(--track); box-shadow: inset 0 0 0 1px rgba(70,76,64,.08); }
+.wallpaper-range-track span { position: absolute; inset: 0; background: var(--sun); transform-origin: left; }
+.wallpaper-range:has(input[data-range-adjusting]) .wallpaper-range-track span { will-change: transform; }
+.wallpaper-range:has(input:disabled) .wallpaper-range-track { opacity: .45; }
+.wallpaper-range input::-webkit-slider-runnable-track { background: transparent; box-shadow: none; }
+.wallpaper-range input::-moz-range-track,.wallpaper-range input::-moz-range-progress { background: transparent; box-shadow: none; }
 .search-field { position: relative; margin: 12px 0 11px; }
 .search-field > span { position: absolute; top: 11px; left: 12px; color: var(--ink-soft); pointer-events: none; }
 .search-field svg { width: 18px; height: 18px; }

@@ -40,7 +40,7 @@ function fixture(options = {}) {
   viewport.contains = target => target?.viewport === viewport;
   const node = (ignored = false) => ({ viewport, closest: selector => ignored && selector ? {} : null });
   const button = node(), label = node();
-  const binding = bindDragScroll({ viewport, axis: options.axis, eventTarget, onScroll: () => updates++, ...(options.ignoreSelector ? { ignoreSelector: options.ignoreSelector } : {}) });
+  const binding = bindDragScroll({ viewport, axis: options.axis, eventTarget, onScroll: () => updates++, ...options.motion, ...(options.ignoreSelector ? { ignoreSelector: options.ignoreSelector } : {}) });
   return {
     viewport, eventTarget, doc, media, frames, classes, button, label, node, binding,
     get updates() { return updates; }, get capture() { return capture; }, get releases() { return releases; },
@@ -211,4 +211,25 @@ test('意外失去pointer capture取消手势；正常释放保留click抑制和
   normal.viewport.emit('lostpointercapture', { target: normal.viewport, pointerId: 9 });
   assert.ok(normal.frames.size); assert.equal(normal.click().defaultPrevented, true);
   normal.frame(); assert.ok(normal.viewport.scrollTop > 80); normal.binding.destroy();
+});
+
+test('滑条复用滚动手势：按下不跳值、横拖相对原值、连续位置与松开惯性统一收尾', () => {
+  let position=50, commits=0;
+  const f=fixture({axis:'x',motion:{direction:-1,getPosition:()=>position,setPosition:value=>{position=value;},getLimit:()=>200,onSettle:()=>commits++}});
+  f.down({clientX:170}); assert.equal(position,50);
+  f.move({clientX:173});f.frame();assert.equal(position,50);
+  f.move({clientX:190.4});f.frame();assert.equal(position,70.4);
+  f.up({clientX:190.4});assert.equal(commits,0);assert.ok(f.binding.active);
+  for(let i=0;i<150&&f.frames.size;i++)f.frame();
+  assert.ok(position>70.4&&position<=200);assert.equal(commits,1);assert.equal(f.binding.active,false);
+  f.binding.cancel();assert.equal(commits,1);
+});
+
+test('滑条触屏可显式接入同一引擎；失焦只提交一次并停止余速', () => {
+  let position=50,commits=0;
+  const f=fixture({axis:'x',motion:{direction:-1,allowTouch:true,getPosition:()=>position,setPosition:value=>{position=value;},getLimit:()=>200,onSettle:()=>commits++}});
+  assert.equal(f.viewport.style.touchAction,'none');
+  f.down({pointerType:'touch'});f.move({pointerType:'touch',clientX:130});f.frame();assert.equal(position,80);
+  f.eventTarget.emit('blur');assert.equal(commits,1);assert.equal(f.frames.size,0);assert.equal(f.binding.active,false);
+  f.binding.destroy();assert.equal(commits,1);
 });

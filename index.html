@@ -66,13 +66,11 @@
         <p class="loc-sub feedback" id="geoMsg" role="status"></p>
         </div></details>
         </div>
-        <p class="settings-helper" data-i18n="settings.locationNote"></p>
         <div id="timeControls"></div><p id="locSun" class="sr-only"></p>
         <h2 data-i18n="settings.explore">Exploration</h2>
         <label class="switch"><span data-i18n="camera.auto">Auto flight</span><input type="checkbox" id="auto"><i></i></label>
-        <label class="switch"><span data-i18n="camera.autoFollowMouse">Follow mouse during auto flight</span><input type="checkbox" id="autoFollowMouse"><i></i></label>
         <label class="switch"><span data-i18n="components.interaction">Scene interaction</span><input type="checkbox" id="interactionEnabled" checked><i></i></label>
-        <p class="settings-helper" data-i18n="settings.interactionNote"></p>
+        <label class="switch"><span data-i18n="camera.autoFollowMouse">Follow mouse during auto flight</span><input type="checkbox" id="autoFollowMouse"><i></i></label>
         <label class="ctl"><span data-i18n="camera.height">Height above ground</span><output for="height"></output><input type="range" id="height" min="0" max="1000" step="1"></label>
         <div class="seg seg3 height-presets" role="group" aria-label="View height presets" data-i18n-aria-label="settings.heightPresets">
           <button type="button" data-height-preset="meadow" aria-pressed="false" data-i18n="settings.heightMeadow">Meadow</button>
@@ -92,7 +90,6 @@
           <label><input type="radio" name="wxMode" value="manual"><span data-i18n="weather.manual">Choose weather</span></label>
           <label><input type="radio" name="wxMode" value="off"><span data-i18n="common.off">Off</span></label>
         </div>
-        <p class="settings-helper" data-i18n="settings.weatherNote"></p>
         <p class="loc-now" id="wxNow">Partly cloudy</p>
         <div id="wxManual" hidden><div class="chips" id="wxTypes"></div><details class="advanced"><summary><span data-i18n="settings.weatherFine"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body">
 
@@ -128,20 +125,17 @@
         <label><input type="radio" name="q" value="high"><span data-i18n="quality.high">High</span></label>
         <label><input type="radio" name="q" value="ultra"><span data-i18n="quality.ultra">Ultra</span></label>
       </div>
-        <p class="settings-helper" data-i18n="settings.qualityNote"></p>
         <label class="ctl"><span data-i18n="quality.renderScale">Render scale</span><output for="renderScale"></output><input type="range" id="renderScale" min="0.5" max="1.5" step="0.05" value="1" aria-label="Render scale" data-i18n-aria-label="quality.renderScale"></label>
         <label class="ctl"><span data-i18n="quality.fpsLimit">Frame rate limit</span><output for="fpsLimit"></output><input type="range" id="fpsLimit" min="10" max="121" step="1" value="60" aria-label="Frame rate limit" data-i18n-aria-label="quality.fpsLimit" aria-describedby="fpsLimitNote"></label>
         <p class="settings-helper" id="fpsLimitNote"></p>
         <h2 data-i18n="settings.visualStyle">Visual style</h2>
         <label class="switch"><span data-i18n="landscape.lowSaturation">Low-saturation colours</span><input type="checkbox" id="lowSaturation"><i></i></label>
         <label class="switch"><span data-i18n="visual.vignette">Vignette</span><input type="checkbox" id="vignette" checked><i></i></label>
-        <p class="settings-helper" data-i18n="visual.vignetteNote"></p>
         <label class="ctl"><span data-i18n="camera.dof">Depth of field</span><output for="dof"></output><input type="range" id="dof" min="0" max="1" step="0.01"></label>
-        <p class="settings-helper" data-i18n="settings.dofNote"></p>
         <details class="advanced"><summary><span data-i18n="settings.flowerDetails"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body"><label class="switch"><span data-i18n="landscape.petals">Petal stream</span><input type="checkbox" id="petals"><i></i></label>
         <label class="switch"><span data-i18n="landscape.fireflies">Fireflies at night</span><input type="checkbox" id="flies"><i></i></label>
         <label class="switch"><span data-i18n="landscape.bloom">Bloom as petals pass</span><input type="checkbox" id="bloom" aria-describedby="bloomHelp"><i></i></label>
-        <p class="settings-helper" id="bloomHelp" data-i18n="landscape.bloomHelp">At low altitude, flowers open as the petal stream passes. When off, all flowers stay open.</p>
+        <p class="settings-helper" id="bloomHelp" data-i18n="landscape.bloomHelp">When off, all flowers stay open.</p>
         <label class="ctl"><span data-i18n="landscape.bloomRadius">Bloom range</span><output for="bloomR"></output><input type="range" id="bloomR" min="1.5" max="10" step="0.5"></label>
         <label class="switch"><span data-i18n="landscape.flowerGlow">Flower glow at night</span><input type="checkbox" id="flowerGlow"><i></i></label>
         <label class="switch"><span data-i18n="landscape.memory">Remember blooms at any distance</span><input type="checkbox" id="infMem"><i></i></label>
@@ -198,7 +192,6 @@
           <label class="ctl"><span data-i18n="sky.width">Line thickness</span><output for="constelWidth"></output><input type="range" id="constelWidth" min="0.6" max="2" step="0.05"></label>
           <label class="ctl"><span data-i18n="sky.clarity">Annotation contrast</span><output for="constelClarity"></output><input type="range" id="constelClarity" min="0.4" max="2" step="0.05"></label>
           <label class="ctl"><span data-i18n="sky.font">Name size</span><output for="constelFont"></output><input type="range" id="constelFont" min="10" max="22" step="1"></label>
-          <p class="settings-helper" data-i18n="sky.displayHelp"></p>
           <button class="btn outline" type="button" id="resetConstellationDisplay" data-i18n="sky.reset">Reset display</button>
         </div></details>
         <details class="advanced"><summary><span data-i18n="sky.environment"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body">
@@ -211,7 +204,6 @@
       <section id="pane-components" role="tabpanel" aria-labelledby="tab-components" hidden>
         <label class="language-field"><span data-i18n="language.label">Language</span><select id="languageSelect" aria-label="Language" data-i18n-aria-label="language.label"><option value="auto" data-i18n="language.auto">Automatic</option><option value="en" lang="en">English</option><option value="zh" lang="zh-CN">简体中文</option><option value="ja" lang="ja">日本語</option></select></label>
         <h2 data-i18n="components.title">Interface components</h2>
-        <p class="component-intro" data-i18n="components.description">Show or hide components and choose the time and weather position.</p>
 
         <div class="component-card" data-component-settings="logo">
           <label class="switch"><span data-i18n="components.logo">LOGO</span><input type="checkbox" data-component-visible checked><i></i></label>
@@ -236,8 +228,7 @@
         </div>
         <details class="advanced"><summary><span data-i18n="settings.startupRecovery"></span><span data-icon="chevron"></span></summary><div class="settings-detail-body">
         <label class="switch" id="startupPanelOption" hidden><span data-i18n="panel.openOnStartup">Open world settings on startup</span><input type="checkbox" id="openPanelOnStartup"><i></i></label>
-        <label class="switch"><span data-i18n="settings.rememberPosition">Remember last position</span><input type="checkbox" id="rememberPosition" checked aria-describedby="rememberPositionNote"><i></i></label>
-        <p class="settings-helper" id="rememberPositionNote" data-i18n="settings.rememberPositionNote">Resume from where you left off. Turn off to start from the default view next time.</p>
+        <label class="switch"><span data-i18n="settings.rememberPosition">Remember last position</span><input type="checkbox" id="rememberPosition" checked><i></i></label>
         <button class="btn outline" id="resetComponents" type="button" data-i18n="components.reset">Restore component settings</button>
       </div></details>
       </section>

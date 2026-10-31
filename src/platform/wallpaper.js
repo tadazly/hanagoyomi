@@ -3,7 +3,7 @@ import { setLanguage } from '../i18n/index.js';
 import { createHostPropertySnapshot } from './host-properties.js';
 import { setWallpaperSettingsMode } from '../ui/wallpaper-settings-mode.js';
 
-export const wallpaperSettings = { fps: 30, paused: false };
+export const wallpaperSettings = { fps: undefined, paused: false };
 export const HOST_PROPERTIES_KEY = storageKey('hanagoyomi.host-properties.v1');
 
 export function attachWallpaper(world, shell) {

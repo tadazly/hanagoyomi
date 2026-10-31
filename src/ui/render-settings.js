@@ -8,6 +8,8 @@ export function bindRenderSettings({ settings, wallpaper, hostSettings, resize, 
   const showPerformance = doc.getElementById('showPerformance');
   const overlay = doc.getElementById('performanceOverlay');
   const logo = doc.querySelector('[data-ui-component="logo"]');
+  const view = doc.defaultView || window;
+  let resizeFrame = 0;
   function placePerformance(){
     overlay.hidden=!settings.showPerformance;
     if(overlay.hidden)return;
@@ -30,24 +32,34 @@ export function bindRenderSettings({ settings, wallpaper, hostSettings, resize, 
     input.value = value;
     output.textContent = label;
     input.setAttribute('aria-valuetext', label);
-    input.style.setProperty('--fill', `${(input.valueAsNumber - Number(input.min)) / (Number(input.max) - Number(input.min)) * 100}%`);
+    const span = Number(input.max) - Number(input.min);
+    input.style.setProperty('--fill', `${span > 0 ? (input.valueAsNumber - Number(input.min)) / span * 100 : 100}%`);
   };
-  function refresh() {
-    showPerformance.checked=settings.showPerformance;placePerformance();
+  const paintScale = () => {
     paint(scale, scaleOutput, settings.renderScale, `${Math.round(settings.renderScale * 100)}%`);
+  };
+  const paintFPS = () => {
     const { min, max, ceiling } = frameLimitRange(wallpaper ? hostSettings.fps : undefined);
     fps.min = min; fps.max = max;
     const value = settings.fpsLimit === 0 ? max : Math.max(min, Math.min(ceiling, settings.fpsLimit));
-    paint(fps, fpsOutput, value, settings.fpsLimit === 0 ? t('quality.fpsUnlimited') : `${value} FPS`);
-    note.textContent = wallpaper && hostSettings.fps !== 0 ? t('quality.fpsHostLimit', { value: ceiling }) : t('quality.fpsLimitNote');
+    const unlimited = max > ceiling && value === max;
+    paint(fps, fpsOutput, value, unlimited ? t('quality.fpsUnlimited') : `${value} FPS`);
+    note.textContent = max === ceiling ? t('quality.fpsHostLimit', { value: ceiling }) : t('quality.fpsLimitNote');
+  };
+  function refresh() {
+    showPerformance.checked=settings.showPerformance;placePerformance();
+    paintScale(); paintFPS();
   }
   scale.addEventListener('input', () => {
     settings.renderScale = Math.round(scale.valueAsNumber * 20) / 20;
-    refresh(); resize();
+    paintScale();
+    // 同一屏幕帧最多重建一次缓冲，不在每条鼠标输入中同步重分配。
+    if (!resizeFrame) resizeFrame = view.requestAnimationFrame(() => { resizeFrame = 0; resize(); });
   });
   fps.addEventListener('input', () => {
-    settings.fpsLimit = fps.valueAsNumber === Number(fps.max) ? 0 : Math.max(10, fps.valueAsNumber);
-    refresh();
+    const { min, max, ceiling } = frameLimitRange(wallpaper ? hostSettings.fps : undefined);
+    settings.fpsLimit = max > ceiling && fps.valueAsNumber === max ? 0 : Math.max(min, fps.valueAsNumber);
+    paintFPS();
   });
   onLanguageChange(refresh);
   refresh();

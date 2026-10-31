@@ -75,7 +75,7 @@ export function initGallery(world, shell) {
   const $ = selector => sheet.querySelector(selector);
   const thumbnails = createGalleryThumbnails({ root: $('.gallery-content') });
   const refreshSwipe = bindGallerySwipe({ viewport: $('.gallery-content'), track: $('.gallery-scrollbar'), thumb: $('.gallery-scroll-thumb') });
-  let collection = 'curated', selected = null, feedbackTimer, saving = false, collapsed = false;
+  let collection = 'curated', selected = null, feedbackTimer, saving = false, collapsed = false, suspended = false;
   const scrollPositions = { curated: 0, saved: 0 };
   let renderedCollection = null;
   const cards = new Map();
@@ -127,7 +127,9 @@ export function initGallery(world, shell) {
     sharing?.dismissIncoming();
     const scene = item.initial ? world.createInitialScene() : item.scene;
     if (item.initial && item.scene.appearance) scene.appearance = item.scene.appearance;
-    world.previewScene(scene, { nightSkyStyle: item.nightSkyStyle, constelStyle: item.constelStyle, preserveFollowNow: Boolean(item.initial), followLocation: Boolean(item.initial) }); selected = item;
+    world.previewScene(scene, { nightSkyStyle: item.nightSkyStyle, constelStyle: item.constelStyle,
+      naturalSky: !item.initial && GALLERY_SCENES.some(entry => entry.id === item.id),
+      preserveFollowNow: Boolean(item.initial), followLocation: Boolean(item.initial) }); selected = item;
     syncFreezes(scene.freeze);
     if (sheet.hidden) open();
     render(); setCollapsed(true);
@@ -249,7 +251,8 @@ export function initGallery(world, shell) {
     refreshFooter();
   };
   const close = (restore = true, { focus = true } = {}) => {
-    if (sheet.hidden) return;
+    if (sheet.hidden && !suspended) return;
+    suspended = false;
     thumbnails.setActive(false);
     refreshSwipe.cancel?.();
     if (!collapsed) scrollPositions[collection] = $('.gallery-content').scrollLeft;
@@ -262,6 +265,7 @@ export function initGallery(world, shell) {
     if (focus) trigger.focus({ preventScroll: true });
   };
   const open = () => {
+    suspended = false;
     shell.setPanel(false);
     document.dispatchEvent(new Event('galleryopen'));
     sheet.hidden = false; document.body.dataset.galleryOpen = 'true'; trigger.setAttribute('aria-expanded', 'true'); render();
@@ -340,12 +344,28 @@ export function initGallery(world, shell) {
     if (document.querySelector('dialog[open]')) return;
     if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close(); }
   }, true);
-  document.addEventListener('worldpanelopen', () => close(false, { focus: false }));
-  document.addEventListener('timepopoveropen', () => close(false, { focus: false }));
+  const suspendForPanel = () => {
+    if (sheet.hidden) return;
+    if (!world.isPreviewing()) { close(false, { focus: false }); return; }
+    suspended = true; thumbnails.setActive(false); refreshSwipe.cancel?.(); actions.close();
+    if (!collapsed) scrollPositions[collection] = $('.gallery-content').scrollLeft;
+    sheet.hidden = true; document.body.dataset.galleryOpen = 'false'; trigger.setAttribute('aria-expanded', 'false');
+  };
+  const resumeAfterPanel = () => queueMicrotask(() => {
+    if (!suspended || !world.isPreviewing() || !document.getElementById('panel').hidden
+      || !document.getElementById('timePopover').hidden || document.getElementById('helpDialog').open) return;
+    suspended = false; sheet.hidden = false; document.body.dataset.galleryOpen = 'true'; trigger.setAttribute('aria-expanded', 'true');
+    render();
+    if (!collapsed) requestAnimationFrame(() => { $('.gallery-content').scrollLeft = scrollPositions[collection]; refreshSwipe(); thumbnails.setActive(true); });
+  });
+  document.addEventListener('worldpanelopen', suspendForPanel);
+  document.addEventListener('timepopoveropen', suspendForPanel);
+  document.addEventListener('worldpanelclose', resumeAfterPanel);
   const syncFreezes = freeze => { if (!freeze) return; for (const [id, key] of [['Time','time'],['Weather','weather'],['Clouds','clouds']]) $('#galleryFreeze' + id).checked = Boolean(freeze[key]); };
   document.addEventListener('worldscenechange', event => {
     sceneGeneration++;
     syncFreezes(event.detail?.freeze);
+    if (event.detail?.previewing === false && suspended) close(false, { focus: false });
     if (event.detail?.previewing === false && !sheet.hidden) { selected = null; render(); }
   });
   const localize = () => {

@@ -5,6 +5,7 @@ import { g } from '../i18n/gallery-messages.js';
 import { onLanguageChange } from '../i18n/index.js';
 import { bindDragScroll } from './drag-scroll.js';
 import { loadQRCode } from '#scene-qr';
+import { createWallpaperImportReceipt } from '../platform/wallpaper-import-receipt.js';
 
 // 独立壁纸包运行在 file://，必须导向已部署且能解析作品的公开站。
 const PUBLIC_SHARE_URL = import.meta.env.VITE_SCENE_SHARE_URL || 'https://hanagoyomi.luyilabs.com/';
@@ -23,6 +24,9 @@ export function initSceneSharing({ world, store, ready, canSave, preview, onColl
   const copy = dialog.querySelector('.gallery-share-link button'), qr = dialog.querySelector('canvas'), qrStatus = dialog.querySelector('.gallery-qr p');
   const status = dialog.querySelector('#galleryShareStatus'), accept = banner.querySelector('.primary'), skip = banner.querySelector('.gallery-incoming-actions button:last-child');
   let incoming = null, generation = 0, currentLink = '', statusKey = '', qrStatusKey = '', acceptBusy = false, qrModule = null, qrWidth = 0;
+  let receiptStorage;
+  try { receiptStorage = localStorage; } catch {}
+  const importReceipt = createWallpaperImportReceipt(receiptStorage);
   const drawQR = async ticket => {
     if (!qrModule) return;
     const modules = qrModule.create(currentLink, { errorCorrectionLevel: 'L' }).modules.size + 8;
@@ -57,12 +61,13 @@ export function initSceneSharing({ world, store, ready, canSave, preview, onColl
   };
   const dismissIncoming = () => { clearHash(incoming?.hash); incoming = null; banner.hidden = true; };
   const showIncoming = value => { incoming = value; banner.hidden = false; localize(); };
-  const openArtwork = (artwork, hash) => {
+  const openArtwork = (artwork, hash, link) => {
     try {
       preview({ id: 'shared-link', title: artwork.title || g('untitled'), scene: artwork.scene });
+      if (link) importReceipt.acknowledge(link);
       if (canSave()) showIncoming({ mode: 'preview', artwork, hash });
       else { clearHash(hash); dismissIncoming(); }
-    } catch { showIncoming({ mode: 'invalid', hash }); }
+    } catch { showIncoming({ mode: 'invalid', hash, link }); }
   };
   let receiveGeneration = 0;
   const receive = async (link, pending, hash) => {
@@ -74,19 +79,19 @@ export function initSceneSharing({ world, store, ready, canSave, preview, onColl
     try {
       const artwork = parseSceneLink(link, { baseUrl: shareBase() });
       if (!artwork) {
-        if (pending && link.trim()) showIncoming({ mode: 'invalid', hash });
+        if (pending && link.trim()) showIncoming({ mode: 'invalid', hash, link });
         else if (pending && incoming?.mode !== 'preview') dismissIncoming();
         return;
       }
-      if (pending) showIncoming({ mode: 'pending', artwork });
+      if (pending) showIncoming({ mode: 'pending', artwork, link });
       else openArtwork(artwork, hash);
-    } catch { showIncoming({ mode: 'invalid', hash }); }
+    } catch { showIncoming({ mode: 'invalid', hash, link: pending ? link : undefined }); }
   };
-  skip.addEventListener('click', dismissIncoming);
+  skip.addEventListener('click', () => { if (incoming?.link) importReceipt.acknowledge(incoming.link); dismissIncoming(); });
   accept.addEventListener('click', async () => {
     if (!incoming || acceptBusy) return;
-    const { mode, artwork, hash } = incoming;
-    if (mode === 'pending') { openArtwork(artwork, hash); return; }
+    const { mode, artwork, hash, link } = incoming;
+    if (mode === 'pending') { openArtwork(artwork, hash, link); return; }
     if (mode !== 'preview' || !canSave()) return;
     acceptBusy = true; localize();
     try {
@@ -114,7 +119,11 @@ export function initSceneSharing({ world, store, ready, canSave, preview, onColl
   }).observe(dialog.querySelector('.gallery-qr'));
   for (const event of ['worldpanelopen', 'timepopoveropen', 'galleryclose']) document.addEventListener(event, () => { dialog.close(); dismissIncoming(); });
   document.addEventListener('worldscenechange', event => { if (event.detail?.previewing === false) dismissIncoming(); });
-  document.addEventListener('wallpaperscenelink', event => receive(event.detail?.link || '', true));
+  document.addEventListener('wallpaperscenelink', event => {
+    const link = event.detail?.link || '';
+    if (importReceipt.receive(link)) void receive(link, true);
+    else { receiveGeneration++; if (incoming?.mode !== 'preview') dismissIncoming(); }
+  });
   window.addEventListener('hashchange', () => { if (location.hash.startsWith('#scene=')) receive(location.href, false, location.hash); });
   onLanguageChange(localize); localize();
   if (location.hash.startsWith('#scene=')) queueMicrotask(() => receive(location.href, false, location.hash));

@@ -50,6 +50,7 @@ import { CLOUD_LAYER_METRES, localWeatherAtHeight } from './weather-altitude.js'
 import { petalStreamOpacity } from './petal-stream.js';
 import { flowerMesh, FLOWER_CURVE_RADIUS, FLOWER_CURVE_GRID } from './flower-mesh.js';
 import { SCENE_SETTINGS, SCENE_APPEARANCE, validateScene, resolveSceneTime, sceneFrameTiming, renderSize } from '../world/scene-state.js';
+import { previewAppearance } from '../world/scene-appearance.js';
 import { DEFAULT_VIEW, HEIGHT_PRESETS, VIEW_HEIGHT_MIN, VIEW_HEIGHT_MAX, aglFromSlider, sliderFromAgl, startupPreferences, sceneForStartup } from '../world/view-preferences.js';
 
 // 显示偏好独立于作品协议；旧记录缺少新开关时默认开启，显式关闭须保留。
@@ -863,7 +864,7 @@ const S = {
   fovY: 60, x: 0, z: 0, agl: 2.2, temperatureUnit: 'celsius', interactionEnabled: !WALLPAPER_MODE, autoFollowMouse: false, lowSaturation: false,
   nightSkyStyle: nightSkyStyle(),
   cloudStyle: cloudStyle(),
-  ...RENDER_DEFAULTS,
+  ...renderPreferences(undefined, { wallpaper: WALLPAPER_MODE }),
   ...displayPreferences(),
   ...STARGAZING_DEFAULTS,
   ...startupPreferences(),
@@ -880,7 +881,7 @@ try {
   const sv = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
   if (sv && typeof sv === 'object' && !Array.isArray(sv)){
     Object.assign(S, displayPreferences(sv), stargazingPreferences(sv));
-    Object.assign(S, renderPreferences(sv));
+    Object.assign(S, renderPreferences(sv, { wallpaper: WALLPAPER_MODE }));
     S.nightSkyStyle = nightSkyStyle(sv);
     Object.assign(S, startupPreferences(sv));
     for (const k of PERSIST_KEYS) {
@@ -1398,7 +1399,7 @@ const toggles = {auto: 'auto', autoFollowMouse: 'autoFollowMouse', god: 'god', p
 for (const [id, key] of Object.entries(toggles)){ const el = $(id); el.checked = S[key]; el.addEventListener('change', () => { if (key === 'auto') setAuto(el.checked); else { S[key] = el.checked; if (key === 'autoFollowMouse') mouseFlight.reset(); if (key === 'constel' && !el.checked) clearConstellation(); } }); }
 function syncAutoFollowMouse(){
   $('autoFollowMouse').checked = S.autoFollowMouse;
-  $('autoFollowMouse').disabled = !S.auto || S.stargazing;
+  $('autoFollowMouse').disabled = !S.auto || !S.interactionEnabled || S.stargazing;
 }
 function syncCloudControls(){
   document.querySelectorAll('input[name="cloudStyle"]').forEach(r=>{r.checked=r.value===S.cloudStyle;});
@@ -1429,6 +1430,7 @@ function setInteractionEnabled(enabled){
   S.interactionEnabled = enabled;
   if (!enabled) { skyPress = null; skyPointer = null; skyActivePointers.clear(); clearConstellation(); }
   $('interactionEnabled').checked = enabled;
+  syncAutoFollowMouse();
   keys.clear(); mouseFlight.reset();
   for (const id of touches.keys()) { try { canvas.releasePointerCapture(id); } catch {} }
   touches.clear(); stick.active = false; gesture = null; lastTap = {n: 0, t: 0}; sprintUntil = 0;
@@ -2531,7 +2533,7 @@ function frame(now){
     if (perfFrames >= 90){
       const avg = perfAcc / perfFrames; perfFrames = 0; perfAcc = 0;
       const order = ['low', 'med', 'high', 'ultra'], idx = order.indexOf(S.quality);
-      const limit = effectiveFrameLimit(S.fpsLimit, WALLPAPER_MODE ? wallpaperSettings.fps : undefined);
+      const limit = effectiveFrameLimit(S.fpsLimit, WALLPAPER_MODE ? wallpaperSettings.fps : undefined, WALLPAPER_MODE);
       if (avg > qualityFrameBudget(limit) && idx > 0){ downgrades++; setQuality(order[idx - 1]); }
     }
   }
@@ -2661,9 +2663,7 @@ function previewScene(input, options = {}) {
   composed.freeze = { time: Boolean(freezeTime), weather: Boolean(freezeWeather), clouds: Boolean(freezeClouds) };
   if (!freezeTime && options.freezeTime === false && scene.freeze.time) composed.environment.time = { ...scene.environment.time, followNow: false, speedIndex: Math.max(1, scene.environment.time.speedIndex) };
 
-  composed.appearance = { ...preview.original.appearance, ...scene.appearance };
-  if (!scene.appearance && ['default', 'realistic'].includes(options.nightSkyStyle)) composed.appearance.nightSkyStyle = options.nightSkyStyle;
-  if (!scene.appearance && ['immersive', 'always'].includes(options.constelStyle)) composed.appearance.constelStyle = options.constelStyle;
+  composed.appearance = previewAppearance(preview.original.appearance, scene.appearance, options);
   weatherRequest++; loadScene(composed);
   return captureScene();
 }
@@ -2743,7 +2743,7 @@ function tick(now) {
   if (contextLost || (WALLPAPER_MODE && wallpaperSettings.paused)) return;
   animationFrame = requestAnimationFrame(tick);
   if (WALLPAPER_MODE && document.hidden) return;
-  if (!frameGate.ready(now, effectiveFrameLimit(S.fpsLimit, WALLPAPER_MODE ? wallpaperSettings.fps : undefined))) return;
+  if (!frameGate.ready(now, effectiveFrameLimit(S.fpsLimit, WALLPAPER_MODE ? wallpaperSettings.fps : undefined, WALLPAPER_MODE))) return;
   try { frame(now); }
   catch (error) {
     rejectThumbnail(error);
@@ -2758,6 +2758,7 @@ else if (S.stargazing) setStargazing(true);
 worldReady = true;
 publishObservation();
 for (const eventName of ['input', 'change']) document.addEventListener(eventName, event => {
+  if (eventName === 'input' && event.target.dataset.rangeAdjusting === 'true') return;
   if (event.target.closest('#panel, #timePopover')) saveSettings();
 });
 document.addEventListener('click', event => {

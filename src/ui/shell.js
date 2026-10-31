@@ -345,6 +345,7 @@ export function initShell({ licenseText = '' } = {}) {
   const timePopover = $('timePopover'), timeTrigger = $('liveStatus');
   const positionTimePopover = bindTimePopoverPosition({ popover: timePopover, trigger: timeTrigger });
   const setTimePopover = (open, restoreFocus = false) => {
+    const wasOpen = !timePopover.hidden;
     contentScrolling.cancel('time');
     timePopover.hidden = !open;
     timeTrigger.setAttribute('aria-expanded', String(open));
@@ -352,7 +353,10 @@ export function initShell({ licenseText = '' } = {}) {
       document.dispatchEvent(new CustomEvent('worldpanelopen', { detail: { panel: 'time' } }));
       positionTimePopover();
       (document.querySelector('#quickTimeControls [data-time-action="lock"]') || $('quick-time')).focus({ preventScroll: true });
-    } else if (restoreFocus) timeTrigger.focus({ preventScroll: true });
+    } else {
+      if (wasOpen) document.dispatchEvent(new CustomEvent('worldpanelclose', { detail: { panel: 'time' } }));
+      if (restoreFocus) timeTrigger.focus({ preventScroll: true });
+    }
   };
   timeTrigger.addEventListener('click', () => setTimePopover(timePopover.hidden));
   $('timePopoverClose').addEventListener('click', () => setTimePopover(false, true));
@@ -375,6 +379,7 @@ export function initShell({ licenseText = '' } = {}) {
     positionTimePopover();
   });
   const setPanel = (open, restoreFocus = false) => {
+    const wasOpen = !$('panel').hidden;
     contentScrolling.cancel('panel');
     if (open) {
       setTimePopover(false);
@@ -384,6 +389,7 @@ export function initShell({ licenseText = '' } = {}) {
     $('panel').hidden = !open;
     $('panel').dataset.open = String(open);
     $('panelToggle').setAttribute('aria-expanded', String(open));
+    if (!open && wasOpen) document.dispatchEvent(new CustomEvent('worldpanelclose', { detail: { panel: 'world' } }));
     refreshLabels();
     if (restoreFocus) $('panelToggle').focus();
   };
@@ -475,6 +481,7 @@ export function initShell({ licenseText = '' } = {}) {
   $('helpBtn').addEventListener('click', openHelp);
   $('panelHelpBtn').addEventListener('click', openHelp);
   $('helpClose').addEventListener('click', () => $('helpDialog').close());
+  $('helpDialog').addEventListener('close', () => document.dispatchEvent(new CustomEvent('worldpanelclose', { detail: { panel: 'help' } })));
   $('helpDialog').addEventListener('click', e => { if (e.target === $('helpDialog')) $('helpDialog').close(); });
   document.querySelector('.license-notices').addEventListener('toggle', event => {
     if (event.target.open && !$('licenseText').textContent) $('licenseText').textContent = licenseText;
@@ -518,8 +525,6 @@ export function initShell({ licenseText = '' } = {}) {
     document.querySelector('.touch-help').hidden = true;
     const help = document.createElement('p'); setMessage(help, 'wallpaper.help');
     document.querySelector('.help-body').prepend(help);
-    const interactionNote = document.querySelector('[data-i18n="components.interactionDescription"]');
-    if (interactionNote) setMessage(interactionNote, 'wallpaper.interactionDescription');
     $('immersiveBtn').dataset.i18nTitle = 'immersive.enter';
     $('immersiveBtn').title = t('immersive.enter');
   }

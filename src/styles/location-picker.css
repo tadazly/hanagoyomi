@@ -33,9 +33,12 @@
 #manualLocationList .location-result[aria-pressed='true']::after { content: '✓'; flex-shrink: 0; font-size: 16px; }
 .location-letter-heading { padding: 5px 12px; font-size: 13px; line-height: 20px; font-weight: 600; color: var(--ink-soft); }
 .location-letter-heading:not(:first-child) { margin-top: 8px; }
-.location-index { display: flex; flex-direction: column; align-self: stretch; flex: 0 0 28px; margin-left: 2px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.location-index { display: flex; flex-direction: column; align-self: stretch; flex: 0 0 28px; margin-left: 2px; touch-action: none; user-select: none; -webkit-user-select: none; cursor: ns-resize; }
+.location-index.is-dragging { cursor: grabbing; }
 .location-index button { display: flex; justify-content: center; align-items: center; flex: 1 1 0; min-height: 0; width: 28px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--sun); font-size: 10px; line-height: 1; font-weight: 600; touch-action: none; }
 .location-index button:disabled { opacity: .2; cursor: default; }
+/* 整条索引接收鼠标，避免禁用字母吞掉桌面宿主的 MouseEvent；按钮仍可键盘聚焦。 */
+.location-index button { pointer-events: none; }
 .location-index button[aria-current] { color: var(--thumb); background: var(--sun); }
 .location-index-bubble { position: absolute; right: 44px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 58px; height: 58px; border-radius: 16px; background: var(--sun); color: var(--thumb); font-size: 30px; font-weight: 600; box-shadow: 0 6px 24px rgba(0,0,0,.16); pointer-events: none; }
 .location-index-bubble[hidden] { display: none; }

@@ -255,6 +255,7 @@ kbd { display: inline-block; min-width: 16px; font: 10px system-ui, sans-serif; 
 .panel .ctl > span { grid-column: 1; font-size: 13px; max-width: 110px; }
 .panel .ctl > output { grid-column: 3; grid-row: 1; font-size: 13px; min-width: 36px; text-align: right; }
 .panel .ctl > input { grid-column: 2; grid-row: 1; }
+.panel .ctl > .wallpaper-range { grid-column: 2; grid-row: 1; }
 .panel .btn, .panel .chip, .panel .ctl-label { font-size: 13px; }
 .panel .advanced summary { min-height: 44px; padding: 11px 0; font-size: 13px; }
 .panel .settings-helper { color: var(--ink-soft); font-size: 11px; line-height: 1.6; margin: 2px 0 10px; }

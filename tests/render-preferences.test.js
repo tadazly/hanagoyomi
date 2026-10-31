@@ -16,10 +16,10 @@ test('旧记录默认 100% 与 60 FPS，损坏值回退且比例按 5% 对齐', 
 
 test('网页滑条提供 10 至 120 FPS 和末端不限帧，WE 上限随宿主变化', () => {
   assert.deepEqual(frameLimitRange(), { min: 10, max: 121, ceiling: 120 });
-  assert.deepEqual(frameLimitRange(30), { min: 10, max: 31, ceiling: 30 });
-  assert.deepEqual(frameLimitRange(144), { min: 10, max: 145, ceiling: 144 });
-  assert.deepEqual(frameLimitRange(5), { min: 5, max: 6, ceiling: 5 });
-  assert.equal(frameLimitRange(NaN).ceiling, 30);
+  assert.deepEqual(frameLimitRange(30), { min: 10, max: 30, ceiling: 30 });
+  assert.deepEqual(frameLimitRange(144), { min: 10, max: 144, ceiling: 144 });
+  assert.deepEqual(frameLimitRange(5), { min: 5, max: 5, ceiling: 5 });
+  assert.equal(frameLimitRange(NaN).ceiling, 120);
   assert.equal(frameLimitRange(0).ceiling, 120);
 });
 
@@ -34,7 +34,22 @@ test('用户限帧与宿主取较低值，不限帧也不能绕过 WE 上限', (
   assert.equal(effectiveFrameLimit(144, 144), 144);
   assert.equal(effectiveFrameLimit(0, 0), 0);
   assert.equal(effectiveFrameLimit(30, 0), 30);
-  assert.equal(effectiveFrameLimit(0, NaN), 30);
+  assert.equal(effectiveFrameLimit(0, NaN), 0);
+});
+
+test('壁纸没有宿主时默认 30、可不限帧，网页默认 60；已保存的选择继续保留', () => {
+  assert.equal(renderPreferences(undefined, { wallpaper: true }).fpsLimit, 30);
+  assert.equal(renderPreferences({}, { wallpaper: true }).fpsLimit, 30);
+  assert.equal(renderPreferences({ fpsLimit: 'bad' }, { wallpaper: true }).fpsLimit, 30);
+  for (const fpsLimit of [0, 17, 30, 60]) assert.equal(renderPreferences({ fpsLimit }, { wallpaper: true }).fpsLimit, fpsLimit);
+  assert.equal(renderPreferences().fpsLimit, 60);
+  assert.equal(effectiveFrameLimit(undefined, undefined, true), 30);
+  assert.equal(effectiveFrameLimit(0, undefined, true), 0);
+  assert.equal(effectiveFrameLimit(0, 30, true), 30);
+  assert.equal(effectiveFrameLimit(17, 30, true), 17);
+  assert.equal(renderPreferences({ fpsLimit: 5 }, { wallpaper: true }).fpsLimit, 5);
+  assert.equal(effectiveFrameLimit(5, 5, true), 5);
+  assert.equal(effectiveFrameLimit(5, undefined, true), 10);
 });
 
 test('相同限帧循环覆盖网页、WE、宿主变更和不限帧', () => {

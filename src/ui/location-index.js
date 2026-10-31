@@ -28,7 +28,12 @@ export function groupLocationItems(items, { language = 'en', countries = false }
 }
 
 export function bindLocationIndex({ rail, bubble, viewport, cancelScroll, eventTarget = window }) {
-  let sections = [], endAtLast = false, gesture, hideTimer;
+  let sections = [], endAtLast = false, gesture, hideTimer, frame = 0, pendingY, suppressUntil = 0;
+  const doc = rail.ownerDocument || eventTarget.document;
+  const view = doc?.defaultView || eventTarget;
+  const requestFrame = view.requestAnimationFrame?.bind(view) || (callback => setTimeout(callback, 16));
+  const cancelFrame = view.cancelAnimationFrame?.bind(view) || clearTimeout;
+  const now = () => view.performance?.now?.() ?? Date.now();
   const buttons = [...rail.querySelectorAll('button')];
   const select = label => {
     for (const button of buttons) {
@@ -60,41 +65,80 @@ export function bindLocationIndex({ rail, bubble, viewport, cancelScroll, eventT
       hideTimer = setTimeout(() => { if (!gesture) bubble.hidden = true; }, 650);
     }
   };
-  const at = event => {
+  const at = clientY => {
     const enabled = buttons.filter(button => !button.disabled);
     if (!enabled.length) return;
     const nearest = enabled.reduce((best, button) => {
       const rect = button.getBoundingClientRect();
-      const distance = Math.abs(event.clientY - (rect.top + rect.height / 2));
+      const distance = Math.abs(clientY - (rect.top + rect.height / 2));
       return !best || distance < best.distance ? { button, distance } : best;
     }, null);
-    jump(nearest.button.textContent);
+    const label = nearest.button.textContent;
+    if (gesture?.label === label) return;
+    if (gesture) gesture.label = label;
+    jump(label);
+  };
+  const flush = () => {
+    if (frame) cancelFrame(frame);
+    frame = 0;
+    if (gesture && pendingY !== undefined) at(pendingY);
+    pendingY = undefined;
   };
   const start = (event, source) => {
-    if (source === 'mouse' && gesture?.source === 'pointer') return;
-    if (event.button !== undefined && event.button !== 0) return;
+    if (gesture || (event.pointerType && event.pointerType !== 'mouse' && event.isPrimary === false)
+      || (event.button !== undefined && event.button !== 0)) return;
+    if (source === 'mouse' && event.sourceCapabilities?.firesTouchEvents) return;
     event.preventDefault();
-    gesture = { source, id: event.pointerId };
+    gesture = { source, id: event.pointerId, mouse: source === 'mouse' || !event.pointerType || event.pointerType === 'mouse', startY: event.clientY, dragging: false };
+    rail.classList?.add('is-dragging');
     if (source === 'pointer') { try { rail.setPointerCapture(event.pointerId); } catch {} }
-    at(event);
+    at(event.clientY);
   };
-  const move = (event, source) => {
-    if (!gesture || gesture.source !== source || (source === 'pointer' && event.pointerId !== gesture.id)) return;
-    event.preventDefault(); at(event);
-  };
+  const matches = (event, source) => gesture && (source === 'pointer'
+    ? gesture.source === 'pointer' && event.pointerId === gesture.id
+    : gesture.mouse && !event.sourceCapabilities?.firesTouchEvents);
   const stop = () => {
+    if (frame) cancelFrame(frame);
+    frame = 0; pendingY = undefined;
     const previous = gesture; gesture = null;
+    rail.classList?.remove('is-dragging');
     if (previous?.source === 'pointer') { try { rail.releasePointerCapture(previous.id); } catch {} }
     clearTimeout(hideTimer); bubble.hidden = true;
   };
+  const move = (event, source) => {
+    if (!matches(event, source)) return;
+    // WE 转发的移动事件可能始终为 buttons=0；仅由明确的松开、取消或失焦结束手势。
+    if (Math.abs(event.clientY - gesture.startY) > 5) gesture.dragging = true;
+    event.preventDefault(); pendingY = event.clientY;
+    if (!frame) frame = requestFrame(flush);
+  };
+  const end = (event, source) => {
+    if (!matches(event, source)) return;
+    // WE 可混用 PointerEvent 按下和 MouseEvent 移动/松开；最终位置不能依赖捕获或下一帧。
+    if (Number.isFinite(event.clientY)) pendingY = event.clientY;
+    if (gesture.dragging || Math.abs(event.clientY - gesture.startY) > 5) suppressUntil = now() + 500;
+    flush(); stop();
+  };
+  eventTarget.addEventListener('pointerdown', () => { suppressUntil = 0; }, true);
+  eventTarget.addEventListener('mousedown', () => { suppressUntil = 0; }, true);
+  eventTarget.addEventListener('click', event => {
+    if (event.detail === 0 || !suppressUntil || now() > suppressUntil) return;
+    // WE 松手后可能把 click 发到弹窗背景，必须在背景关闭处理之前拦截。
+    suppressUntil = 0; event.preventDefault(); event.stopImmediatePropagation();
+  }, true);
   rail.addEventListener('pointerdown', event => start(event, 'pointer'));
   rail.addEventListener('mousedown', event => start(event, 'mouse'));
   eventTarget.addEventListener('pointermove', event => move(event, 'pointer'), { passive: false });
   eventTarget.addEventListener('mousemove', event => move(event, 'mouse'), { passive: false });
-  eventTarget.addEventListener('pointerup', event => { if (gesture?.source === 'pointer' && gesture.id === event.pointerId) stop(); });
-  eventTarget.addEventListener('mouseup', () => { if (gesture?.source === 'mouse') stop(); });
+  eventTarget.addEventListener('pointerup', event => end(event, 'pointer'));
+  eventTarget.addEventListener('mouseup', event => end(event, 'mouse'));
   eventTarget.addEventListener('blur', stop);
-  rail.addEventListener('pointercancel', stop); rail.addEventListener('lostpointercapture', stop);
+  eventTarget.addEventListener('resize', stop);
+  eventTarget.addEventListener('pointercancel', event => { if (matches(event, 'pointer')) stop(); });
+  // 桌面宿主可能提前丢失捕获；鼠标继续由 window 接管，直到明确松开或失焦。
+  rail.addEventListener('lostpointercapture', event => { if (matches(event, 'pointer') && !gesture.mouse) stop(); });
+  doc?.addEventListener('visibilitychange', () => { if (doc.hidden) stop(); });
+  rail.addEventListener('click', event => { if (event.detail > 0) { event.preventDefault(); at(event.clientY); } });
   for (const button of buttons) button.addEventListener('click', () => jump(button.textContent));
   rail.addEventListener('keydown', event => {
     const enabled = buttons.filter(button => !button.disabled), index = enabled.indexOf(event.target);
@@ -103,6 +147,7 @@ export function bindLocationIndex({ rail, bubble, viewport, cancelScroll, eventT
     else if (event.key === 'End') next = enabled.at(-1);
     else if (['ArrowDown', 'ArrowUp'].includes(event.key)) next = enabled[Math.max(0, Math.min(enabled.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1)))];
     else return;
+    stop();
     event.preventDefault(); event.stopPropagation();
     next?.focus({ preventScroll: true }); if (next) jump(next.textContent);
   });

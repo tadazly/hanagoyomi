@@ -65,3 +65,105 @@ test('中文国家按拼音排序和分组，处理秘鲁的多音字读法；�
   }
   assert.deepEqual(groupLocationItems(catalog.countries, { language: 'zh' }), groupLocationItems(catalog.countries));
 });
+
+function indexFixture() {
+  const element = values => Object.assign({
+    listeners: new Map(), attributes: new Map(), classList: { add() {}, remove() {} },
+    addEventListener(type, handler) { const list=this.listeners.get(type)||[]; list.push(handler); this.listeners.set(type,list); },
+    removeEventListener(type, handler) { this.listeners.set(type,(this.listeners.get(type)||[]).filter(item=>item!==handler)); },
+    setAttribute(name,value) { this.attributes.set(name,value); }, removeAttribute(name) { this.attributes.delete(name); },
+    focus() {},
+  }, values);
+  const frames=new Map(); let frameId=0, cancelled=0;
+  const view=element({requestAnimationFrame(callback){frames.set(++frameId,callback);return frameId;},cancelAnimationFrame(id){frames.delete(id);}});
+  const doc=element({hidden:false,defaultView:view});view.document=doc;
+  const buttons=['A','B','C','Z'].map((textContent,index)=>element({textContent,disabled:false,getBoundingClientRect:()=>({top:100+index*20,height:20})}));
+  const rail=element({ownerDocument:doc,querySelectorAll:()=>buttons,setPointerCapture(){throw new Error('WE synthetic pointer cannot capture');},releasePointerCapture(){},getBoundingClientRect:()=>({top:100,height:80})});
+  const viewport=element({scrollTop:0,clientHeight:100,scrollHeight:1100,getBoundingClientRect:()=>({top:0})});
+  const bubble={hidden:true}, sections=['A','C','Z'].map((label,index)=>({label,element:{getBoundingClientRect:()=>({top:index*400-viewport.scrollTop})}}));
+  const binding=bindLocationIndex({rail,bubble,viewport,cancelScroll(){cancelled++;},eventTarget:view});binding.update(sections);
+  const emit=(target,type,data={})=>{const event={target,button:0,buttons:1,clientY:110,detail:1,isTrusted:true,preventDefault(){this.prevented=true;},stopPropagation(){},stopImmediatePropagation(){this.stopped=true;},...data};for(const handler of target.listeners.get(type)||[])handler(event);return event;};
+  const frame=()=>{const pending=[...frames.values()];frames.clear();for(const callback of pending)callback();};
+  return {rail,viewport,bubble,buttons,view,doc,binding,emit,frame,frames,get cancelled(){return cancelled;}};
+}
+
+test('WE 捕获失败后 PointerEvent 按下与 MouseEvent 移动/松开仍是同一次字母拖动', () => {
+  const f=indexFixture();
+  f.emit(f.rail,'pointerdown',{pointerType:'mouse',pointerId:7});
+  f.emit(f.rail,'mousedown');
+  f.emit(f.view,'mousemove',{clientY:150});f.frame();
+  assert.equal(f.viewport.scrollTop,400);
+  assert.equal(f.buttons[2].attributes.get('aria-current'),'true');
+  f.emit(f.view,'mouseup',{clientY:150});
+  f.emit(f.view,'mousemove',{clientY:170});f.frame();
+  assert.equal(f.viewport.scrollTop,400,'松开后不再追随鼠标');
+  assert.equal(f.bubble.hidden,true);f.binding.cancel();
+});
+
+test('WE 鼠标丢失 pointer capture 后继续拖动，抬起与失焦都停止', () => {
+  const f=indexFixture();
+  f.emit(f.rail,'pointerdown',{pointerType:'mouse',pointerId:7});
+  f.emit(f.rail,'lostpointercapture',{pointerId:7});
+  f.emit(f.view,'mousemove',{clientY:170});f.frame();
+  assert.equal(f.viewport.scrollTop,800);
+  f.emit(f.view,'mouseup',{clientY:170});
+  f.emit(f.view,'mousemove',{clientY:110,buttons:0});f.frame();
+  assert.equal(f.viewport.scrollTop,800);
+  f.emit(f.rail,'mousedown',{clientY:150});f.emit(f.view,'blur');
+  f.emit(f.view,'mousemove',{clientY:170});f.frame();
+  assert.equal(f.viewport.scrollTop,400);f.binding.cancel();
+});
+
+test('字母拖动按帧合并，禁用字母跳到最近可用组，松开前提交最后位置并限制到首尾', () => {
+  const f=indexFixture();
+  f.emit(f.rail,'mousedown',{clientY:130});
+  assert.equal(f.viewport.scrollTop,0,'禁用 B 位置映射最近可用组');
+  f.emit(f.view,'mousemove',{clientY:150});
+  f.emit(f.view,'mousemove',{clientY:151});
+  assert.equal(f.frames.size,1);f.frame();
+  assert.equal(f.viewport.scrollTop,400);assert.equal(f.cancelled,2);
+  f.emit(f.view,'mousemove',{clientY:1000});
+  f.emit(f.view,'mouseup',{clientY:1000});
+  assert.equal(f.viewport.scrollTop,800,'松开时未执行的帧也提交末组');
+  assert.equal(f.frames.size,0);
+  f.emit(f.rail,'mousedown',{clientY:-100});assert.equal(f.viewport.scrollTop,0);f.binding.cancel();
+});
+
+test('宿主合成鼠标未填 buttons 仍能拖动，触屏忽略兼容鼠标及其他指针', () => {
+  const f=indexFixture();
+  f.emit(f.rail,'pointerdown',{pointerType:'mouse',pointerId:7,isTrusted:false,isPrimary:false,buttons:0});
+  f.emit(f.view,'mousemove',{clientY:150,isTrusted:true,buttons:0});f.frame();
+  assert.equal(f.viewport.scrollTop,400);f.binding.cancel();
+  f.emit(f.rail,'pointerdown',{pointerType:'touch',pointerId:8});
+  f.emit(f.view,'pointermove',{pointerId:9,clientY:170});
+  f.emit(f.view,'mousemove',{clientY:170});f.frame();assert.equal(f.viewport.scrollTop,0);
+  f.emit(f.view,'pointermove',{pointerId:8,clientY:150});f.frame();assert.equal(f.viewport.scrollTop,400);
+  f.emit(f.view,'pointercancel',{pointerId:8});
+  f.emit(f.view,'pointermove',{pointerId:8,clientY:170});f.frame();assert.equal(f.viewport.scrollTop,400);
+  f.binding.cancel();
+});
+
+test('关闭或换层级取消字母拖动，键盘首尾与上下键跳过禁用字母', () => {
+  const f=indexFixture();
+  f.emit(f.rail,'mousedown');f.emit(f.view,'mousemove',{clientY:170});f.binding.update([]);f.frame();
+  assert.equal(f.viewport.scrollTop,0);assert.equal(f.bubble.hidden,true);
+  f.binding.update(['A','C','Z'].map((label,index)=>({label,element:{getBoundingClientRect:()=>({top:index*400-f.viewport.scrollTop})}})));
+  f.emit(f.rail,'keydown',{key:'End',target:f.buttons[0]});assert.equal(f.viewport.scrollTop,800);
+  f.emit(f.rail,'keydown',{key:'Home',target:f.buttons[3]});assert.equal(f.viewport.scrollTop,0);
+  f.emit(f.rail,'keydown',{key:'ArrowDown',target:f.buttons[0]});assert.equal(f.viewport.scrollTop,400);
+  f.emit(f.rail,'keydown',{key:'ArrowUp',target:f.buttons[2]});assert.equal(f.viewport.scrollTop,0);
+  f.emit(f.rail,'mousedown');f.emit(f.view,'mousemove',{clientY:170});f.doc.hidden=true;f.emit(f.doc,'visibilitychange');f.frame();
+  assert.equal(f.viewport.scrollTop,0);assert.equal(f.bubble.hidden,true);f.binding.cancel();
+});
+
+test('WE 字母拖动移出弹窗后松开的 click 不误关弹窗，新点击和键盘操作不受抑制', () => {
+  const f=indexFixture();
+  f.emit(f.rail,'mousedown');f.emit(f.view,'mousemove',{clientY:170});f.emit(f.view,'mouseup',{clientY:170});
+  assert.equal(f.emit(f.view,'click',{detail:0}).prevented,undefined);
+  const backdropClick=f.emit(f.view,'click',{target:{},clientY:170});
+  assert.ok(backdropClick.prevented&&backdropClick.stopped);
+  f.emit(f.rail,'mousedown');f.emit(f.view,'mousemove',{clientY:170});f.emit(f.view,'mouseup',{clientY:170});
+  f.emit(f.view,'mousedown',{target:{}});
+  assert.equal(f.emit(f.view,'click',{target:{}}).prevented,undefined,'新的明确点击照常关闭背景');
+  f.binding.cancel();
+});
