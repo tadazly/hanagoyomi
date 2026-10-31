@@ -76,7 +76,7 @@ const entries = {
   'panel.help': ['Help', '使用帮助', '使い方'],
   'wallpaper.scrollUp': ['Scroll settings up', '向上滚动设置', '設定を上へスクロール'],
   'wallpaper.scrollDown': ['Scroll settings down', '向下滚动设置', '設定を下へスクロール'],
-  "wallpaper.help": ["Open tools at the bottom right. After hiding the interface, return there and choose Show interface. In Plash, enable Browsing Mode to change settings.", "工具位于右下角。隐藏界面后，在右下角选择“返回界面”。Plash 中需启用 Browsing Mode 才能调整设置。", "ツールは右下にあります。表示を隠した後は右下の「画面表示を戻す」で戻せます。Plash では設定時に Browsing Mode を有効にしてください。"],
+  "wallpaper.help": ["Open tools at the bottom right. After hiding the interface, return there and choose Show interface.", "工具位于右下角。隐藏界面后，在右下角选择“返回界面”。", "ツールは右下にあります。表示を隠した後は右下の「画面表示を戻す」で戻せます。"],
   "wallpaper.worldSettingsNote": ["World settings are saved automatically. WE custom options do not override them.", "世界设置自动保存；WE 自定义项不会覆盖。", "世界設定は自動保存され、WE の項目では上書きされません。"],
   "wallpaper.weSettingsNote": ["WE settings override changes on restart. Enable “Use built-in world settings” in WE to keep them.", "下次启动会被 WE 设置覆盖；要保留，请在 WE 勾选“使用世界设置”。", "次回起動時に WE 設定で上書きされます。保持するには WE で「内蔵の世界設定を使用」をオンにしてください。"],
   'panel.openOnStartup': ['Open world settings on startup', '启动时打开世界设置', '起動時に世界の設定を開く'],

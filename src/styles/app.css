@@ -311,6 +311,9 @@ kbd.key-space { min-width: 48px; }
 .wallpaper-scroll-region .time-popover-body::-webkit-scrollbar { display: none; }
 body[data-wallpaper='true'] .panel { top: 104px; max-height: calc(100dvh - 232px); }
 body[data-wallpaper='true'] .help-controls, body[data-wallpaper='true'] .touch-help { display: none; }
+body[data-wallpaper='true'] .hint:not([data-stargazing='true']),
+body[data-wallpaper='true'] [data-component-settings='hint'],
+body[data-wallpaper='true'] .help-preference { display: none; }
 @media (max-width: 700px) {
   .panel { width: calc(100vw - 24px); max-width: 380px; left: auto; right: 12px; }
   .panel-heading { padding-inline: 20px; }
