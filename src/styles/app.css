@@ -37,6 +37,8 @@ body[data-immersive='true'] .chrome { opacity: 0; visibility: hidden; pointer-ev
 /* 返回时立即恢复可见性，让焦点能回到工具栏；透明度仍渐变。 */
 body[data-immersive='false'] .chrome { transition-property: opacity; }
 .masthead, .toolbar, .observation, .hint { color: #f9f7f0; text-shadow: 0 1px 12px rgba(10, 22, 16, .5); }
+/* 深色扩展加载时可能给 body 子元素填上实色；界面叠层与唤醒区始终保持透明。 */
+.masthead, .toolbar, .observation, .hint, .performance-overlay, #toolbarZone, .restore-zone { background: transparent !important; }
 .masthead { position: fixed; top: calc(28px + env(safe-area-inset-top, 0px)); left: calc(32px + env(safe-area-inset-left, 0px)); pointer-events: none; }
 .brand { display: flex; align-items: center; gap: 15px; }
 .brand-mark svg { width: 40px; height: 40px; stroke-width: .8; }
