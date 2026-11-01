@@ -224,7 +224,7 @@ test('意外失去pointer capture取消手势；正常释放保留click抑制和
   normal.frame(); assert.ok(normal.viewport.scrollTop > 80); normal.binding.destroy();
 });
 
-test('滑条复用滚动手势：按下不跳值、横拖相对原值、连续位置与松开惯性统一收尾', () => {
+test('自定义位置复用滚动手势：横拖相对原值、连续位置与松开惯性统一收尾', () => {
   let position=50, commits=0;
   const f=fixture({axis:'x',motion:{direction:-1,getPosition:()=>position,setPosition:value=>{position=value;},getLimit:()=>200,onSettle:()=>commits++}});
   f.down({clientX:170}); assert.equal(position,50);
@@ -236,7 +236,7 @@ test('滑条复用滚动手势：按下不跳值、横拖相对原值、连续�
   f.binding.cancel();assert.equal(commits,1);
 });
 
-test('滑条触屏可显式接入同一引擎；失焦只提交一次并停止余速', () => {
+test('自定义位置触屏可显式接入滚动引擎；失焦只提交一次并停止余速', () => {
   let position=50,commits=0;
   const f=fixture({axis:'x',motion:{direction:-1,allowTouch:true,getPosition:()=>position,setPosition:value=>{position=value;},getLimit:()=>200,onSettle:()=>commits++}});
   assert.equal(f.viewport.style.touchAction,'none');
