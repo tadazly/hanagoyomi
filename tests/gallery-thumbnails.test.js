@@ -57,6 +57,16 @@ test('切换收藏或移除卡片后不加载旧图片，销毁后忽略回调',
   assert.equal(current.src, undefined); assert.equal(g.observed.size, 0);
 });
 
+test('交叉观察器漏发通知时仍加载已显示的收藏封面，屏外封面保持延迟加载', () => {
+  const g = setup(), first = g.image(), far = g.image(1000);
+  g.loader.setActive(true); g.loader.observe(first, 'blob:first'); g.loader.observe(far, 'blob:far');
+  assert.equal(g.frames.size, 1); g.flush();
+  assert.equal(first.src, 'blob:first'); assert.equal(far.src, undefined);
+  far.bounds.left = 280; far.bounds.right = 380; g.listeners.get('scroll')(); g.flush();
+  assert.equal(far.src, 'blob:far');
+  g.loader.dispose(); assert.equal(g.listeners.size, 0);
+});
+
 test('旧宿主按视口和滚动加载；屏外、隐藏和关闭时都不全量请求', () => {
   const g = setup({ fallback: true }), first = g.image(), near = g.image(350), far = g.image(800), hidden = g.image(10, 500);
   for (const [image, source] of [[first, 'first.jpg'], [near, 'near.jpg'], [far, 'far.jpg'], [hidden, 'hidden.jpg']]) g.loader.observe(image, source);

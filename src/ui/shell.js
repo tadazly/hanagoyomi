@@ -5,6 +5,7 @@ import { CITIES, locationName } from '../data/cities.js';
 import { airQualityPageUrl, weatherPageUrl } from '../world/weather.js';
 import { updateWeatherDetails } from './weather-details.js';
 import { initComponentSettings } from './component-settings.js';
+import { getUiScale, uiRect } from './interface-scale.js';
 import { initWallpaperScrolling } from './wallpaper-scroll.js';
 import { bindDragScroll, cancelDragScroll } from './drag-scroll.js';
 import { HEIGHT_PRESETS, sliderFromAgl } from '../world/view-preferences.js';
@@ -54,9 +55,10 @@ function initToolbarVisibility() {
   const held = () => hovered.size > 0 || document.body.dataset.galleryOpen === 'true' || !$('panel').hidden || !$('timePopover').hidden || $('helpDialog').open || Boolean(toolbar.querySelector(':focus-visible'));
   const positionZone = () => {
     const rect = toolbar.getBoundingClientRect();
-    const top = WALLPAPER_MODE ? Math.max(0, window.innerHeight - 160) : 0;
+    const margin = 16 * getUiScale();
+    const top = WALLPAPER_MODE ? Math.max(0, Math.min(window.innerHeight - 160, rect.top - margin)) : 0;
     Object.assign(zone.style, {
-      left: `${Math.max(0, WALLPAPER_MODE ? window.innerWidth - 260 : rect.left - 16)}px`,
+      left: `${Math.max(0, WALLPAPER_MODE ? Math.min(window.innerWidth - 260, rect.left - margin) : rect.left - margin)}px`,
       top: `${top}px`,
       height: `${WALLPAPER_MODE ? window.innerHeight - top : rect.bottom + 16}px`,
     });
@@ -120,6 +122,7 @@ function initToolbarVisibility() {
   changes.observe($('helpDialog'), { attributes: true, attributeFilter: ['open'] });
   new ResizeObserver(positionZone).observe(toolbar);
   window.addEventListener('resize', positionZone);
+  document.addEventListener('uiscalechange', positionZone);
   document.addEventListener('fullscreenchange', positionZone);
   positionZone();
   reveal();
@@ -131,21 +134,21 @@ function initWeatherSource() {
   const held = () => hovered || Boolean(group.querySelector(':focus-visible'));
   const position = () => {
     if (source.dataset.visible !== 'true' || group.hidden) return;
-    const anchor = group.getBoundingClientRect(), observation = group.closest('.observation');
+    const anchor = uiRect(group), observation = group.closest('.observation'), scale = getUiScale();
     const viewport = window.visualViewport;
-    const safe = $('componentBounds').getBoundingClientRect();
-    const viewportLeft = viewport?.offsetLeft || 0, viewportTop = viewport?.offsetTop || 0;
+    const safe = uiRect($('componentBounds'));
+    const viewportLeft = (viewport?.offsetLeft || 0) / scale, viewportTop = (viewport?.offsetTop || 0) / scale;
     const leftEdge = Math.max(viewportLeft + 12, safe.left), topEdge = Math.max(viewportTop + 12, safe.top);
-    const rightEdge = Math.min(viewportLeft + (viewport?.width || innerWidth) - 12, safe.right);
-    const bottomEdge = Math.min(viewportTop + (viewport?.height || innerHeight) - 12, safe.bottom);
+    const rightEdge = Math.min(viewportLeft + (viewport?.width || innerWidth) / scale - 12, safe.right);
+    const bottomEdge = Math.min(viewportTop + (viewport?.height || innerHeight) / scale - 12, safe.bottom);
     const maxWidth = `${Math.max(24, Math.min(380, rightEdge - leftEdge))}px`;
     if (source.style.maxWidth !== maxWidth) source.style.maxWidth = maxWidth;
     const width = source.offsetWidth, height = source.offsetHeight, column = observation.dataset.uiColumn;
     const aligned = column === 'right' ? anchor.right - width : column === 'center' ? (anchor.left + anchor.right - width) / 2 : anchor.left;
     const clampX = x => Math.max(leftEdge, Math.min(x, rightEdge - width));
     const clampY = y => Math.max(topEdge, Math.min(y, bottomEdge - height));
-    const rect = observation.getBoundingClientRect();
-    const obstacles = [rect, ...['.toolbar', '.hint', '.masthead'].map(selector => document.querySelector(selector)).filter(element => element && !element.hidden).map(element => element.getBoundingClientRect())];
+    const rect = uiRect(observation);
+    const obstacles = [rect, ...['.toolbar', '.hint', '.masthead'].map(selector => document.querySelector(selector)).filter(element => element && !element.hidden).map(uiRect)];
     const candidates = [
       [clampX(aligned), anchor.bottom + 8], [clampX(aligned), rect.top - height - 8],
       [rect.right + 8, clampY(anchor.top)], [rect.left - width - 8, clampY(anchor.top)],
@@ -191,6 +194,7 @@ function initWeatherSource() {
   const observer = new ResizeObserver(position);
   observer.observe(source); observer.observe(group);
   document.addEventListener('componentlayout', position);
+  document.addEventListener('uiscalechange', position);
   window.addEventListener('resize', position);
   window.visualViewport?.addEventListener('resize', position);
   window.visualViewport?.addEventListener('scroll', position);
@@ -268,17 +272,18 @@ export function bindTimePopoverPosition({ popover, trigger, wallpaper = WALLPAPE
       if (trigger.getAttribute('aria-expanded') !== 'false') trigger.setAttribute('aria-expanded', 'false');
       return;
     }
-    const anchor = trigger.getBoundingClientRect();
+    const anchor = uiRect(trigger), scale = getUiScale(popover.ownerDocument);
     // 壁纸浮层的可用高度只取决于工具栏位置，避免高度与 top 相互反馈。
-    const maxHeight = Math.max(0, wallpaper ? anchor.top - 24 : eventTarget.innerHeight - anchor.bottom - 24);
+    const maxHeight = Math.max(0, wallpaper ? anchor.top - 24 : eventTarget.innerHeight / scale - anchor.bottom - 24);
     setStyle('maxHeight', `${maxHeight}px`);
-    const left = Math.max(12, Math.min(anchor.right - popover.offsetWidth, eventTarget.innerWidth - popover.offsetWidth - 12));
+    const left = Math.max(12, Math.min(anchor.right - popover.offsetWidth, eventTarget.innerWidth / scale - popover.offsetWidth - 12));
     const top = wallpaper ? Math.max(12, anchor.top - popover.offsetHeight - 12) : anchor.bottom + 12;
     setStyle('left', `${left}px`); setStyle('top', `${top}px`);
   };
   popover.addEventListener('toggle', position, true);
   eventTarget.addEventListener('resize', position);
   (popover.ownerDocument || eventTarget.document)?.addEventListener('fullscreenchange', position);
+  (popover.ownerDocument || eventTarget.document)?.addEventListener('uiscalechange', position);
   if (resizeObserver) {
     const observer = new resizeObserver(position);
     observer.observe(popover); observer.observe(trigger);

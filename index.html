@@ -2,7 +2,7 @@
 <html lang="en-US">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#65745b">
   <meta name="description" content="Hanagoyomi is a free interactive nature experience with flower meadows, volumetric clouds and starry skies, following local time and live weather from day to night." data-i18n-content="app.description">
   <meta property="og:title" content="花暦 · Hanagoyomi" data-i18n-content="app.title">
@@ -204,6 +204,12 @@
       </section>
       <section id="pane-components" role="tabpanel" aria-labelledby="tab-components" hidden>
         <label class="language-field"><span data-i18n="language.label">Language</span><select id="languageSelect" aria-label="Language" data-i18n-aria-label="language.label"><option value="auto" data-i18n="language.auto">Automatic</option><option value="en" lang="en">English</option><option value="zh" lang="zh-CN">简体中文</option><option value="ja" lang="ja">日本語</option></select></label>
+        <p class="ctl-label" id="uiScaleLabel" data-i18n="components.scale">Interface scale</p>
+        <div class="seg seg3 ui-scale-options" role="radiogroup" aria-labelledby="uiScaleLabel">
+          <label><input type="radio" name="uiScale" value="0.75"><span>75%</span></label>
+          <label><input type="radio" name="uiScale" value="1" checked><span>100%</span></label>
+          <label><input type="radio" name="uiScale" value="1.25"><span>125%</span></label>
+        </div>
         <h2 data-i18n="components.title">Interface components</h2>
 
         <div class="component-card" data-component-settings="logo">

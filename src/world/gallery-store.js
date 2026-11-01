@@ -100,14 +100,14 @@ export function createGalleryStore({ database = GALLERY_DATABASE, factory = () =
           request.onsuccess = () => { clearTimeout(timer); if (expired) request.result.close(); else resolve(request.result); };
         });
         db.onversionchange = () => { db?.close(); db = null; };
-        // 不以接口存在为可用：实际验证 Blob 的写、读、删除和事务提交。
+        // 用字节存封面，避开 WebKit 对持久化 Blob 的兼容问题；仍验证写、读、删除和提交。
         await run(['meta'], 'readwrite', (tx, done, fail) => {
-          const meta = tx.objectStore('meta'), blob = new Blob([new Uint8Array([255, 216, 255, 217])], { type: 'image/jpeg' });
-          meta.put({ id: 'probe', blob });
+          const meta = tx.objectStore('meta'), bytes = new Uint8Array([255, 216, 255, 217]).buffer;
+          meta.put({ id: 'probe', bytes });
           const request = meta.get('probe');
           request.onsuccess = () => {
-            const saved = request.result?.blob;
-            if (!(saved instanceof Blob) || saved.size !== blob.size || saved.type !== blob.type) { fail(new Error('gallery.unavailable')); return; }
+            const saved = request.result?.bytes;
+            if (!(saved instanceof ArrayBuffer) || new Uint8Array(saved).some((byte, i) => byte !== new Uint8Array(bytes)[i]) || saved.byteLength !== bytes.byteLength) { fail(new Error('gallery.unavailable')); return; }
             meta.delete('probe'); done(true);
           };
         });
@@ -148,20 +148,24 @@ export function createGalleryStore({ database = GALLERY_DATABASE, factory = () =
         };
       });
     },
-    getThumbnail(id) {
-      return run(['thumbnails'], 'readonly', (tx, done) => {
+    async getThumbnail(id) {
+      const saved = await run(['thumbnails'], 'readonly', (tx, done) => {
         const request = tx.objectStore('thumbnails').get(id);
-        request.onsuccess = () => done(request.result?.blob || null);
+        request.onsuccess = () => done(request.result);
       });
+      // 保留旧版 Blob 的读取能力，并在事务结束后重建内存 Blob。
+      const bytes = saved?.bytes || (saved?.blob ? await saved.blob.arrayBuffer() : null);
+      return bytes?.byteLength ? new Blob([bytes], { type: 'image/jpeg' }) : null;
     },
-    setThumbnail(id, blob) {
-      if (!(blob instanceof Blob) || blob.type !== 'image/jpeg' || !blob.size || blob.size > 135000) return Promise.resolve(false);
+    async setThumbnail(id, blob) {
+      if (!(blob instanceof Blob) || blob.type !== 'image/jpeg' || !blob.size || blob.size > 135000) return false;
+      const bytes = await blob.arrayBuffer();
       return run(['scenes', 'thumbnails'], 'readwrite', (tx, done) => {
         const scenes = tx.objectStore('scenes'), request = scenes.get(id);
         request.onsuccess = () => {
           if (!request.result) { done(false); return; }
           scenes.put({ ...request.result, hasThumbnail: true });
-          tx.objectStore('thumbnails').put({ id, blob }); done(true);
+          tx.objectStore('thumbnails').put({ id, bytes }); done(true);
         };
       });
     },
@@ -170,10 +174,11 @@ export function createGalleryStore({ database = GALLERY_DATABASE, factory = () =
         tx.objectStore('scenes').delete(id); tx.objectStore('thumbnails').delete(id);
       });
     },
-    importLegacy(entries, source) {
+    async importLegacy(entries, source) {
+      const prepared = await Promise.all(entries.map(async ({ blob, ...entry }) => ({ ...entry, bytes: blob ? await blob.arrayBuffer() : null })));
       return run(['scenes', 'thumbnails', 'meta'], 'readwrite', (tx, done, fail) => {
         const scenes = tx.objectStore('scenes'), images = tx.objectStore('thumbnails'), meta = tx.objectStore('meta');
-        entries.forEach(({ blob, signature, ...entry }, index) => {
+        prepared.forEach(({ bytes, signature, ...entry }, index) => {
           const marker = `legacy:${source}:${entry.id}`, migrated = meta.get(marker);
           migrated.onsuccess = () => {
             if (migrated.result) {
@@ -183,8 +188,8 @@ export function createGalleryStore({ database = GALLERY_DATABASE, factory = () =
             const existing = scenes.get(entry.id);
             existing.onsuccess = () => {
               if (!existing.result) {
-                scenes.add({ ...entry, _order: -index, hasThumbnail: Boolean(blob) });
-                if (blob) images.put({ id: entry.id, blob });
+                scenes.add({ ...entry, _order: -index, hasThumbnail: Boolean(bytes) });
+                if (bytes) images.put({ id: entry.id, bytes });
               }
               meta.put({ id: marker, signature });
             };

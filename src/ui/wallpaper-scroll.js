@@ -1,4 +1,5 @@
 import { bindDragScroll } from './drag-scroll.js';
+import { getUiScale } from './interface-scale.js';
 
 // 桌面宿主中的原生滚动条不可依赖，通过鼠标移动和点击显式更新 scrollTop。
 // 滚轮处理用于浏览器预览；宿主未传入的滚轮事件无法由页面恢复。
@@ -39,7 +40,7 @@ export function bindWallpaperScroll({ viewport, track, thumb, upButton, downButt
     if (!max || !travel) return;
     track.focus({ preventScroll: true });
     if (!thumb.contains(event.target)) {
-      scroll((event.clientY - track.getBoundingClientRect().top - thumbHeight / 2) / travel * max);
+      scroll(((event.clientY - track.getBoundingClientRect().top) / getUiScale(track.ownerDocument) - thumbHeight / 2) / travel * max);
     }
     drag = { y: event.clientY, top: viewport.scrollTop, pointerId: event.pointerId };
     if (event.pointerId !== undefined) {
@@ -49,7 +50,7 @@ export function bindWallpaperScroll({ viewport, track, thumb, upButton, downButt
   const move = event => {
     if (!drag || event.pointerId !== drag.pointerId) return;
     const { max, travel } = metrics();
-    if (travel) scroll(drag.top + (event.clientY - drag.y) / travel * max);
+    if (travel) scroll(drag.top + (event.clientY - drag.y) / getUiScale(track.ownerDocument) / travel * max);
   };
   const end = () => {
     const pointerId = drag?.pointerId;

@@ -1,3 +1,4 @@
+import { getUiScale } from './interface-scale.js';
 import { normalizeLocationSearch } from '../data/location-catalog.js';
 
 export const LOCATION_LETTERS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', '#'];
@@ -58,7 +59,7 @@ export function bindLocationIndex({ rail, bubble, viewport, cancelScroll, eventT
     cancelScroll();
     // 国家末组定位到列表底部，保证“中国”等末项可见；长城市列表仍定位到字母组首。
     if (endAtLast && section === sections.at(-1)) viewport.scrollTop = viewport.scrollHeight - viewport.clientHeight;
-    else viewport.scrollTop += section.element.getBoundingClientRect().top - viewport.getBoundingClientRect().top;
+    else viewport.scrollTop += (section.element.getBoundingClientRect().top - viewport.getBoundingClientRect().top) / getUiScale(viewport.ownerDocument);
     select(label);
     if (preview) {
       clearTimeout(hideTimer); bubble.textContent = label; bubble.hidden = false;

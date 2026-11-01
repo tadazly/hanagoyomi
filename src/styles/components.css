@@ -1,5 +1,5 @@
 #componentBounds { position: fixed; inset: calc(28px + env(safe-area-inset-top, 0px)) calc(32px + env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) calc(32px + env(safe-area-inset-left, 0px)); visibility: hidden; pointer-events: none; }
-body .ui-component { right: auto; bottom: auto; transform: none; max-width: calc(100vw - 64px); }
+body .ui-component { right: auto; bottom: auto; transform: none; max-width: calc(var(--ui-width) - 64px); }
 body .ui-component.hint button { white-space: normal; max-width: 100%; text-align: inherit; }
 body .ui-component.hint svg { flex-shrink: 0; }
 body .ui-component[data-ui-column='center'] { text-align: center; }
@@ -25,7 +25,7 @@ body[data-scene-interactive='false'] #view { cursor: default; }
 .switch:has(input:disabled) { opacity: .5; cursor: default; }
 body[data-wallpaper='true'] #componentBounds { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
 body[data-wallpaper='true'] .toolbar { top: auto; bottom: 72px; z-index: 10; transition: opacity .25s ease; }
-body[data-wallpaper='true'] .panel { max-height: calc(100dvh - 248px); }
+body[data-wallpaper='true'] .panel { max-height: calc(var(--ui-height) - 248px); }
 .wallpaper-scroll-region { position: relative; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 .wallpaper-scroll-region .panel-body { flex: 1; min-height: 0; scrollbar-width: none; }
 .wallpaper-scroll-region .panel-body::-webkit-scrollbar { display: none; }
@@ -43,7 +43,7 @@ body[data-wallpaper='true'] #toolbarZone { z-index: 9; }
 body[data-wallpaper='true'] .ui-component[data-ui-column='right'] .brand { justify-content: flex-end; }
 @media (max-width: 700px) {
   #componentBounds { inset: calc(20px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px)); }
-  body .ui-component { max-width: calc(100vw - 40px); }
+  body .ui-component { max-width: calc(var(--ui-width) - 40px); }
   .position-grid { grid-template-columns: repeat(3, 44px); }
   .position-grid span { height: 44px; }
 }

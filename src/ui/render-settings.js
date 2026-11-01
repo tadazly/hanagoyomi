@@ -1,5 +1,6 @@
 import { frameLimitRange } from '../rendering/render-preferences.js';
 import { onLanguageChange, t } from '../i18n/index.js';
+import { uiRect } from './interface-scale.js';
 
 export function bindRenderSettings({ settings, wallpaper, hostSettings, resize, document: doc = document }) {
   const scale = doc.getElementById('renderScale'), fps = doc.getElementById('fpsLimit');
@@ -14,7 +15,7 @@ export function bindRenderSettings({ settings, wallpaper, hostSettings, resize, 
     overlay.hidden=!settings.showPerformance;
     if(overlay.hidden)return;
     overlay.style.top='';
-    const base=overlay.getBoundingClientRect(),rect=logo.getBoundingClientRect();
+    const base=uiRect(overlay),rect=uiRect(logo);
     const visible=getComputedStyle(logo).visibility!=='hidden'&&getComputedStyle(logo).display!=='none';
     if(visible&&rect.right>base.left&&rect.left<base.right&&rect.bottom>base.top&&rect.top<base.bottom){
       overlay.style.top=`${Math.ceil(rect.bottom+12)}px`;

@@ -8,6 +8,9 @@ import { WALLPAPER_MODE } from './platform/environment.js';
 import { attachWallpaper } from './platform/wallpaper.js';
 import { initGallery } from './ui/gallery.js';
 import { bindWallpaperRanges } from './ui/wallpaper-ranges.js';
+import { initInterfaceScale } from './ui/interface-scale.js';
+import { initPageZoomGuard } from './ui/page-zoom.js';
+import { initTouchRanges } from './ui/touch-ranges.js';
 
 import moonSurfaceUrl from './assets/moon-albedo.webp?url';
 import galaxyUrl from './assets/milky-way.webp?url';
@@ -27,9 +30,12 @@ import cloudStatisticsUrl from './assets/eve-weather-statistics.webp?url';
 export let world;
 
 if (WALLPAPER_MODE) document.body.dataset.wallpaper = 'true';
+initPageZoomGuard();
 initI18n();
+initInterfaceScale();
 const shell = initShell({ licenseText: `${projectLicense}\n\n${thirdPartyNotices}` });
 if (WALLPAPER_MODE) bindWallpaperRanges(document);
+else initTouchRanges(document);
 try {
   world = startWorld(updateObservation, { moonSurfaceUrl, cloudNoiseLoader: loadCloudNoiseData, locationDataLoader: loadLocationData,
     cloudMapUrls: { low: cloudMapLowUrl, high: cloudMapHighUrl, ultra: cloudMapUltraUrl }, cloudStatisticsUrl, starCatalogUrl: import.meta.env.MODE === 'wallpaper' ? starCatalogInline : starCatalogUrl,

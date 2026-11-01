@@ -1,11 +1,16 @@
+/* 日间沿用原色；浏览器启用深色色彩方案时只提高底轨与圆点的对比。 */
+:root { --control-track: var(--track); --control-thumb: var(--thumb); }
+@supports (color: light-dark(white, black)) {
+  :root { --control-track: light-dark(var(--track), #51564c); --control-thumb: light-dark(var(--thumb), #e9e7df); }
+}
 .ctl { display: grid; grid-template-columns: 1fr auto; align-items: baseline; row-gap: 7px; margin: 13px 0 16px; }
 .ctl span, .ctl output { font-size: 14px; line-height: 1.5; }
 .ctl output { font-variant-numeric: tabular-nums; }
 .ctl input { grid-column: 1/-1; }
 input[type='range'] { -webkit-appearance: none; appearance: none; min-width: 0; width: 100%; height: 44px; background: transparent; margin: 0; --fill: 50%; cursor: pointer; touch-action: pan-y; border-radius: 10px; }
-input[type='range']::-webkit-slider-runnable-track { height: 20px; border-radius: 10px; background: linear-gradient(to right, var(--sun) var(--fill), var(--track) var(--fill)); box-shadow: inset 0 0 0 1px rgba(70,76,64,.08); }
+input[type='range']::-webkit-slider-runnable-track { height: 20px; border-radius: 10px; background: linear-gradient(to right, var(--sun) var(--fill), var(--control-track) var(--fill)); box-shadow: inset 0 0 0 1px rgba(70,76,64,.08); }
 input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; box-shadow: none; opacity: 0; }
-input[type='range']::-moz-range-track { height: 20px; border-radius: 10px; background: var(--track); box-shadow: inset 0 0 0 1px rgba(70,76,64,.08); }
+input[type='range']::-moz-range-track { height: 20px; border-radius: 10px; background: var(--control-track); box-shadow: inset 0 0 0 1px rgba(70,76,64,.08); }
 input[type='range']::-moz-range-progress { height: 20px; border-radius: 10px 0 0 10px; background: var(--sun); }
 input[type='range']::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; box-shadow: none; opacity: 0; }
 input[type='range']:focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
@@ -13,7 +18,7 @@ input[type='range']:disabled { opacity: .45; cursor: default; }
 body[data-wallpaper='true'] input[type='range'] { touch-action: none; user-select: none; -webkit-user-select: none; }
 .wallpaper-range { position: relative; min-width: 0; height: 44px; grid-column: 1/-1; }
 .wallpaper-range input { position: relative; z-index: 1; display: block; }
-.wallpaper-range-track { position: absolute; pointer-events: none; inset: 12px 0; overflow: hidden; border-radius: 10px; background: var(--track); box-shadow: inset 0 0 0 1px rgba(70,76,64,.08); }
+.wallpaper-range-track { position: absolute; pointer-events: none; inset: 12px 0; overflow: hidden; border-radius: 10px; background: var(--control-track); box-shadow: inset 0 0 0 1px rgba(70,76,64,.08); }
 .wallpaper-range-track span { position: absolute; inset: 0; background: var(--sun); transform-origin: left; }
 .wallpaper-range:has(input[data-range-adjusting]) .wallpaper-range-track span { will-change: transform; }
 .wallpaper-range:has(input:disabled) .wallpaper-range-track { opacity: .45; }
@@ -54,8 +59,8 @@ input[type='search']::placeholder { color: #7a7d72; }
 .seg input:focus-visible + span { outline: 2px solid var(--sun); outline-offset: 1px; }
 .switch { position: relative; display: flex; justify-content: space-between; align-items: center; margin: 14px 0; font-size: 13px; cursor: pointer; gap: 10px; }
 .switch input { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin: 0; opacity: 0; width: 1px; height: 1px; }
-.switch i { flex-shrink: 0; width: 32px; height: 19px; border-radius: 10px; background: var(--track); position: relative; transition: background .15s; }
-.switch i::after { content: ''; position: absolute; top: 3px; left: 3px; width: 13px; height: 13px; border-radius: 50%; background: var(--thumb); box-shadow: 0 1px 3px rgba(0,0,0,.15); transition: transform .15s; }
+.switch i { flex-shrink: 0; width: 32px; height: 19px; border-radius: 10px; background: var(--control-track); position: relative; transition: background .15s; }
+.switch i::after { content: ''; position: absolute; top: 3px; left: 3px; width: 13px; height: 13px; border-radius: 50%; background: var(--control-thumb); box-shadow: 0 1px 3px rgba(0,0,0,.15); transition: transform .15s; }
 .switch input:checked + i { background: var(--sun); }
 .switch input:checked + i::after { transform: translateX(13px); }
 .switch input:focus-visible + i { outline: 2px solid var(--sun); outline-offset: 2px; }

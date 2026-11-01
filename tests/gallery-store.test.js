@@ -40,6 +40,35 @@ test('并发新增的100上限在事务内生效，删除后可继续保存', as
   await store.remove((await store.read())[0].id); await store.add(scene,'替换');
   assert.equal((await store.read()).length,GALLERY_LIMIT); store.close();
 });
+
+test('拒绝持久化 Blob 的宿主仍可保存字节封面，重新打开后可读取', async () => {
+  const original = IDBObjectStore.prototype.put;
+  IDBObjectStore.prototype.put = function(value, ...args) {
+    if (value.blob instanceof Blob) throw new Error('Blob storage unsupported');
+    return original.call(this, value, ...args);
+  };
+  const factory = new IDBFactory();
+  const store = createGalleryStore({ factory: () => factory });
+  try {
+    assert(await store.open()); const entry = await store.add(scene, '字节封面');
+    assert(await store.setThumbnail(entry.id, jpeg)); store.close(); assert(await store.open());
+    assert.equal((await store.read())[0].hasThumbnail, true);
+    assert.deepEqual(new Uint8Array(await (await store.getThumbnail(entry.id)).arrayBuffer()), new Uint8Array(await jpeg.arrayBuffer()));
+  } finally { store.close(); IDBObjectStore.prototype.put = original; }
+});
+
+test('读取旧版 Blob 封面时重建内存 Blob，兼容现有收藏和数据库版本', async () => {
+  const { store, factory } = await setup();
+  const db = await new Promise((resolve, reject) => { const r = factory.open('hanagoyomi.gallery', 1); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction('thumbnails', 'readwrite');
+    tx.objectStore('thumbnails').put({ id: 'old-cover', blob: jpeg }); tx.oncomplete = resolve; tx.onabort = () => reject(tx.error);
+  });
+  const restored = await store.getThumbnail('old-cover');
+  assert.equal(restored.type, 'image/jpeg'); assert.equal(restored.size, jpeg.size);
+  assert.deepEqual(new Uint8Array(await restored.arrayBuffer()), new Uint8Array(await jpeg.arrayBuffer()));
+  db.close(); store.close();
+});
 test('并发改名和封面写入不丢字段，删除后的延迟封面不能复活收藏', async () => {
   const { store } = await setup(), first = await store.add(scene,'原名');
   await Promise.all([store.rename(first.id,'新名'),store.setThumbnail(first.id,jpeg)]);
@@ -110,12 +139,12 @@ test('提交后同ID旧数据变动会保留源并报冲突，不误删更新内
   assert.equal(JSON.parse(storage.getItem('gallery'))[0].title,'其他页面刚更新');
   assert.equal((await store.read())[0].title,legacy[0].title); store.close();
 });
-test('打开超时、异步onerror与Blob探针事务失败均降级为不可用', async () => {
+test('打开超时、异步onerror与字节探针事务失败均降级为不可用', async () => {
   for(const factory of [()=>({open(){return {};}}),()=>({open(){const request={error:new Error('denied')};queueMicrotask(()=>request.onerror());return request;}})]){
     assert.equal(await createGalleryStore({factory,openTimeout:10}).open(),false);
   }
   const original=IDBObjectStore.prototype.put;
-  IDBObjectStore.prototype.put=function(...args){if(this.name==='meta'&&args[0].id==='probe')throw new Error('Blob rejected');return original.apply(this,args);};
+  IDBObjectStore.prototype.put=function(...args){if(this.name==='meta'&&args[0].id==='probe')throw new Error('Storage rejected');return original.apply(this,args);};
   try {const factory=new IDBFactory();assert.equal(await createGalleryStore({factory:()=>factory}).open(),false);}
   finally {IDBObjectStore.prototype.put=original;}
 });

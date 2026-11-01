@@ -1,4 +1,4 @@
-.gallery-sheet { --gallery-ui: system-ui,-apple-system,'Segoe UI',sans-serif; position: fixed; z-index: 7; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom,0px)); transform: translateX(-50%); width: min(1080px,calc(100% - 40px)); max-height: calc(100dvh - 150px); padding: 12px 18px 14px; display: flex; flex-direction: column; color: #262a23; background: rgba(245,242,237,.97); border: 1px solid #ffffffb3; border-radius: 18px; box-shadow: 0 12px 45px #14201426; }
+.gallery-sheet { --gallery-ui: system-ui,-apple-system,'Segoe UI',sans-serif; position: fixed; z-index: 7; left: 50%; --gallery-bottom: 20px; bottom: calc(var(--gallery-bottom) + env(safe-area-inset-bottom,0px)); transform: translateX(-50%); width: min(1080px,calc(100% - 40px)); max-height: calc(var(--ui-height) - 150px); padding: 12px 18px 14px; display: flex; flex-direction: column; color: #262a23; background: rgba(245,242,237,.97); border: 1px solid #ffffffb3; border-radius: 18px; box-shadow: 0 12px 45px #14201426; }
 .gallery-header { display: flex; align-items: center; gap: 22px; min-height: 44px; flex-shrink: 0; margin-bottom: 8px; }
 .gallery-header h2 { font: 500 25px/1.35 var(--serif); letter-spacing: .04em; margin: 0; white-space: nowrap; }
 .gallery-tabs { display: flex; align-self: stretch; gap: 18px; }
@@ -52,10 +52,10 @@
 .gallery-empty-icon svg { width: 26px; height: 26px; color: #7f8d74; }
 .gallery-empty h3 { font: 500 20px var(--serif); margin: 10px 0 6px; }
 .gallery-empty p { font: 12px/1.5 var(--gallery-ui); color: #73766b; margin: 0; }
-.gallery-feedback { position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); max-width: calc(100vw - 40px); padding: 10px 16px; margin: 0; border-radius: 10px; background: #f5f2ed; box-shadow: 0 8px 30px #0002; font: 13px/1.5 var(--gallery-ui); text-align: center; pointer-events: none; }
+.gallery-feedback { position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); max-width: calc(var(--ui-width) - 40px); padding: 10px 16px; margin: 0; border-radius: 10px; background: #f5f2ed; box-shadow: 0 8px 30px #0002; font: 13px/1.5 var(--gallery-ui); text-align: center; pointer-events: none; }
 .gallery-grip { display: none; }
 body[data-gallery-open='true'] .observation,body[data-gallery-open='true'] .hint { opacity: 0; visibility: hidden; pointer-events: none; }
-body[data-wallpaper='true'] .gallery-sheet { bottom: calc(132px + env(safe-area-inset-bottom,0px)); }
+body[data-wallpaper='true'] .gallery-sheet { --gallery-bottom: 132px; bottom: calc(var(--gallery-bottom) + env(safe-area-inset-bottom,0px)); }
 @media (max-width: 900px) {
  .gallery-header { gap: 16px; }
  .gallery-header h2 { font-size: 24px; }
@@ -66,8 +66,8 @@ body[data-wallpaper='true'] .gallery-sheet { bottom: calc(132px + env(safe-area-
  .gallery-actions .gallery-apply { min-width: 124px; }
 }
 @media (max-width: 700px) and (orientation: portrait) {
- .gallery-sheet { bottom: calc(12px + env(safe-area-inset-bottom,0px)); width: calc(100% - 24px); max-height: calc(100dvh - 120px); padding: 8px 12px 10px; }
- body[data-wallpaper='true'] .gallery-sheet { bottom: calc(126px + env(safe-area-inset-bottom,0px)); }
+ .gallery-sheet { --gallery-bottom: 12px; bottom: calc(var(--gallery-bottom) + env(safe-area-inset-bottom,0px)); width: calc(100% - 24px); max-height: calc(var(--ui-height) - 120px); padding: 8px 12px 10px; }
+ body[data-wallpaper='true'] .gallery-sheet { --gallery-bottom: 126px; bottom: calc(var(--gallery-bottom) + env(safe-area-inset-bottom,0px)); }
  .gallery-grip { display: block; width: 30px; height: 3px; border-radius: 3px; background: #d5d6ce; margin: 0 auto 3px; flex-shrink: 0; }
  .gallery-header { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 0 8px; margin-bottom: 6px; }
  .gallery-header h2 { grid-area: 1/1/2/3; padding-right: 44px; font-size: 24px; white-space: normal; }
@@ -114,8 +114,8 @@ body[data-wallpaper='true'] .gallery-sheet { bottom: calc(132px + env(safe-area-
  .gallery-scene-description { display: none; }
 }
 @media (max-height: 600px) and (orientation: landscape) {
- .gallery-sheet { width: calc(100% - 24px); max-height: calc(100dvh - 110px); padding: 8px 14px 10px; }
- .gallery-list { grid-auto-columns: min(23%,calc((100dvh - 348px) * 16 / 9)); }
+ .gallery-sheet { width: calc(100% - 24px); max-height: calc(var(--ui-height) - 110px); padding: 8px 14px 10px; }
+ .gallery-list { grid-auto-columns: min(23%,calc((var(--ui-height) - 348px) * 16 / 9)); }
  .gallery-header { gap: 12px; margin-bottom: 4px; }
  .gallery-header h2 { font-size: 23px; }
  .gallery-tabs { gap: 12px; }
@@ -129,7 +129,7 @@ body[data-wallpaper='true'] .gallery-sheet { bottom: calc(132px + env(safe-area-
  .gallery-freeze label { font-size: 11px; }
  .gallery-actions button { padding-inline: 14px; }
  .gallery-actions .gallery-apply { min-width: 120px; }
- body[data-wallpaper='true'] .gallery-sheet { max-height: calc(100dvh - 148px); }
+ body[data-wallpaper='true'] .gallery-sheet { max-height: calc(var(--ui-height) - 148px); }
 }
 @media (prefers-reduced-motion: reduce) { .gallery-picture img { transition: none; } }
 .gallery-migration { text-align: center; width: min(400px,calc(100% - 40px)); padding: 32px 24px; }
@@ -144,10 +144,10 @@ body[data-wallpaper='true'] .gallery-sheet { bottom: calc(132px + env(safe-area-
  .gallery-sheet { width: min(1080px,calc(100% - 24px)); }
  .gallery-scene-description { display: none; }
  .gallery-sheet:not(.is-collapsed) .gallery-feedback { bottom: auto; top: 8px; }
- body[data-wallpaper='true'] .gallery-sheet { bottom: calc(124px + env(safe-area-inset-bottom,0px)); max-height: calc(100dvh - 136px); }
+ body[data-wallpaper='true'] .gallery-sheet { --gallery-bottom: 124px; bottom: calc(var(--gallery-bottom) + env(safe-area-inset-bottom,0px)); max-height: calc(var(--ui-height) - 136px); }
 }
 @media (max-width: 700px) and (max-height: 420px) and (orientation: landscape) {
- body[data-wallpaper='true'] .gallery-sheet { bottom: calc(117px + env(safe-area-inset-bottom,0px)); max-height: calc(100dvh - 129px); }
+ body[data-wallpaper='true'] .gallery-sheet { --gallery-bottom: 117px; bottom: calc(var(--gallery-bottom) + env(safe-area-inset-bottom,0px)); max-height: calc(var(--ui-height) - 129px); }
 }
 
 /* 图片只负责预览，名称与操作各有独立的命中区。 */
@@ -171,7 +171,7 @@ button.gallery-caption:hover { background: #65745b12; }
 .gallery-dock .gallery-actions button { padding-inline: 16px; }
 .gallery-dock .gallery-apply { min-width: 0; }
 .gallery-compact-label { display: none; }
-.gallery-dialog { position: fixed; width: min(380px,calc(100% - 24px)); max-width: calc(100% - 24px); max-height: calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)); margin: auto; padding: 22px; border: 1px solid #ffffffb3; border-radius: 16px; color: #262a23; background: #f5f2ed; box-shadow: 0 12px 50px #14201440; overflow: auto; overscroll-behavior: contain; font: 13px/1.5 var(--ui); }
+.gallery-dialog { position: fixed; width: min(380px,calc(100% - 24px)); max-width: calc(100% - 24px); max-height: calc(var(--ui-height) - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)); margin: auto; padding: 22px; border: 1px solid #ffffffb3; border-radius: 16px; color: #262a23; background: #f5f2ed; box-shadow: 0 12px 50px #14201440; overflow: auto; overscroll-behavior: contain; font: 13px/1.5 var(--ui); }
 .gallery-dialog::backdrop { background: #15201322; }
 .gallery-dialog h2 { font: 500 21px/1.4 var(--serif); margin: 0 30px 14px 0; overflow-wrap: anywhere; }
 .gallery-dialog button,.gallery-incoming button { min-height: 44px; padding: 8px 14px; border: 1px solid #8a8f80; border-radius: 9px; background: transparent; font: 12px/1.4 var(--ui); }
@@ -240,7 +240,7 @@ body:has(#galleryIncoming:not([hidden])) #toolbarZone,body:has(.gallery-dialog[o
 }
 @media (max-height: 420px) and (orientation: landscape) {
  /* 短横屏按可用高度同比缩小图片，两分类始终共用16:9规格。 */
- .gallery-list { grid-auto-columns: clamp(100px,calc((100dvh - 320px) * 16 / 9),144px); }
+ .gallery-list { grid-auto-columns: clamp(100px,calc((var(--ui-height) - 320px) * 16 / 9),144px); }
  .gallery-sheet { padding-block: 3px; }
  .gallery-content { padding-block: 0; }
  .gallery-scene { padding-bottom: 0; }

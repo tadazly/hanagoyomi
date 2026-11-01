@@ -1,0 +1,40 @@
+:root {
+  --ui-scale: 1;
+  --ui-width: calc(100vw / var(--ui-scale));
+  --ui-height: calc(100dvh / var(--ui-scale));
+}
+
+/* 仅缩放界面根节点，WebGL 画布与星空标注保持各自的渲染尺寸。 */
+body > :is(.chrome, dialog, .restore-zone, .toast, .error, .loader, .performance-overlay) { zoom: var(--ui-scale); }
+.ui-scale-options { margin-bottom: 22px; }
+.ui-scale-options label { flex: 1; min-width: 0; }
+
+/* 缩放后仍留出完整的触控区域；窄面板把滑条放到独立一行。 */
+html[data-ui-compact='true'] .panel .panel-heading { padding-inline: 12px; gap: 6px; }
+html[data-ui-compact='true'] .panel .panel-heading h2 { font-size: 20px; white-space: normal; overflow-wrap: anywhere; }
+html[data-ui-compact='true'] #panel .panel-title { flex: 1; }
+html[data-ui-compact='true'] #panel .panel-title h2 { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+html[data-ui-compact='true'] .panel .panel-help { width: 32px; }
+html[data-ui-compact='true'] .panel .plain-icon { width: 36px; }
+html[data-ui-compact='true'] .panel .tabs { margin-inline: 12px; }
+html[data-ui-compact='true'] .panel .tabs button { min-width: 0; font-size: 11px; overflow-wrap: anywhere; }
+html[data-ui-compact='true'] .panel .panel-body { padding-inline: 12px; }
+html[data-ui-compact='true'] .panel .wallpaper-scroll-region .panel-body { padding-right: 44px; }
+html[data-ui-compact='true'] .panel .ctl { grid-template-columns: minmax(0, 1fr) max-content; gap: 4px 12px; }
+html[data-ui-compact='true'] .panel .ctl > span { max-width: none; }
+html[data-ui-compact='true'] .panel .ctl > output { grid-column: 2; }
+html[data-ui-compact='true'] .panel .ctl > :is(input, .wallpaper-range) { grid-column: 1 / -1; grid-row: 2; }
+html[data-ui-compact='true'] .panel .component-placement { flex-wrap: wrap; }
+html[data-ui-compact='true'] .panel .language-field { flex-wrap: wrap; }
+html[data-ui-compact='true'] .panel .language-field select { max-width: 100%; }
+html[data-ui-compact='true'] .panel .wallpaper-language-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html[data-ui-compact='true'] .help-dialog { padding-inline: 14px; }
+html[data-ui-compact='true'] .help-dialog .panel-heading h2 { min-width: 0; font-size: 20px; white-space: normal; overflow-wrap: anywhere; }
+
+/* 短屏放大后保留关闭按钮，画廊内容可纵向滚动，不把操作挤出屏幕。 */
+html[data-ui-short='true'] body .gallery-sheet {
+  max-height: calc(var(--ui-height) - var(--gallery-bottom, 20px) - 12px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin;
+}
+html[data-ui-short='true'] .gallery-sheet .gallery-header { position: sticky; top: 0; z-index: 2; background: #f5f2ed; }
+html[data-ui-short='true'] .gallery-sheet .gallery-feedback { bottom: auto; top: 8px; z-index: 3; }

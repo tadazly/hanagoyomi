@@ -70,6 +70,15 @@ test('点击轨道定位、向上拖动和失焦终止拖动', () => {
   assert.equal(f.viewport.scrollTop, 400);
 });
 
+test('界面 125% 时滚动条的屏幕拖动距离换算正确', () => {
+  const f = fixture();
+  f.track.ownerDocument = { documentElement: { dataset: { uiScale: '1.25' } } };
+  f.emit(f.track, 'mousedown', { target: f.thumb, clientY: 30 });
+  f.emit(f.eventTarget, 'mousemove', { clientY: 130 });
+  assert.equal(f.viewport.scrollTop, 400);
+  f.emit(f.eventTarget, 'mouseup');
+});
+
 test('触屏拖动兼容捕获失败，忽略其他指针并在取消后停止', () => {
   const f = fixture();
   f.emit(f.track, 'pointerdown', { target: f.thumb, pointerType: 'touch', pointerId: 7, clientY: 30 });

@@ -1,4 +1,5 @@
 import { bindDragScroll } from './drag-scroll.js';
+import { getUiScale } from './interface-scale.js';
 
 // 展架内容与世界设置共用拖动/惯性；此处只管理横向轨道、滑块与可访问状态。
 export function bindGallerySwipe({ viewport, track, thumb, eventTarget = window }) {
@@ -42,7 +43,7 @@ export function bindGallerySwipe({ viewport, track, thumb, eventTarget = window 
     const { max, travel, thumbWidth } = metrics();
     if (!max || !travel) return;
     track.focus({ preventScroll: true });
-    if (!thumb.contains(event.target)) scroll((event.clientX - track.getBoundingClientRect().left - thumbWidth / 2) / travel * max);
+    if (!thumb.contains(event.target)) scroll(((event.clientX - track.getBoundingClientRect().left) / getUiScale(track.ownerDocument) - thumbWidth / 2) / travel * max);
     drag = { x: event.clientX, left: viewport.scrollLeft, pointerId: pointer ? event.pointerId : undefined, captured: false };
     if (drag.pointerId !== undefined) {
       try { track.setPointerCapture(drag.pointerId); drag.captured = true; } catch {}
@@ -52,7 +53,7 @@ export function bindGallerySwipe({ viewport, track, thumb, eventTarget = window 
     if (!drag || event.pointerId !== drag.pointerId) return;
     event.preventDefault();
     const { max, travel } = metrics();
-    if (travel) scroll(drag.left + (event.clientX - drag.x) / travel * max);
+    if (travel) scroll(drag.left + (event.clientX - drag.x) / getUiScale(track.ownerDocument) / travel * max);
   };
   const end = event => {
     if (!drag || (event && event.type !== 'blur' && event.pointerId !== drag.pointerId)) return;

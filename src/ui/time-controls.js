@@ -3,7 +3,7 @@ import { onLanguageChange, t } from '../i18n/index.js';
 
 // 大面板与快捷面板共用这一份结构、事件绑定和数值格式。
 const template = `
-  <div class="scene-lock-row"><span data-time-lock-state></span><button type="button" data-time-action="lock"></button></div>
+  <label class="switch"><span data-time-lock-state></span><input type="checkbox" data-time-action="lock"><i aria-hidden="true"></i></label>
   <p class="settings-helper" data-i18n="locks.timeHelp"></p>
   <label class="ctl"><span data-i18n="time.local">Local time</span><output data-time-output="time"></output><input aria-label="Local time" data-i18n-aria-label="time.local" type="range" data-time-field="time" min="0" max="23.99" step="0.01"></label>
   <label class="ctl"><span data-i18n="time.speed">Time speed</span><output data-time-output="speed"></output><input aria-label="Time speed" data-i18n-aria-label="time.speed" type="range" data-time-field="speed" min="0" step="1"></label>
@@ -30,8 +30,7 @@ function render() {
   for (const view of instances) {
     view.time.disabled = view.speed.disabled = view.sync.disabled = locked;
     view.sync.hidden = locked;
-    view.lock.textContent = t(locked ? 'locks.unlock' : 'locks.lock');
-    view.lock.setAttribute('aria-pressed', String(locked));
+    view.lock.checked = locked;
     view.lockState.textContent = t(locked ? 'locks.timeLocked' : 'locks.timeUnlocked');
     paintRange(view.time, view.timeOutput, hours, fmtTime);
     paintRange(view.speed, view.speedOutput, speedIndex, speedLabel);
@@ -61,7 +60,8 @@ function mount(root, prefix) {
   view.sunset.id = `${prefix}sunsetText`;
   const sync = root.querySelector('[data-time-action="sync"]');
   view.sync = sync; view.lock = root.querySelector('[data-time-action="lock"]'); view.lockState = root.querySelector('[data-time-lock-state]');
-  view.lock.addEventListener('click', () => actions.lock?.(!snapshot?.locked));
+  view.lock.id = `${prefix}sceneTimeLock`;
+  view.lock.addEventListener('change', () => actions.lock?.(view.lock.checked));
   sync.id = `${prefix}syncNow`;
   sync.addEventListener('click', () => actions.sync?.());
   instances.push(view);

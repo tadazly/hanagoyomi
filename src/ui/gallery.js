@@ -9,6 +9,7 @@ import { getSavedLocation } from '../world/location.js';
 import { createGalleryActions } from './gallery-actions.js';
 import { initSceneSharing } from './gallery-sharing.js';
 import { bindGallerySwipe } from './gallery-swipe.js';
+import { bindDragScroll } from './drag-scroll.js';
 import { createGalleryThumbnails } from './gallery-thumbnails.js';
 import { getLanguage, onLanguageChange, t } from '../i18n/index.js';
 import { g } from '../i18n/gallery-messages.js';
@@ -72,6 +73,8 @@ export function initGallery(world, shell) {
     </div>
     <p class="gallery-feedback" role="status" hidden></p>`;
   document.body.append(sheet);
+  bindDragScroll({ viewport: sheet, ignoreSelector: 'input,textarea,select,button,a,label,.gallery-content,.gallery-scrollbar' });
+  sheet.style.touchAction = 'auto';
   const $ = selector => sheet.querySelector(selector);
   const thumbnails = createGalleryThumbnails({ root: $('.gallery-content') });
   const refreshSwipe = bindGallerySwipe({ viewport: $('.gallery-content'), track: $('.gallery-scrollbar'), thumb: $('.gallery-scroll-thumb') });
@@ -133,6 +136,10 @@ export function initGallery(world, shell) {
     syncFreezes(scene.freeze);
     if (sheet.hidden) open();
     render(); setCollapsed(true);
+    // 旧收藏没有封面或图片已损坏时，在用户实际预览该风景后补拍，不改写作品内容。
+    if (savedItems.some(entry => entry.id === item.id) && (!item.hasThumbnail || cards.get(item.id)?.thumbnailBroken)) {
+      void saveThumbnail(item, captureThumbnail());
+    }
   };
   const createCard = item => {
     const tile = document.createElement('article'); tile.className = 'gallery-tile';
@@ -183,10 +190,11 @@ export function initGallery(world, shell) {
     if (collection === 'saved' && item.hasThumbnail && !card.thumbnailLoaded) {
       card.thumbnailLoaded = true;
       void store.getThumbnail(item.id).then(blob => {
-        if (card.disposed || !blob) return;
+        if (card.disposed) return;
+        if (!blob) { card.thumbnailLoaded = false; card.thumbnailBroken = true; return; }
         card.objectURL = URL.createObjectURL(blob);
         updateCard(card, card.item, world.isPreviewing());
-      }).catch(() => { card.thumbnailLoaded = false; });
+      }).catch(() => { card.thumbnailLoaded = false; card.thumbnailBroken = true; });
     }
     const source = collection === 'curated' && item.thumbnail
       ? new URL(`${import.meta.env.BASE_URL}${item.thumbnail}`, location.href).href : card.objectURL || '';
@@ -199,6 +207,7 @@ export function initGallery(world, shell) {
         image.alt = ''; image.width = 480; image.height = 270; image.decoding = 'async';
         image.addEventListener('error', () => {
           if (card.image !== image) return;
+          card.thumbnailBroken = true;
           image.hidden = true; card.picture.classList.add('gallery-picture-fallback');
         });
         card.image = image; card.picture.prepend(image);
@@ -315,7 +324,13 @@ export function initGallery(world, shell) {
   const saveThumbnail = async (entry, captured) => {
     try {
       const blob = await captured;
-      if (blob) await store.setThumbnail(entry.id, blob);
+      if (blob && await store.setThumbnail(entry.id, blob)) {
+        const card = cards.get(entry.id);
+        if (card) {
+          if (card.objectURL) URL.revokeObjectURL(card.objectURL);
+          card.objectURL = null; card.thumbnailLoaded = false; card.thumbnailBroken = false;
+        }
+      }
     } catch { /* 场景已持久化；封面失败不回滚收藏。 */ }
     await loadSaved().catch(() => feedback('loadError'));
   };
@@ -333,6 +348,7 @@ export function initGallery(world, shell) {
     try {
       const scene = world.captureScene(), captured = captureThumbnail();
       entry = await store.add(scene, g('untitled'));
+      refreshSwipe.cancel?.(); collection = 'saved'; scrollPositions.saved = 0;
       feedback('captured');
       await loadSaved();
       await saveThumbnail(entry, captured);

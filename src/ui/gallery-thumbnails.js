@@ -13,7 +13,8 @@ export function createGalleryThumbnails({ root, eventTarget = globalThis, preloa
     if (!active) return;
     for (const entry of entries) if (entry.isIntersecting) load(entry.target);
   }, { root, rootMargin: `0px ${preload}px`, threshold: 0 }) : null;
-  // 兼容不支持 IntersectionObserver 的宿主，仍按展架视口加载，不退回全量请求。
+  // Safari 的缩放/动态插入可能漏发交叉通知；打开、插入和滚动时也按视口检查。
+  // 不支持 IntersectionObserver 的宿主共用这条路径，不退回全量请求。
   const check = () => {
     frame = null;
     if (!active) return;
@@ -26,27 +27,25 @@ export function createGalleryThumbnails({ root, eventTarget = globalThis, preloa
     }
   };
   const schedule = () => {
-    if (active && !observer && frame === null) frame = eventTarget.requestAnimationFrame(check);
+    if (active && frame === null) frame = eventTarget.requestAnimationFrame(check);
   };
-  if (!observer) {
-    root.addEventListener('scroll', schedule, { passive: true });
-    eventTarget.addEventListener('resize', schedule);
-  }
+  root.addEventListener('scroll', schedule, { passive: true });
+  eventTarget.addEventListener('resize', schedule);
   return {
     observe(image, source) {
       pending.set(image, source);
-      if (active) { if (observer) observer.observe(image); else schedule(); }
+      if (active) { observer?.observe(image); schedule(); }
     },
     unobserve(image) { pending.delete(image); observer?.unobserve(image); },
     setActive(value) {
       active = Boolean(value);
       observer?.disconnect();
       if (frame !== null) { eventTarget.cancelAnimationFrame(frame); frame = null; }
-      if (active) { if (observer) for (const image of pending.keys()) observer.observe(image); else schedule(); }
+      if (active) { if (observer) for (const image of pending.keys()) observer.observe(image); schedule(); }
     },
     dispose() {
       this.setActive(false); pending.clear();
-      if (!observer) { root.removeEventListener('scroll', schedule); eventTarget.removeEventListener('resize', schedule); }
+      root.removeEventListener('scroll', schedule); eventTarget.removeEventListener('resize', schedule);
     },
   };
 }

@@ -1,3 +1,5 @@
+import { getUiScale } from './interface-scale.js';
+
 const DEFAULT_IGNORE = 'input,textarea,select,a,[contenteditable="true"],.ctl,.search-field,[data-no-drag-scroll]';
 const bindings = new WeakMap();
 
@@ -12,8 +14,10 @@ export function bindDragScroll({ viewport, axis = 'y', eventTarget = globalThis.
   if (bindings.has(viewport)) return bindings.get(viewport);
   const horizontal = axis === 'x', positionKey = horizontal ? 'scrollLeft' : 'scrollTop';
   const extentKey = horizontal ? 'scrollWidth' : 'scrollHeight', clientKey = horizontal ? 'clientWidth' : 'clientHeight';
-  const coordinate = event => Number(horizontal ? event.clientX : event.clientY) || 0;
-  const crossCoordinate = event => Number(horizontal ? event.clientY : event.clientX) || 0;
+  // 自定义位置（如滑条）自身使用屏幕像素，其余滚动距离使用 CSS 像素。
+  const scale = () => getPosition ? 1 : getUiScale(viewport.ownerDocument);
+  const coordinate = event => (Number(horizontal ? event.clientX : event.clientY) || 0) / scale();
+  const crossCoordinate = event => (Number(horizontal ? event.clientY : event.clientX) || 0) / scale();
   const doc = viewport.ownerDocument || eventTarget.document;
   const view = doc?.defaultView || eventTarget;
   const now = () => view.performance?.now?.() ?? globalThis.performance?.now?.() ?? Date.now();
@@ -150,6 +154,7 @@ export function bindDragScroll({ viewport, axis = 'y', eventTarget = globalThis.
   listen(eventTarget, 'mouseup', mouseUp);
   listen(eventTarget, 'pointercancel', cancel);
   listen(eventTarget, 'blur', cancel);
+  listen(doc, 'uiscalechange', cancel);
   listen(doc, 'visibilitychange', () => { if (doc.hidden) cancel(); });
   listen(reducedMotion, 'change', () => { if (reducedMotion.matches) { stopMotion(); if (!gesture) settle(); } });
   listen(eventTarget, 'click', event => {

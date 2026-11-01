@@ -1,6 +1,7 @@
 @import url('./controls.css');
 @import url('./components.css');
 @import url('./location-picker.css');
+@import url('./interface-scale.css');
 
 :root {
   --ink: #262a23;
@@ -21,9 +22,11 @@
 :root:lang(ja) { --serif: 'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', serif; }
 :root:lang(en) { --serif: Georgia, 'Times New Roman', 'Yu Mincho', serif; }
 *, *::before, *::after { box-sizing: border-box; }
-html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; touch-action: pan-x pan-y; }
 button, input, select { font: inherit; }
 button, a, input, select, summary { -webkit-tap-highlight-color: transparent; }
+/* 页面不随双击或双指手势缩放；专用拖动控件仍使用各自的手势规则。 */
+:where(button, a, label, input, select, summary, [role='button']) { touch-action: pan-x pan-y; }
 button { color: inherit; cursor: pointer; }
 a { color: inherit; }
 [hidden] { display: none !important; }
@@ -66,7 +69,7 @@ body:has(#helpDialog[open]) #toolbarZone { pointer-events: none; }
 .icon-button:hover { background: rgba(255, 255, 255, .16); }
 .icon-button svg { width: 20px; height: 20px; }
 .glass { background: var(--surface); border: 1px solid var(--glass-line); box-shadow: 0 14px 50px rgba(16, 26, 17, .12); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
-.panel { position: fixed; top: calc(94px + env(safe-area-inset-top, 0px)); right: calc(32px + env(safe-area-inset-right, 0px)); width: clamp(344px, 26.5vw, 420px); border-radius: 20px; max-height: calc(100dvh - 126px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; overflow: hidden; }
+.panel { position: fixed; top: calc(94px + env(safe-area-inset-top, 0px)); right: calc(32px + env(safe-area-inset-right, 0px)); width: clamp(344px, calc(var(--ui-width) * 0.265), 420px); border-radius: 20px; max-height: calc(var(--ui-height) - 126px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; overflow: hidden; }
 .panel-heading { display: flex; justify-content: space-between; align-items: center; padding: 25px 28px 12px; }
 .panel { z-index: 5; }
 .toolbar { z-index: 6; }
@@ -74,10 +77,11 @@ body:has(#helpDialog[open]) #toolbarZone { pointer-events: none; }
 .loader { z-index: 9; }
 .error { z-index: 12; }
 .panel-heading h2 { margin: 0; font-weight: 500; font-family: var(--serif); font-size: 24px; letter-spacing: .06em; }
-.time-popover { position: fixed; width: min(344px, calc(100vw - 24px)); z-index: 7; border-radius: 18px; background: rgba(245, 242, 237, .96); display: flex; flex-direction: column; overflow: hidden; }
+.time-popover { position: fixed; width: min(344px, calc(var(--ui-width) - 24px)); z-index: 7; border-radius: 18px; background: rgba(245, 242, 237, .96); display: flex; flex-direction: column; overflow: hidden; }
 .time-popover .panel-heading { padding: 20px 24px 12px; flex-shrink: 0; }
 .time-popover .panel-heading h2 { font-size: 20px; }
 .time-popover-body { padding: 0 24px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.time-popover .switch { min-height: 44px; margin: 0; }
 .time-popover .solar-row { font-size: 11px; gap: 8px; }
 .time-popover .solar-row > span { gap: 7px; }
 .time-popover .solar-row svg { width: 22px; height: 22px; }
@@ -108,7 +112,7 @@ body:has(#helpDialog[open]) #toolbarZone { pointer-events: none; }
 .service-note a { text-underline-offset: 3px; }
 .stats { font-family: system-ui, sans-serif; font-size: 12px; color: var(--ink-soft); overflow-wrap: anywhere; padding-bottom: 12px; }
 .stats p { margin: 5px 0; }
-.observation { position: fixed; left: calc(32px + env(safe-area-inset-left, 0px)); bottom: calc(38px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 64px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); pointer-events: none; }
+.observation { position: fixed; left: calc(32px + env(safe-area-inset-left, 0px)); bottom: calc(38px + env(safe-area-inset-bottom, 0px)); max-width: calc(var(--ui-width) - 64px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); pointer-events: none; }
 .observation button, .observation a { pointer-events: auto; }
 .observer-place { border: 0; background: none; display: flex; align-items: center; padding: 0; color: inherit; gap: 10px; text-shadow: inherit; font-size: 15px; }
 .observer-place svg { width: 20px; height: 20px; }
@@ -141,7 +145,7 @@ body:has(#helpDialog[open]) #toolbarZone { pointer-events: none; }
 .air-quality-value[data-level='veryUnhealthy'] { --aqi-color: #c89cbc; }
 .air-quality-value[data-level='hazardous'] { --aqi-color: #c17b91; }
 .air-quality-value:not([data-level]), .air-quality-value[data-level='unknown'] { --aqi-color: transparent; }
-.observer-source { position: fixed; width: max-content; max-width: min(380px, calc(100vw - 24px)); margin: 0; padding: 6px 9px; border-radius: 8px; background: rgba(18, 28, 31, .86); color: #f9f7f0; text-shadow: none; overflow-wrap: anywhere; font-size: 11px; line-height: 1.5; letter-spacing: .015em; visibility: hidden; opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+.observer-source { position: fixed; width: max-content; max-width: min(380px, calc(var(--ui-width) - 24px)); margin: 0; padding: 6px 9px; border-radius: 8px; background: rgba(18, 28, 31, .86); color: #f9f7f0; text-shadow: none; overflow-wrap: anywhere; font-size: 11px; line-height: 1.5; letter-spacing: .015em; visibility: hidden; opacity: 0; pointer-events: none; transition: opacity .18s ease; }
 .observer-source[data-visible='true'] { visibility: inherit; opacity: .8; }
 @media (hover: hover) and (pointer: fine) {
   .observer-source[data-visible='true'] { pointer-events: auto; }
@@ -172,7 +176,7 @@ kbd.key-space { min-width: 48px; }
 .restore-button svg { width: 18px; height: 18px; }
 .loader { position: fixed; inset: 0; display: grid; place-items: center; color: #fff; background: rgba(48, 65, 51, .15); pointer-events: none; transition: opacity .7s, visibility .7s; }
 .loader.done { opacity: 0; visibility: hidden; }
-.loader > div { width: min(250px, 70vw); text-align: center; font-size: 14px; letter-spacing: .08em; text-shadow: 0 1px 8px rgba(0,0,0,.25); }
+.loader > div { width: min(250px, calc(var(--ui-width) * 0.7)); text-align: center; font-size: 14px; letter-spacing: .08em; text-shadow: 0 1px 8px rgba(0,0,0,.25); }
 .loader-flower svg { width: 40px; height: 40px; margin: 0 auto 20px; stroke-width: .9; }
 .loader b { display: block; height: 2px; margin-top: 20px; background: rgba(255,255,255,.25); border-radius: 1px; overflow: hidden; }
 .loader b::after { content: ''; display: block; height: 100%; width: var(--p,0%); background: #fff; transition: width .15s; }
@@ -181,8 +185,8 @@ kbd.key-space { min-width: 48px; }
 .error > div { max-width: 420px; padding: 28px; border-radius: 20px; }
 .error h2 { font-size: 22px; font-weight: 500; margin: 0 0 16px; }
 .error p { font-size: 14px; line-height: 1.8; }
-.toast { position: fixed; left: 50%; bottom: 78px; transform: translateX(-50%); padding: 13px 20px; border-radius: 12px; font-size: 13px; z-index: 20; max-width: min(90vw,420px); text-align: center; line-height: 1.5; }
-.help-dialog { border-radius: 20px; max-width: min(470px, calc(100vw - 32px)); padding: 0 26px 20px; max-height: 85dvh; color: var(--ink); overflow: hidden; }
+.toast { position: fixed; left: 50%; bottom: 78px; transform: translateX(-50%); padding: 13px 20px; border-radius: 12px; font-size: 13px; z-index: 20; max-width: min(calc(var(--ui-width) * 0.9),420px); text-align: center; line-height: 1.5; }
+.help-dialog { border-radius: 20px; max-width: min(470px, calc(var(--ui-width) - 32px)); padding: 0 26px 20px; max-height: calc(var(--ui-height) * 0.85); color: var(--ink); overflow: hidden; }
 .help-dialog[open] { display: flex; flex-direction: column; }
 .help-dialog::backdrop { background: rgba(20, 35, 27, .35); backdrop-filter: blur(5px); }
 .help-dialog .panel-heading { padding: 25px 0 15px; flex-shrink: 0; }
@@ -222,11 +226,11 @@ kbd.key-space { min-width: 48px; }
   .live-status { display: none; }
   .icon-button { width: 33px; height: 33px; border-radius: 10px; padding: 7px; }
   .icon-button svg { width: 18px; height: 18px; }
-  .panel { top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: 12px; right: 12px; width: auto; max-height: min(76dvh, 760px); border-radius: 20px; }
+  .panel { top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: 12px; right: 12px; width: auto; max-height: min(calc(var(--ui-height) * 0.76), 760px); border-radius: 20px; }
   .panel-heading { padding: 18px 22px 10px; }
   .panel-body { padding-top: 17px; }
   body[data-panel-open='true'] .observation, body[data-panel-open='true'] .hint { visibility: hidden; opacity: 0; pointer-events: none; }
-  .observation { left: 22px; bottom: calc(34px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 44px); }
+  .observation { left: 22px; bottom: calc(34px + env(safe-area-inset-bottom, 0px)); max-width: calc(var(--ui-width) - 44px); }
   .observer-weather-details { font-size: 12px; gap: 5px 16px; }
   .observer-temperature { font-size: 18px; }
   .observer-time { font-size: 72px; }
@@ -240,7 +244,7 @@ kbd.key-space { min-width: 48px; }
 }
 @media (max-height: 700px) and (min-width: 701px) {
   .masthead { top: 20px; }
-  .panel { top: 76px; max-height: calc(100dvh - 94px); }
+  .panel { top: 76px; max-height: calc(var(--ui-height) - 94px); }
   .observer-time { font-size: 66px; }
   .observation { bottom: 50px; }
 }
@@ -249,7 +253,7 @@ kbd.key-space { min-width: 48px; }
 }
 
 /* 与画廊共用暖白、鼠尾草绿和衬线标题，控件使用清晰的系统字体。 */
-.panel { width: 380px; max-width: calc(100vw - 24px); border-radius: 20px; background: rgba(245, 242, 237, .96); font-size: 13px; }
+.panel { width: 380px; max-width: calc(var(--ui-width) - 24px); border-radius: 20px; background: rgba(245, 242, 237, .96); font-size: 13px; }
 .panel-heading { gap: 10px; padding: 14px 20px 8px; flex-shrink: 0; }
 .panel-heading h2 { font-size: 24px; letter-spacing: .035em; }
 .panel-heading .plain-icon { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; }
@@ -311,19 +315,19 @@ kbd.key-space { min-width: 48px; }
 .wallpaper-scroll-region .help-body::-webkit-scrollbar { display: none; }
 .wallpaper-scroll-region .time-popover-body { min-height: 0; flex: 1; padding-right: 44px; scrollbar-width: none; }
 .wallpaper-scroll-region .time-popover-body::-webkit-scrollbar { display: none; }
-body[data-wallpaper='true'] .panel { top: 104px; max-height: calc(100dvh - 232px); }
+body[data-wallpaper='true'] .panel { top: 104px; max-height: calc(var(--ui-height) - 232px); }
 body[data-wallpaper='true'] .help-controls, body[data-wallpaper='true'] .touch-help { display: none; }
 body[data-wallpaper='true'] .hint:not([data-stargazing='true']),
 body[data-wallpaper='true'] [data-component-settings='hint'],
 body[data-wallpaper='true'] .help-preference { display: none; }
 @media (max-width: 700px) {
-  .panel { width: calc(100vw - 24px); max-width: 380px; left: auto; right: 12px; }
+  .panel { width: calc(var(--ui-width) - 24px); max-width: 380px; left: auto; right: 12px; }
   .panel-heading { padding-inline: 20px; }
   .panel-heading h2 { font-size: 24px; }
-  body[data-wallpaper='true'] .panel { top: auto; bottom: 126px; max-height: calc(100dvh - 154px); }
+  body[data-wallpaper='true'] .panel { top: auto; bottom: 126px; max-height: calc(var(--ui-height) - 154px); }
 }
 @media (max-height: 600px) and (min-width: 701px) {
-  body[data-wallpaper='true'] .panel { top: 16px; max-height: calc(100dvh - 124px); }
+  body[data-wallpaper='true'] .panel { top: 16px; max-height: calc(var(--ui-height) - 124px); }
   .panel-heading { padding-top: 14px; padding-bottom: 8px; }
 }
 @media (max-width: 360px) {
@@ -338,7 +342,7 @@ body[data-wallpaper='true'] .help-preference { display: none; }
 
 /* 短横屏把标题和分类合为一行，优先给真正可操作的正文留出高度。 */
 @media (max-height: 420px) and (orientation: landscape) {
- .panel { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); grid-template-rows: 50px minmax(0,1fr); top: 64px; bottom: auto; left: auto; right: 12px; width: min(720px,calc(100vw - 24px)); max-width: calc(100vw - 24px); height: calc(100dvh - 76px); max-height: none; }
+ .panel { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); grid-template-rows: 50px minmax(0,1fr); top: 64px; bottom: auto; left: auto; right: 12px; width: min(720px,calc(var(--ui-width) - 24px)); max-width: calc(var(--ui-width) - 24px); height: calc(var(--ui-height) - 76px); max-height: none; }
  .panel-heading { grid-column: 1; grid-row: 1; padding: 3px 14px; gap: 8px; border-bottom: 1px solid var(--track); }
  .panel-heading h2 { font-size: 20px; white-space: nowrap; }
  #panelClose { position: absolute; top: 3px; right: 14px; margin: 0; }
@@ -346,16 +350,14 @@ body[data-wallpaper='true'] .help-preference { display: none; }
  .panel .tabs button { font-size: 12px; padding: 4px 0; }
  .panel > :is(.panel-body,.wallpaper-scroll-region) { grid-column: 1/-1; grid-row: 2; min-height: 0; }
  .panel-body { padding-top: 8px; padding-bottom: 8px; }
- body[data-wallpaper='true'] .panel { top: 12px; bottom: auto; height: calc(100dvh - 136px); max-height: none; }
+ body[data-wallpaper='true'] .panel { top: 12px; bottom: auto; height: calc(var(--ui-height) - 136px); max-height: none; }
 }
 @media (max-width: 700px) and (max-height: 420px) and (orientation: landscape) {
- body[data-wallpaper='true'] .panel { height: calc(100dvh - 129px); }
+ body[data-wallpaper='true'] .panel { height: calc(var(--ui-height) - 129px); }
 }
 
 .scene-controls { border: 0; padding: 0; margin: 0; min-width: 0; }
 .scene-controls:disabled { opacity: .55; }
-.scene-lock-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; }
-.scene-lock-row button { min-height: 44px; padding: 7px 13px; border: 1px solid #8a8f80; border-radius: 8px; background: transparent; color: inherit; font: inherit; }
 
 /* 天空有独立分类；五个分类在手机与短横屏中仍保持可达。 */
 .panel .tabs button { min-width: 0; padding-inline: 3px; }
@@ -364,7 +366,7 @@ body[data-wallpaper='true'] .help-preference { display: none; }
 .sky-finder select { min-width: 0; width: 100%; min-height: 44px; border: 1px solid var(--track); border-radius: 8px; padding: 8px; color: var(--ink); background: rgba(255,255,255,.4); font: inherit; font-size: 13px; }
 .sky-finder select[hidden] { display: none !important; }
 .wallpaper-constellation-trigger { min-height: 44px; padding: 8px 12px; border: 1px solid var(--track); border-radius: 8px; background: rgba(255,255,255,.4); color: var(--ink); text-align: left; font: inherit; font-size: 13px; }
-.wallpaper-constellation-list { flex: 1 1 auto; min-height: 0; height: min(390px,49dvh); overflow-y: auto; overscroll-behavior: contain; }
+.wallpaper-constellation-list { flex: 1 1 auto; min-height: 0; height: min(390px,calc(var(--ui-height) * 0.49)); overflow-y: auto; overscroll-behavior: contain; }
 .wallpaper-constellation-list button { display: block; width: 100%; min-height: 44px; padding: 9px 12px; border: 0; border-bottom: 1px solid var(--track); background: transparent; color: var(--ink); text-align: left; font: inherit; font-size: 14px; }
 .wallpaper-constellation-list button[aria-pressed='true'] { color: var(--sun); font-weight: 600; }
 .wallpaper-constellation-pages { display: flex; gap: 8px; padding: 8px 0 12px; }
@@ -375,7 +377,7 @@ body[data-wallpaper='true'] .help-preference { display: none; }
   position: fixed; z-index: 3; pointer-events: none;
   left: calc(20px + env(safe-area-inset-left, 0px));
   top: calc(20px + env(safe-area-inset-top, 0px));
-  max-width: calc(100vw - 40px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  max-width: calc(var(--ui-width) - 40px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
   white-space: pre-line; overflow-wrap: anywhere;
   color: #fff; font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
   text-shadow: 0 1px 3px #000, 0 0 6px #000;

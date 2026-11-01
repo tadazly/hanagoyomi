@@ -35,7 +35,7 @@ const entries = {
   "sky.exit": ["Exit stargazing", "退出观星", "観察を終了"],
 
   'locks.timeLocked': ['Scene time locked', '场景时刻已锁定', '風景の時刻を固定中'],
-  'locks.timeUnlocked': ['Scene time', '场景时刻', '風景の時刻'],
+  'locks.timeUnlocked': ['Lock scene time', '锁定场景时刻', '風景の時刻を固定'],
   'locks.weatherLocked': ['Scene weather locked', '场景天气已锁定', '風景の天気を固定中'],
   'locks.weatherUnlocked': ['Lock scene weather', '锁定场景天气', '風景の天気を固定'],
   'locks.lock': ['Lock', '锁定', '固定'],
@@ -108,6 +108,7 @@ const entries = {
   'components.logo': ['LOGO', 'LOGO 显示', 'ロゴ表示'],
   'components.observation': ['Time and weather', '时间天气显示', '時刻・天気表示'],
   'components.hint': ['Controls hint', '操作提示显示', '操作ヒント表示'],
+  'components.scale': ['Interface scale', '界面缩放', '表示倍率'],
   'components.interaction': ['Manual controls', '允许手动操纵', '手動操作'],
   'components.position': ['Position', '显示位置', '表示位置'],
   'components.observationPosition': ['Time and weather position', '时间天气位置', '時刻・天気の位置'],

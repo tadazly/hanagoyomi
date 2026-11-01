@@ -1,5 +1,6 @@
 import { onLanguageChange, setMessage, t } from '../i18n/index.js';
 import { WALLPAPER_MODE, storageKey } from '../platform/environment.js';
+import { uiRect } from './interface-scale.js';
 
 export const COMPONENTS_KEY = storageKey('hanagoyomi.components.v1');
 export const POSITIONS = ['top-left', 'top-center', 'top-right', 'middle-left', 'middle-center', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right'];
@@ -78,10 +79,10 @@ export function initComponentSettings() {
     || (preferences[name].visible && (name !== 'hint' || (!WALLPAPER_MODE && interactionEnabled())));
   const layout = () => {
     queued = false;
-    const bounds = boundsElement.getBoundingClientRect(), toolbar = document.querySelector('.toolbar').getBoundingClientRect();
+    const bounds = uiRect(boundsElement), toolbar = uiRect(document.querySelector('.toolbar'));
     const defaults = { logo: WALLPAPER_MODE ? 'top-right' : 'top-left', observation: WALLPAPER_MODE ? 'bottom-center' : 'bottom-left', hint: innerWidth <= 700 ? 'bottom-right' : innerWidth <= 1100 ? 'bottom-left' : 'bottom-center' };
     const items = COMPONENTS.filter(visible).map(name => {
-      const element = elements[name], rect = element.getBoundingClientRect();
+      const element = elements[name], rect = uiRect(element);
       const position = preferences[name].position;
       return { name, width: rect.width, height: rect.height, position: !position || position === 'default' ? defaults[name] : position };
     });
@@ -152,6 +153,7 @@ export function initComponentSettings() {
   });
   onLanguageChange(refresh);
   document.addEventListener('sceneinteractionchange', refresh);
+  document.addEventListener('uiscalechange', requestLayout);
   window.addEventListener('resize', requestLayout);
   document.addEventListener('fullscreenchange', requestLayout);
   const observer = new ResizeObserver(requestLayout);

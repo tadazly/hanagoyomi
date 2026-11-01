@@ -82,6 +82,17 @@ test('小位移保持点击语义，下一次明确点击不被旧拖动抑制�
   f.binding.destroy();
 });
 
+test('界面 125% 时按 CSS 滚动距离换算，比例切换立即结束旧手势', () => {
+  const f = fixture({ reducedMotion: true });
+  f.doc.documentElement = { dataset: { uiScale: '1.25' } };
+  f.down({ clientY: 300 }); f.move({ clientY: 175 }); f.frame();
+  assert.equal(f.viewport.scrollTop, 100);
+  f.doc.emit('uiscalechange');
+  assert.equal(f.binding.active, false);
+  f.move({ clientY: 0 }); f.frame(); assert.equal(f.viewport.scrollTop, 100);
+  f.binding.destroy();
+});
+
 test('PointerEvent及其兼容MouseEvent只驱动一次；仅MouseEvent宿主也能拖动', () => {
   const f = fixture();
   f.down(); f.viewport.emit('mousedown', { target: f.button, clientY: 80 });
